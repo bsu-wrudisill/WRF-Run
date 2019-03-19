@@ -1,4 +1,4 @@
-from RunDivide import *
+import RunDivide as RD
 import datetime 
 import sys,os
 import subprocess
@@ -7,8 +7,9 @@ from shutil import copyfile
 
 d1 = datetime.datetime(1998, 3, 22, 0, 0)
 d2 = datetime.datetime(1998, 3, 28, 0, 0)
-foo=wrfChunk(True)
-foo.DateGenerator(d1,d2)
+foo=RD.wrfChunk(True)                      # restart == True 
+foo.DateGenerator(d1,d2)                   # 
+
 
 class WRF_Run():
     # chunk is a chunk object created by ____.py 

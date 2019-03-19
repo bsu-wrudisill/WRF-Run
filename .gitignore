@@ -1,4 +1,5 @@
 LBC
 Run
 RunGeogrid
-
+Run*
+*.pyc
