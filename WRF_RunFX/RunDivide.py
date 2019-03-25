@@ -97,9 +97,7 @@ class wrfChunk():
         
         # restart run?   CHANGE TO OPTIONAL KEYWORD ARGUMENT
         if index >= 0:
-            restart=True
-        else: 
-             restart=False # /// self.restart defined above
+            self.restart=False
         
         # get name of last wrfout
         last_wrfout = "wrfout_*_{}-{}-{}_"

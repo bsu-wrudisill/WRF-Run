@@ -5,26 +5,38 @@ import subprocess
 import time 
 from shutil import copyfile
 
-d1 = datetime.datetime(1998, 3, 22, 0, 0)
-d2 = datetime.datetime(1998, 3, 28, 0, 0)
-foo=RD.wrfChunk(True)                      # restart == True 
-foo.DateGenerator(d1,d2)                   # 
+"""
+General structure:
+The "RunDivde" script creates a "chunk" object given a starting and ending date.
+This object divides up the run into intervals with the appropriate times. The 
+chunk object contains a method to update and write out namelist files when called 
+(chunk.UpdateNamelist and chunk.WriteNameList respectively).
+The RunWRF class is used to make calls to the chunk object when appropriate (to update 
+namelists/submit scripts) and make system calls to run wrf.exe and real.exe
+"""
 
 
 class WRF_Run():
     # chunk is a chunk object created by ____.py 
-    runDirectory="/scratch/wrudisill/WRFTestDir/testrun"
+
     user='wrudisill'
     current_state = "starting WRF Run"
-    def __init__(self,chunk):
-        # Copy files into the run directory and CD there
+
+    def __init__(self,chunk,runDirectory):
+        self.runDirectory=runDirectory       # Copy files into the run directory and CD there
         self.chunk = chunk
         copyfile("namelist.input.template", "{}/namelist.input.template".format(self.runDirectory))
         copyfile("submit_template.sh", "{}/submit_template.sh".format(self.runDirectory))
         os.chdir(self.runDirectory)
 
     def Run(self):
-        # loop through chunk list 
+        # loop through the list of chunk time periods and 
+        # 1) update/write namelists
+        # 2) run real.exe  
+        # 3) update/write namelists 
+        # 4) run wrf.exe 
+    
+        # loop through chunks         
         for i in range(self.chunk.Counter):
             print i
             # do stuff           
@@ -40,9 +52,14 @@ class WRF_Run():
             # finish and clean up
             # CLEAN ME 
             # 
+        self.cleanRun()
+    
     def Message(self):
         pass 
 
+    def cleanRun(self):
+        pass
+          
     def cleanReal(self):
         # rename previous wrfinput files  
         mvcmd = ['mv wrfinput_d0{} wrfinput_d0{}_{}'.format(i, i, self.chunk.slurmlist['JOBNAME']) for i in [1,2]]
@@ -120,6 +137,4 @@ class WRF_Run():
         # concatenate RSL files into one 
         pass        
 #
-wr = WRF_Run(foo)
-wr.Run()
 
