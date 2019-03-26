@@ -7,7 +7,8 @@ class wrfChunk():
     restart = False 
     namelistPath="./namelist.input.template"
     submitPath="./submit_template.sh"
-    # paramss
+    
+    # params
     namelist = {"RUN_DAYS":None,
                    "RUN_HOURS":None,
                    "START_YEAR":None,
@@ -91,13 +92,13 @@ class wrfChunk():
         #framesperaux=min(self.RunHours[index], 24)
         
         #!! LETS DO HOURLY OUTPUT INSTEAD!! 
-        framesperout=1
-        framesperaux=1
+        framesperout=24
+        framesperaux=24
         restartinterval=max(self.RunHours[index]*60,self.RunDays[index]*24*60)
         
         # restart run?   CHANGE TO OPTIONAL KEYWORD ARGUMENT
-        if index >= 0:
-            self.restart=False
+        if index > 0:
+            self.restart=True
         
         # get name of last wrfout
         last_wrfout = "wrfout_*_{}-{}-{}_"
@@ -137,7 +138,7 @@ class wrfChunk():
             file.write(filedata)
         # done 
         
-    def WriteNameList(self):
+    def WriteNamelist(self):
         try:
             os.remove('namelist.input')
         except:

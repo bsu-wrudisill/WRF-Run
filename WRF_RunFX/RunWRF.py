@@ -42,7 +42,7 @@ class WRF_Run():
             # do stuff           
             # update namelist 
             self.chunk.UpdateNamelist(i)
-            self.chunk.WriteNameList()
+            self.chunk.WriteNamelist()
             # run Real
             # wait for jobs 
             self.Real() 
