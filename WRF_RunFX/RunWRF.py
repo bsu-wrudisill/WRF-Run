@@ -29,13 +29,14 @@ class WRF_Run():
         copyfile("submit_template.sh", "{}/submit_template.sh".format(self.runDirectory))
         os.chdir(self.runDirectory)
 
-    def Run(self):
+    def Run(self, **kwargs):
         # loop through the list of chunk time periods and 
         # 1) update/write namelists
         # 2) run real.exe  
         # 3) update/write namelists 
         # 4) run wrf.exe 
-    
+        wrfinmod = kwargs.get("wrfinmod", False)
+
         # loop through chunks         
         for i in range(self.chunk.Counter):
             print i
@@ -43,9 +44,9 @@ class WRF_Run():
             # update namelist 
             self.chunk.UpdateNamelist(i)
             self.chunk.WriteNamelist()
-            # run Real
-            # wait for jobs 
-            self.Real() 
+            # proceed as normal 
+            self.Real()
+            
             # run WRF 
             # wait for jobs 
             self.WRF()
@@ -58,7 +59,14 @@ class WRF_Run():
         pass 
 
     def cleanRun(self):
-        pass
+        rslcmd=["cat rsl.out.???? >> rsl_out_all",
+                "cat rsl.error.???? >> rsl_error_all",
+                "rm rsl.error.*",
+                "rm rsl.out.*"]
+        
+        # clean up the rsl files  
+        map(self.system_cmd, rslcmd)
+         
           
     def cleanReal(self):
         # rename previous wrfinput files  
@@ -72,6 +80,14 @@ class WRF_Run():
 
     def cleanWRF(self):
         pass 
+    
+    def RealWrapper(self,chunk,**kwargs):
+        # only run real if the chunk is > 0.
+        # this lets us change the wrfinput files
+        if chunk == 0:
+            pass
+        else: 
+            self.Real()
 
     def Real(self):
         # remove real files 
