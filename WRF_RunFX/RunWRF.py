@@ -92,7 +92,6 @@ class WRF_Run():
         out,err = self.system_cmd(cmd_submit)
         # wait for jobs 
         self.WaitForJob(catch)
-        pass
 
     def WRF(self):
         # create wrf submit script 
@@ -107,9 +106,8 @@ class WRF_Run():
         out,err = self.system_cmd(cmd_submit)
         # wait for jobs 
         self.WaitForJob(catch)
-        pass
 
-     def Run(self):
+    def Run(self):
         # loop through the list of chunk time periods and 
         # 1) update/write namelists
         # 2) run real.exe  
@@ -127,7 +125,7 @@ class WRF_Run():
             self.Real()
 
             # do this function after real  
-            self.WrinputUpdate()
+            self.WrfinputUpdate()
 
             # Run WRF 
             self.WRF()
@@ -146,6 +144,8 @@ class WRF_Run():
         # update the wrfinput file if a replacement file exists
         if os.path.isfile("wrfinput_d02_REPLACE"):
             wrfcmd = ['mv wrfinput_d02_REPLACE wrfinput_d02']
+            map(self.system_cmd, wrfcmd)
+            print "REPLACED WRFINPUT FILE"
         else:
             pass
     

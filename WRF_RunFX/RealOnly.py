@@ -10,24 +10,26 @@ with the correct met_em* files and restart files (if the run is a restart run).
 the RunDivide.py and RunWRF scripts must live within this same directory for 
 the time being. 
 """
+# run directory -- full path 
 rundir=sys.argv[1]
-#
-#
-d1 = datetime.datetime(1998, 3, 19, 0, 0)
-d2 = datetime.datetime(1998, 3, 27, 0, 0)
-#
+
+# the time range 
+d1 = datetime.datetime(2010, 10, 1, 0, 0)
+d2 = datetime.datetime(2010, 10, 1, 21, 0)
+
+# create the 'chunk' object 
 timeperiod=rd.wrfChunk(False)            # restart == True 
 timeperiod.DateGenerator(d1,d2)          
-#
-#rundir = "/scratch/wrudisill/WRFTestDir/Run_MScase"
+
+# initialize WRF object 
 wrf= rw.WRF_Run(timeperiod, rundir)
 
-#timeperiod.UpdateNamelist(0)
-#timeperiod.WriteNamelist()
+# create a namelist 
+timeperiod.UpdateNamelist(0)
+timeperiod.WriteNamelist()
 
-#wrf.Real()
-#wrf.WRF()
-wrf.Run()
+# run real 
+wrf.Real()
 #
 #
 #
