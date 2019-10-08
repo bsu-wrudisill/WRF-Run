@@ -1,0 +1,6 @@
+# wrf run setup parameter file 
+
+run_name = TEST
+wrf_run_directory = /home/wrudisill/WRF/WRF/3.8.1/WRFV3/run
+user_email =williamrudisill@u.boisestate.edu
+namelist_file = None
