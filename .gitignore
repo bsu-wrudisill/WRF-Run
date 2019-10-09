@@ -1,5 +1,4 @@
-LBC
-Run
-RunGeogrid
-Run*
 *.pyc
+*.png
+*.nc
+*.TBL
