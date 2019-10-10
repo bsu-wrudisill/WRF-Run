@@ -34,6 +34,7 @@ def timer(function):
 		t2 = datetime.datetime.now()
 		dt = (t2 - t1).total_seconds()/60   # time in minutes
 		logging.info('function {} took {} minutes complete'.format(function.__name__, dt))	
+		print('function {} took {} minutes complete'.format(function.__name__, dt))
 		return wrapped_function
 	return wrapper
 
@@ -90,6 +91,7 @@ def WaitForJob(jobid,user):
 		still_running = len(still_running_list)
 		logger.info('jobID {} is still running...'.format(still_running_list))
 		logger.info('sleep for 10 seconds')
+			
 		time.sleep(10)
 
 def formatDate(dstr):
@@ -114,5 +116,15 @@ def GenericWrite(readpath,replacedata,writepath):
 	with open(writepath, 'w') as file:
 	    file.write(filedata)
 	# done 
+
+def tail(linenumber, filename):
+	# issue a system tail commnad 
+	returnString, error = SystemCmd('tail -n {} {}'.format(linenumber, filename))
+	returnString = ' '.join([x.decode("utf-8")  for x in returnString])
+	return returnString 	
+	
+	
+
+
 
 
