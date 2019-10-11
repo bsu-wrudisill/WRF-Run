@@ -9,6 +9,7 @@ import numpy as np
 import time 
 import traceback
 import logging
+import threading 
 logger = logging.getLogger(__name__)
 
 
@@ -117,14 +118,27 @@ def GenericWrite(readpath,replacedata,writepath):
 	    file.write(filedata)
 	# done 
 
+
+#------------- slightly less generic commands ---------# 
 def tail(linenumber, filename):
 	# issue a system tail commnad 
 	returnString, error = SystemCmd('tail -n {} {}'.format(linenumber, filename))
 	returnString = ' '.join([x.decode("utf-8")  for x in returnString])
 	return returnString 	
-	
-	
+
+def fetchFile(filepath):
+	# wget a file 
+	SystemCmd('wget --output-file=logfile {}'.format(filepath)) # CHANGE ME...
 
 
-
+@timer 
+def multThread(function, mappable):
+	# generic function
+	# applies given function to list, where a list item 
+	# is the ONLY input arg to that function
+	threads = [threading.Thread(target=function, args=(item,)) for item in mappable]
+	for thread in threads:
+		thread.start()
+	for thread in threads:
+		thread.join()
 
