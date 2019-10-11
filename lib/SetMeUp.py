@@ -26,9 +26,10 @@ class SetMeUp:
 		self.setup = setup # name of the setup file. THIS MIGHT CHANGE LATER !!!!	
 		self.cwd = path(os.getcwd())
 		
+		self.lbc_type = 'cfsr'
 		#!!!!!!!!!!!!!!!!!!!!! VERY UGLY RELATIVE PATHS ---- NOT LONG TERM SOLUTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		self.submit_template = self.cwd.parent.joinpath('namelists/submit.template.sh')	 #CHANGE ME CHANGE ME CHANGE ME
-		self.environment_file = self.cwd.parent.joinpath('envWRF_3.8.1_R2.sh')           # CHANGE ME CAHNGE ME CHANGE ME 
+		self.environment_file = self.cwd.parent.joinpath('envWRF_4.1.2_R2.sh')           # CHANGE ME CAHNGE ME CHANGE ME 
 		#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		
 		# gather static paths 
@@ -68,7 +69,7 @@ class SetMeUp:
 		self.nodes = yamlfile['NODES']
 		
 		# forcing files stuff goes here 
-		self.output_time_format = "%Y-%m-%d_%H:%M:%S" #!!! FOR WRF -- CHANGE ME LATER !!! 
+		self.time_format = "%Y-%m-%d_%H:%M:%S" #!!! FOR WRF -- CHANGE ME LATER !!! 
 		self.output_format ="wrfout_d02_{}"  # !! FOR WRF -- CHANGE ME LATER !!! 
 		
 		# create catch id file name 	
