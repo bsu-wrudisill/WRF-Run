@@ -28,8 +28,10 @@ class SetMeUp:
 		
 		self.lbc_type = 'cfsr'
 		#!!!!!!!!!!!!!!!!!!!!! VERY UGLY RELATIVE PATHS ---- NOT LONG TERM SOLUTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		self.submit_template = self.cwd.parent.joinpath('namelists/submit.template.sh')	 #CHANGE ME CHANGE ME CHANGE ME
-		self.environment_file = self.cwd.parent.joinpath('envWRF_4.1.2_R2.sh')           # CHANGE ME CAHNGE ME CHANGE ME 
+		# READ FROM THE MAIN CONFIG SECTION 
+		scheduler = yamlfile['scheduler']
+		self.submit_template = self.cwd.parent.joinpath('namelists/submit.template.{}.sh'.format(scheduler))	 # CHANGE ME CHANGE ME CHANGE ME
+		self.environment_file = self.cwd.parent.joinpath(yamlfile['environment'])
 		#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		
 		# gather static paths 

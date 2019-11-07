@@ -67,8 +67,15 @@ def SystemCmd(cmd):
 	out,err = proc.communicate()
 	return out.split(),err
 
-def Submit(subname,catchid):
-	cmd = 'sbatch --parsable {}'.format(subname)
+def Submit(subname,catchid, subtype):
+	if scheduler == 'PBS':
+		subcmd = 'qsub'
+	if scheduler = 'SLURM':
+		subcmd = 'sbatch'
+	else:
+		logger.error('unknown scheduler type {}'.format(subtype))
+		
+	cmd = '{} --parsable {}'.format(subname, subtype)
 	proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)	
 	jobid,err = proc.communicate()
 	logger.info("submitting job: {}".format(cmd))
