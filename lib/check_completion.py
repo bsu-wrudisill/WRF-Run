@@ -53,3 +53,10 @@ class geogrid_ver(SetMeUp):
 			return False 
 		else:	
 			return True
+
+@acc.passfail
+def log_check(logfile, message):
+	string = acc.tail(1, logfile)
+	assert message in string, string 
+
+

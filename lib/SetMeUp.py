@@ -114,6 +114,7 @@ class SetMeUp:
 		# copy ungrib files 
 		shutil.copytree(self.ungrib_exe_dirc.joinpath('Variable_Tables'), self.ungrib_run_dirc.joinpath('Variable_Tables'))		
 		shutil.copy(self.ungrib_exe_dirc.joinpath('ungrib.exe'), self.ungrib_run_dirc)		
+		shutil.copy(self.wps_exe_dirc.joinpath('link_grib.csh'), self.ungrib_run_dirc)		
 
 		# copy geogrid files 
 		shutil.copy(self.geo_exe_dirc.joinpath('geogrid.exe'), self.geo_run_dirc)		

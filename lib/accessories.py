@@ -35,7 +35,6 @@ def timer(function):
 		t2 = datetime.datetime.now()
 		dt = (t2 - t1).total_seconds()/60   # time in minutes
 		logging.info('function {} took {} minutes complete'.format(function.__name__, dt))	
-		print('function {} took {} minutes complete'.format(function.__name__, dt))
 		return wrapped_function
 	return wrapper
 
@@ -72,7 +71,7 @@ def Submit(subname,catchid):
 	cmd = 'sbatch --parsable {}'.format(subname)
 	proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)	
 	jobid,err = proc.communicate()
-	logger.info("issuing system command {}".format(cmd))
+	logger.info("submitting job: {}".format(cmd))
 	return jobid.decode("utf-8").rstrip(),err
 
 
@@ -88,11 +87,9 @@ def WaitForJob(jobid,user):
 		# convert the id to an integer
 		# the length of the list. should be zero or one. one means the job ID is found 
 		still_running_list = list(filter(lambda x: x == jobid, chidout))
-		
 		still_running = len(still_running_list)
-		logger.info('jobID {} is still running...'.format(still_running_list))
-		logger.info('sleep for 10 seconds')
-			
+		logger.debug('jobID {} is still running...'.format(still_running_list))
+		logger.debug('sleep for 10 seconds')
 		time.sleep(10)
 
 def formatDate(dstr):
@@ -132,13 +129,23 @@ def fetchFile(filepath):
 
 
 @timer 
-def multThread(function, mappable):
+def multi_thread(function, mappable):
 	# generic function
 	# applies given function to list, where a list item 
 	# is the ONLY input arg to that function
-	threads = [threading.Thread(target=function, args=(item,)) for item in mappable]
-	for thread in threads:
-		thread.start()
-	for thread in threads:
-		thread.join()
+	thread_chunk_size = 5 
+	def divide_chunks(l, n): 
+		# looping till length l 
+		for i in range(0, len(l), n):  
+			yield l[i:i + n] 		  
+
+	# create a list of lists 
+	chunked_list = list(divide_chunks(mappable, thread_chunk_size))
+	# loop thru the chunked list. max of <thread_chunk_size> threads get opened 
+	for chunk in chunked_list:
+		threads = [threading.Thread(target=function, args=(item,)) for item in mappable]
+		for thread in threads:
+			thread.start()
+		for thread in threads:
+			thread.join()
 

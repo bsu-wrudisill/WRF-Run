@@ -10,7 +10,7 @@ import pathlib as pl
 import pandas as pd 
 import accessories as acc 
 from SetMeUp import SetMeUp
-from check_completion import geogrid_ver
+from check_completion import log_check
 from functools import partial 
 import glob 
 
@@ -19,10 +19,12 @@ class RunWPS(SetMeUp):
 	#
 	def __init__(self, setup):
 		super(self.__class__, self).__init__(setup)	
+		self.logger = logging.getLogger(__name__)
+		self.logger.info('initialized RunWPS instance')	
 	
-			
 	@acc.timer	
 	def geogrid(self):
+		self.logger.info('starting geogrid')	
 		# mpicommand
 		catch_id = 'geogrid.catch'
 		replacedata = {"LOGNAME":"geogrid",
@@ -47,16 +49,19 @@ class RunWPS(SetMeUp):
 		acc.WaitForJob(jobid, 'wrudisill')
 		os.chdir(cwd)
 	
+	@acc.timer	
 	def ungrib(self):
 		logger = logging.getLogger(__name__)
 		logger.info('starting ungrib')
 		cwd = os.getcwd() 
-		# link the vtable
-		#os.symlink(self.ungrib_run_dirc.joinpath('Variable_Tables/Vtable.CFSR'), self.ungrib_run_dirc.joinpath('Vtable'))
-		linkGrib = '{}/link_grib.csh {}/{}'
-		catch_id = 'ungrib.catch'
+		# fixed paths -- these should get created 
+		vtable = self.ungrib_run_dirc.joinpath('Vtable')
 		submit_script = self.ungrib_run_dirc.joinpath('submit_ungrib.sh')
 		namelist_wps = self.ungrib_run_dirc.joinpath('namelist.wps')        
+		ungrib_log = self.ungrib_run_dirc.joinpath('ungrib.log')
+		linkGrib = '{}/link_grib.csh {}/{}'
+		catch_id = 'ungrib.catch'
+		success_message = 'Successful completion of program ungrib.exe'
 		# replace namelist items 
 		submit_replace_dic = {"LOGNAME":"ungrib",
 			     	      "TASKS":1,
@@ -77,37 +82,53 @@ class RunWPS(SetMeUp):
 			           }
 		
 		# MOVE THE TO THE UNGRIB DIRECTORY
+		if not vtable.exists():
+			os.symlink(self.ungrib_run_dirc.joinpath('Variable_Tables/Vtable.CFSR'), vtable) 
+			
 		os.chdir(self.ungrib_run_dirc)
 		
 		# ---- UNGRIB PRESSURE FILES 
 		logger.info('starting on PLEVS')
 		acc.GenericWrite(self.main_run_dirc.joinpath('namelist.wps.template'), wps_replace_dic, namelist_wps)
-		acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc, self.data_dl_dirc, 'pgbh06'))
 		acc.GenericWrite(self.submit_template, submit_replace_dic, submit_script) 
-		
-		# submit the ungrib job 
+		acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc, self.data_dl_dirc, 'pgbh06'))	
+		## pressure files job submission	
 		jobid, error = acc.Submit(submit_script,catch_id)	
 		acc.WaitForJob(jobid, 'wrudisill')
-		ungrib_log_message = acc.tail(1, self.ungrib_run_dirc.joinpath('ungrib.log'))
-		logger.into(ungrib_log_message)
-		# remove the previous grib files 
+		## verify completion 
+		success, status = log_check(ungrib_log, success_message)
+		if success: logger.info(acc.tail(1,ungrib_log))
+		if not success: 
+			logger.error(acc.tail(1, ungrib_log))
+			logger.info("fatal error encountered. exiting")
+			sys.exit()
+		# clean up 
 		globfiles = self.ungrib_run_dirc.glob('GRIBFILE*')
 		for globfile in globfiles:
 			logger.debug('unlinked {}'.format(str(globfile)))
 			os.unlink(globfile)
 		
-		# ---- UNGRIB SFLUX FILES 	
+		## ---- UNGRIB SFLUX FILES 	
+		## upate dictionaries
 		logger.info('starting on SFLUX')
 		wps_replace_dic['ungribprefix'] = 'SFLUX'
 		submit_replace_dic['logname'] = "ungrib_flx"
-		
 		acc.GenericWrite(self.main_run_dirc.joinpath('namelist.wps.template'), wps_replace_dic, namelist_wps)
+		## link flxf files 
 		acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc, self.data_dl_dirc, 'flxf06'))
-			
+		## submit the job
 		jobid, error = acc.Submit(submit_script,catch_id)	
 		acc.WaitForJob(jobid, 'wrudisill')
+		# verify completion
+		success, status = log_check(ungrib_log, success_message)
+		if success: logger.info(acc.tail(1,ungrib_log))
+		if not success: 
+			logger.error(acc.tail(1, ungrib_log))
+			logger.info("fatal error encountered. exiting")
+			sys.exit()
 		
-		# unlink 
+		
+		# cleanup 
 		globfiles = self.ungrib_run_dirc.glob('GRIBFILE*')
 		for globfile in globfiles:
 			logger.debug('unlinked {}'.format(str(globfile)))
@@ -116,16 +137,16 @@ class RunWPS(SetMeUp):
 		# check that the script finished correctly
 		os.chdir(cwd)
 
-
+	@acc.timer
 	def dataDownload(self):
-		#start_date = datetime.datetime(2011,1,1)
-		#end_date = datetime.datetime(2011,1,4)
-		date_range = pd.date_range(self.start_date, self.end_date, freq='6H')
+		logger = logging.getLogger(__name__)
+		logger.info('beginning data download')
+		sub6 = datetime.timedelta(hours=6)
+		date_range = pd.date_range(self.start_date - sub6, self.end_date, freq='6H')
 		self.file_spec = '06.gdas'
 		#### 
 		if self.lbc_type == 'cfsr': 
 			nomads_url = "https://nomads.ncdc.noaa.gov/modeldata/cmd_{}/{}/{}{}/{}{}{}/"
-		
 		else:
 			sys.exit()  # FOR NOW 
 		# ---- Functions ---- 
@@ -152,11 +173,11 @@ class RunWPS(SetMeUp):
 		os.chdir(self.data_dl_dirc)
 		# create url list 
 		urls,filenames= createDlist(date_range)
-		#acc.multi_thread(acc.fetchFile, urls) # BROKEN --- misses downloading some files 
-		for url in urls:
-			acc.fetchFile(url)
+		acc.multi_thread(acc.fetchFile, urls) # BROKEN --- misses downloading some files 
+		#for url in urls:
+		#	acc.fetchFile(url)
+		#	logger.debug('downloading ....{}'.format(url))
 		os.chdir(cwd)	
-		
 		required_files = len(date_range)
 		missing_files = 0 
 		for f in filenames:
@@ -165,7 +186,9 @@ class RunWPS(SetMeUp):
 			else:
 				print(self.data_dl_dirc.joinpath(f))
 				missing_files += 1 
-		print("{} missing files".format(missing_files))
+		if missing_files != 0:
+			logger.error("{} missing files".format(missing_files))
+			sys.exit()
 		# check that the files are in fact there 
 	
 	
