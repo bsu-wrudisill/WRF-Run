@@ -70,7 +70,7 @@ def SystemCmd(cmd):
 def Submit(subname,catchid, subtype):
 	if scheduler == 'PBS':
 		subcmd = 'qsub'
-	if scheduler = 'SLURM':
+	if scheduler == 'SLURM':
 		subcmd = 'sbatch'
 	else:
 		logger.error('unknown scheduler type {}'.format(subtype))
