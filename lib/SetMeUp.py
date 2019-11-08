@@ -29,8 +29,9 @@ class SetMeUp:
 		self.lbc_type = 'cfsr'
 		#!!!!!!!!!!!!!!!!!!!!! VERY UGLY RELATIVE PATHS ---- NOT LONG TERM SOLUTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		# READ FROM THE MAIN CONFIG SECTION 
-		scheduler = yamlfile['scheduler']
-		self.submit_template = self.cwd.parent.joinpath('namelists/submit.template.{}.sh'.format(scheduler))	 # CHANGE ME CHANGE ME CHANGE ME
+		self.user = yamlfile['user']
+		self.scheduler = yamlfile['scheduler']
+		self.submit_template = self.cwd.parent.joinpath('namelists/submit.template.{}.sh'.format(self.scheduler))	 # CHANGE ME CHANGE ME CHANGE ME
 		self.environment_file = self.cwd.parent.joinpath(yamlfile['environment'])
 		#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		

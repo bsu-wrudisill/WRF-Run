@@ -13,7 +13,7 @@ from SetMeUp import SetMeUp
 from check_completion import log_check
 from functools import partial 
 import glob 
-
+import secrets
 
 class RunWPS(SetMeUp):
 	#
@@ -24,29 +24,44 @@ class RunWPS(SetMeUp):
 	
 	@acc.timer	
 	def geogrid(self):
+		# ---- gather information about the job -----# 
 		self.logger.info('starting geogrid')	
-		# mpicommand
 		catch_id = 'geogrid.catch'
-		replacedata = {"LOGNAME":"geogrid",
-				"TASKS":2,
-				"NODES":1,
-				"QUEUE":"leaf",
-				"RUN_TIME":"01:00:00",
-				"ENVIRONMENT_FILE": self.environment_file,
-				"CATCHID":catch_id,
-				"EXECUTABLE":"geogrid.exe"
-				}
+		unique_name = "g_{}".format(secrets.token_hex(2))
 		
+		# ---- create the run script based on the type of job scheduler system ----# 
+		if self.scheduler == 'PBS':
+			replacedata = {"LOGNAME":"geogrid",
+					"QUEUE":self.queue,
+					"RUN_TIME":"00:30:00",
+					"ENVIRONMENT_FILE": self.environment_file,
+					"RUN_DIR":self.geo_run_dirc,
+					"JOBNAME": unique_name, 
+					"CMD":"geogrid.exe &> geogrid.catch",
+					}
+		
+		if self.scheduler == 'SLURM':
+			replacedata = {"LOGNAME":"geogrid",
+					"QUEUE":self.queue,
+					"RUN_TIME":"00:30:00",
+					"ENVIRONMENT_FILE": self.environment_file,
+					"RUN_DIR":self.geo_run_dirc,
+					"JOBNAME": unique_name,			
+					"CMD":"geogrid.exe &> geogrid.catch",
+					}
+			
+		# --- copy over the submit script information and submit the job-----# 
 		# copy/update the SLURM submit template ---> ~/geo/. directory  
 		submit_script = self.geo_run_dirc.joinpath('submit_geogrid.sh')
 		acc.GenericWrite(self.submit_template, replacedata, submit_script) 
+		
 		# this seems to be easier to submit jobs this way ... 
 		cwd = os.getcwd()
 		os.chdir(self.geo_run_dirc)
 		# now run geogrid 
-		jobid, error = acc.Submit(submit_script,catch_id)	
+		jobid, error = acc.Submit(submit_script, self.scheduler)	
 		# wait for the job to complete 
-		acc.WaitForJob(jobid, 'wrudisill')
+		acc.WaitForJob(jobid, self.user, self.scheduler)  #CHANGE_ME 
 		os.chdir(cwd)
 	
 	@acc.timer	

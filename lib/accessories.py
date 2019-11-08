@@ -67,37 +67,68 @@ def SystemCmd(cmd):
 	out,err = proc.communicate()
 	return out.split(),err
 
-def Submit(subname,catchid, subtype):
+def Submit(subname, scheduler):
 	if scheduler == 'PBS':
-		subcmd = 'qsub'
+		cmd = 'jobid=$(qsub {});echo $jobid'.format(subname)	
+		proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)	
+		jobid,err = proc.communicate()
+		# DOES THIS WORK FOR PBS????
+		logger.info("submitting job: {}".format(cmd))
+		jobid = jobid.decode("utf-8").rstrip()
+		logger.info('jobid: {}'.format(jobid))
+		return jobid,err
 	if scheduler == 'SLURM':
-		subcmd = 'sbatch'
-	else:
-		logger.error('unknown scheduler type {}'.format(subtype))
+		cmd = 'sbatch --parsable {}'.format(subname)
+		proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)	
+		jobid,err = proc.communicate()
+		# DOES THIS WORK FOR PBS????
+		logger.info("submitting job: {}".format(cmd))
+		return jobid.decode("utf-8").rstrip(),err
+
+	if scheduler not in ['PBS','SLURM']:
+		logger.error()
+		raise Exception('unknown scheduler type {}'.format(scheduler))
 		
-	cmd = '{} --parsable {}'.format(subname, subtype)
-	proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)	
-	jobid,err = proc.communicate()
-	logger.info("submitting job: {}".format(cmd))
-	return jobid.decode("utf-8").rstrip(),err
 
-
-def WaitForJob(jobid,user):
+def WaitForJob(jobid,user,scheduler):
 	# ----NEW METHOD--- PASS IN JOBID 
 	still_running = 1     # start with 1 for still running 
-	while still_running == 1: # as long as theres a job running, keep looping and checking
-		# command
-		chid = "squeue -u {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)   
-		# run command and parse output 
-		chidout, chiderr = SystemCmd(chid)    
-		chidout = [i.decode("utf-8") for i in chidout]
-		# convert the id to an integer
-		# the length of the list. should be zero or one. one means the job ID is found 
-		still_running_list = list(filter(lambda x: x == jobid, chidout))
-		still_running = len(still_running_list)
-		logger.debug('jobID {} is still running...'.format(still_running_list))
-		logger.debug('sleep for 10 seconds')
-		time.sleep(10)
+	if scheduler == 'PBS':
+		while still_running == 1:
+			logger.info('wait for job')
+			# command
+			chid = "qstat | grep {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)   
+			logger.info(chid)	
+			# run command and parse output 
+			chidout, chiderr = SystemCmd(chid)    
+			chidout = [i.decode("utf-8") for i in chidout]
+			logger.info(chidout)
+			# convert the id to an integer
+			# the length of the list. should be zero or one. one means the job ID is found 
+			still_running_list = list(filter(lambda x: x == jobid, chidout))
+			still_running = len(still_running_list)
+			logger.info('jobID {} is still running...'.format(still_running_list))
+			logger.info('sleep for 10 seconds')
+			time.sleep(10)
+	
+	if scheduler == 'SLURM':
+		while still_running == 1: # as long as theres a job running, keep looping and checking
+			# command
+			chid = "squeue -u {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)   
+			# run command and parse output 
+			chidout, chiderr = SystemCmd(chid)    
+			chidout = [i.decode("utf-8") for i in chidout]
+			# convert the id to an integer
+			# the length of the list. should be zero or one. one means the job ID is found 
+			still_running_list = list(filter(lambda x: x == jobid, chidout))
+			still_running = len(still_running_list)
+			logger.debug('jobID {} is still running...'.format(still_running_list))
+			logger.debug('sleep for 10 seconds')
+			time.sleep(10)
+
+	if scheduler not in ['PBS','SLURM']:
+		logger.error()
+		raise Exception('unknown scheduler type {}'.format(scheduler))
 
 def formatDate(dstr):
 	if type(dstr) == str:
