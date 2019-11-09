@@ -174,6 +174,10 @@ def fetchFile(filepath):
 	# wget a file 
 	SystemCmd('wget --output-file=logfile {}'.format(filepath)) # CHANGE ME...
 
+@acc.passfail
+def log_check(logfile, message):
+	string = tail(1, logfile)
+	assert message in string, string 
 
 @timer 
 def multi_thread(function, mappable):
