@@ -25,14 +25,14 @@ class SetMeUp:
 			
 		self.setup = setup # name of the setup file. THIS MIGHT CHANGE LATER !!!!	
 		self.cwd = path(os.getcwd())
-		
-		self.lbc_type = 'cfsr'
+		self.scheduler = yamlfile['scheduler']	
+		self.lbc_type = yamlfile['lbc_type'] 
 		#!!!!!!!!!!!!!!!!!!!!! VERY UGLY RELATIVE PATHS ---- NOT LONG TERM SOLUTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		# READ FROM THE MAIN CONFIG SECTION 
-		self.user = yamlfile['user']
-		self.scheduler = yamlfile['scheduler']
 		self.submit_template = self.cwd.parent.joinpath('namelists/submit.template.{}.sh'.format(self.scheduler))	 # CHANGE ME CHANGE ME CHANGE ME
 		self.environment_file = self.cwd.parent.joinpath(yamlfile['environment'])
+		self.queue = yamlfile['queue']
+		self.cpu_type = yamlfile['cpu_type']
 		#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		
 		# gather static paths 
@@ -66,24 +66,21 @@ class SetMeUp:
 		self.met_run_dirc = self.wps_run_dirc.joinpath('metgrid')
 		self.data_dl_dirc = self.wps_run_dirc.joinpath('raw_lbcs')
 
-		# other 
-		self.unique_id = 'wrf__catch'
-		self.queue = yamlfile['QUEUE']
-		self.nodes = yamlfile['NODES']
-		
 		# forcing files stuff goes here 
 		self.time_format = "%Y-%m-%d_%H:%M:%S" #!!! FOR WRF -- CHANGE ME LATER !!! 
 		self.output_format ="wrfout_d02_{}"  # !! FOR WRF -- CHANGE ME LATER !!! 
-		
-		# create catch id file name 	
-		self.catchid = 'catch_{}'.format(self.unique_id)
 		
 		# get dates for start, end of spinup,eval period
 		run_date = yamlfile['run_date']
 		self.start_date = pd.to_datetime(run_date['start_date'])
 		self.end_date = pd.to_datetime(run_date['end_date'])
+		
+		# !!! Run Configuration Options !!!# 	
+		self.user = yamlfile['user']
+		self.wrf_params = yamlfile['wrf_params']
+		self.wps_params = yamlfile['wps_params']
+		
 	
-
 	def createRunDirectory(self):
 		# copy contents of the 'WRFVX/run' directory to the main run dir 
 		shutil.copytree(self.wrf_exe_dirc, self.wrf_run_dirc)

@@ -10,7 +10,7 @@ import pathlib as pl
 import pandas as pd 
 import accessories as acc 
 from SetMeUp import SetMeUp
-from check_completion import log_check
+from check_completion import StatusChecker as SC 
 from functools import partial 
 import glob 
 import secrets
@@ -33,7 +33,11 @@ class RunWPS(SetMeUp):
 		if self.scheduler == 'PBS':
 			replacedata = {"LOGNAME":"geogrid",
 					"QUEUE":self.queue,
-					"RUN_TIME":"00:30:00",
+					"RUN_TIME":self.geogrid_wall_time,
+				        "NODES":self.num_wps_nodes,
+				        "NCPUS":self.num_wps_cpus,
+				        "MPIPROCS":self.num_wps_mpiprocs,
+				        "CPUTYPE":self.wps_cpu_type,
 					"ENVIRONMENT_FILE": self.environment_file,
 					"RUN_DIR":self.geo_run_dirc,
 					"JOBNAME": unique_name, 
@@ -54,16 +58,33 @@ class RunWPS(SetMeUp):
 		# copy/update the SLURM submit template ---> ~/geo/. directory  
 		submit_script = self.geo_run_dirc.joinpath('submit_geogrid.sh')
 		acc.GenericWrite(self.submit_template, replacedata, submit_script) 
-		
-		# this seems to be easier to submit jobs this way ... 
+		#
+		## this seems to be easier to submit jobs this way ... 
 		cwd = os.getcwd()
 		os.chdir(self.geo_run_dirc)
-		# now run geogrid 
+		## now run geogrid 
 		jobid, error = acc.Submit(submit_script, self.scheduler)	
-		# wait for the job to complete 
+		## wait for the job to complete 
 		acc.WaitForJob(jobid, self.user, self.scheduler)  #CHANGE_ME 
 		os.chdir(cwd)
-	
+		
+		# !!! check stuff !!!!
+		# ! check that the geogrid.log file says "success"
+		success, status = SC.test_geolog(self.geo_run_dirc)
+		if not success:
+			self.logger.error(status)
+		else:
+			self.logger.info(status)
+		#! check that the geo_em? files get created 
+		success, status = SC.test_geofiles(self.geo_run_dirc)
+		if not success:
+			self.logger.error(status)
+		else:
+			self.logger.info(status)
+
+
+		
+		
 	@acc.timer	
 	def ungrib(self):
 		logger = logging.getLogger(__name__)
@@ -76,18 +97,37 @@ class RunWPS(SetMeUp):
 		ungrib_log = self.ungrib_run_dirc.joinpath('ungrib.log')
 		linkGrib = '{}/link_grib.csh {}/{}'
 		catch_id = 'ungrib.catch'
+		unique_name = 'u_{}'.format(secrets.token_hex(2))
 		success_message = 'Successful completion of program ungrib.exe'
 		# replace namelist items 
-		submit_replace_dic = {"LOGNAME":"ungrib",
-			     	      "TASKS":1,
-				      "NODES":1,
-				      "QUEUE":"leaf",
-				      "RUN_TIME":"01:00:00",
-				      "ENVIRONMENT_FILE": self.environment_file,
-				      "CATCHID":catch_id,
-				      "EXECUTABLE":"ungrib.exe"
-					}
+		if self.scheduler == 'SLURM':
+			# dictionary 
+			submit_replace_dic = {"LOGNAME":"ungrib",
+					      "TASKS":1,
+					      "NODES":1,
+					      "QUEUE":self.queue,
+					      "RUN_TIME":"01:00:00",
+					      "ENVIRONMENT_FILE": self.environment_file,
+					      "CATCHID":catch_id,
+					      "EXECUTABLE":"ungrib.exe"
+						}
+		if self.scheduler == 'PBS':
+			# dictionary 
+			submit_replace_dic = {"LOGNAME":"ubgrib",
+					      "QUEUE":self.queue,
+					      "RUN_TIME":self.wps_params['ungrib_run_time'],
+					      "NODES":self.wps_params['num_nodes'],
+					      "NCPUS":self.wps_params['num_cpus'],
+					      "MPIPROCS":self.wps_params['num_mpiprocs'],
+					      "CPUTYPE":self.cpu_type,
+					      "ADDITIONAL_OPTIONS": '',    #!!!! Any additional PBS opitions can be insterted here !!!#
+					      "ENVIRONMENT_FILE": self.environment_file,
+					      "RUN_DIR":self.ungrib_run_dirc,
+					      "JOBNAME": unique_name, 
+					      "CMD":"ungrib.exe &> ungrib.catch"
+						}
 		
+#PBS -l select=1:ncpus=36:mpiprocs=0:cputype=broadwell
 		wps_replace_dic = {"GEOG_PATH":self.geog_data_path,
       			           "GEOG_TBL_PATH":self.geo_exe_dirc,
 			           "METGRID_TBL_PATH":self.met_exe_dirc,
@@ -108,15 +148,18 @@ class RunWPS(SetMeUp):
 		acc.GenericWrite(self.submit_template, submit_replace_dic, submit_script) 
 		acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc, self.data_dl_dirc, 'pgbh06'))	
 		## pressure files job submission	
-		jobid, error = acc.Submit(submit_script,catch_id)	
-		acc.WaitForJob(jobid, 'wrudisill')
+		jobid, error = acc.Submit(submit_script,self.scheduler)	
+		acc.WaitForJob(jobid, self.user, self.scheduler)
+		
 		## verify completion 
-		success, status = log_check(ungrib_log, success_message)
-		if success: logger.info(acc.tail(1,ungrib_log))
-		if not success: 
-			logger.error(acc.tail(1, ungrib_log))
-			logger.info("fatal error encountered. exiting")
-			sys.exit()
+		#success, status = log_check(ungrib_log, success_message)
+		#if success: logger.info(acc.tail(1,ungrib_log))
+		#if not success: 
+		#	logger.error(acc.tail(1, ungrib_log))
+		#	logger.info("fatal error encountered. exiting")
+		#	sys.exit()
+		
+
 		# clean up 
 		globfiles = self.ungrib_run_dirc.glob('GRIBFILE*')
 		for globfile in globfiles:
@@ -132,16 +175,16 @@ class RunWPS(SetMeUp):
 		## link flxf files 
 		acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc, self.data_dl_dirc, 'flxf06'))
 		## submit the job
-		jobid, error = acc.Submit(submit_script,catch_id)	
-		acc.WaitForJob(jobid, 'wrudisill')
-		# verify completion
-		success, status = log_check(ungrib_log, success_message)
-		if success: logger.info(acc.tail(1,ungrib_log))
-		if not success: 
-			logger.error(acc.tail(1, ungrib_log))
-			logger.info("fatal error encountered. exiting")
-			sys.exit()
+		jobid, error = acc.Submit(submit_script, self.scheduler)
+		acc.WaitForJob(jobid, self.user, self.scheduler) 
 		
+		# verify completion
+		#success, status = log_check(ungrib_log, success_message)
+		#if success: logger.info(acc.tail(1,ungrib_log))
+		#if not success: 
+		#	logger.error(acc.tail(1, ungrib_log))
+		#	logger.error("fatal error encountered. exiting")
+		#	sys.exit()
 		
 		# cleanup 
 		globfiles = self.ungrib_run_dirc.glob('GRIBFILE*')
@@ -186,12 +229,13 @@ class RunWPS(SetMeUp):
 		# fix the data destination argument 
 		cwd = os.getcwd()	
 		os.chdir(self.data_dl_dirc)
+		
 		# create url list 
 		urls,filenames= createDlist(date_range)
-		acc.multi_thread(acc.fetchFile, urls) # BROKEN --- misses downloading some files 
-		#for url in urls:
-		#	acc.fetchFile(url)
-		#	logger.debug('downloading ....{}'.format(url))
+		#acc.multi_thread(acc.fetchFile, urls) # BROKEN --- misses downloading some files 
+		for url in urls:
+			acc.fetchFile(url)
+			logger.debug('downloading ....{}'.format(url))
 		os.chdir(cwd)	
 		required_files = len(date_range)
 		missing_files = 0 
@@ -202,13 +246,11 @@ class RunWPS(SetMeUp):
 				print(self.data_dl_dirc.joinpath(f))
 				missing_files += 1 
 		if missing_files != 0:
-			logger.error("{} missing files".format(missing_files))
+			logger.error("{} missing files... ".format(missing_files))
 			sys.exit()
 		# check that the files are in fact there 
-	
 	
 
 if __name__ == '__main__':
 	pass 
-
 
