@@ -27,6 +27,7 @@ class SetMeUp:
 		self.cwd = path(os.getcwd())
 		self.scheduler = yamlfile['scheduler']	
 		self.lbc_type = yamlfile['lbc_type'] 
+		self.wrf_version = yamlfile['wrf_version']
 		#!!!!!!!!!!!!!!!!!!!!! VERY UGLY RELATIVE PATHS ---- NOT LONG TERM SOLUTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		# READ FROM THE MAIN CONFIG SECTION 
 		self.submit_template = self.cwd.parent.joinpath('namelists/submit.template.{}.sh'.format(self.scheduler))	 # CHANGE ME CHANGE ME CHANGE ME

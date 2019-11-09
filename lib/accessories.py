@@ -176,6 +176,12 @@ def fetchFile(filepath):
 
 @acc.passfail
 def log_check(logfile, message):
+	# function to check the log messages created 
+	# by the wrf/wps *.exe files that on execution
+	# the last line will contain a success/failure message 
+	# 1) verify that the logfile exists (maybe it wasn't created) for some reason
+	assert logfile.exists(), "{} not found".format(logfile)
+	# 2) check the last line of the log file. confirm that it contains a success message 
 	string = tail(1, logfile)
 	assert message in string, string 
 
