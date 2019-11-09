@@ -20,9 +20,15 @@ def path(obj):
 class SetMeUp:
 	def __init__(self,setup):
 		# read stuff from yaml
+		#with open(setup) as y:
+		#	yamlfile = yaml.load(y, Loader=yaml.FullLoader)
+		
 		with open(setup) as y:
 			yamlfile = yaml.load(y, Loader=yaml.FullLoader)
-			
+			for include in main.get("includes", []):
+				yamlfile.update(yaml.load(open(include)))
+		
+		
 		self.setup = setup # name of the setup file. THIS MIGHT CHANGE LATER !!!!	
 		self.cwd = path(os.getcwd())
 		self.scheduler = yamlfile['scheduler']	
@@ -84,7 +90,9 @@ class SetMeUp:
 	
 	def createRunDirectory(self):
 		# copy contents of the 'WRFVX/run' directory to the main run dir 
-		shutil.copytree(self.wrf_exe_dirc, self.wrf_run_dirc)
+		self.main_run_dirc.mkdir()
+		#self.wrf_run_dirc.mkdir()
+		shutil.copytree(self.wrf_exe_dirc, self.wrf_run_dirc, symlinks=True)
 		
 		# get geogrid  
 		self.wps_run_dirc.mkdir()

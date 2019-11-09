@@ -1,0 +1,31 @@
+# WRF-RUN Global Configuration
+# 
+# Each computer cluster is unique, so the job submission parameters might change from machine to machine.
+# Some are static and will not get updated by the run script. Any paramter in the "globals"
+# category will get inserted. 
+#
+# ----------------------Globals-------------------------------
+# ! These names get dynamically update in the python process !
+#           QUEUE (name of the queue; leaf, defq, etc.), 
+#           NODES
+#           WALLTIME
+#           JOBNAME
+
+
+R2:
+     scheduler: "SLURM"
+     queue: "QUEUE"
+     # wrf job submission header 
+     wrf: ["-n NODES",
+           "-        ",
+           "         "]
+     
+     # wps job submission header     
+     wps: ["-n NODES",
+           "-        ",
+           "         "]
+
+          
+         
+          
+INL: 
