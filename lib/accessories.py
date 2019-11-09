@@ -91,55 +91,51 @@ def Submit(subname, scheduler):
 		
 
 def WaitForJob(jobid,user,scheduler):
-	# ----NEW METHOD--- PASS IN JOBID 
-	still_running = 1     # start with 1 for still running 
+	# commands are slightly different for the 2 
+	# regardless of scheduler, each command queries the queue and 
+	# finds all of the job ids that match the username 
+	# the python process creates a list of those job ids (different than job names)
+	# and tries to match them with the 'jobid' argument that gets passed in
+	# the code will wait until none of the jobs in the queue match the jobid passed in 
 	if scheduler == 'PBS':
-		while still_running == 1:
-			logger.info('wait for job')
-			# command
-			chid = "qstat | grep {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)   
-			logger.info(chid)	
-			# run command and parse output 
-			chidout, chiderr = SystemCmd(chid)    
-			chidout = [i.decode("utf-8") for i in chidout]
-			
-			# decode the error, and mange error output --- the qstat 
-			# command can sometimes time out 
-			error = chiderr.decode("utf-8")
-			if error != '': # the error string is non-empty
-				logger.error("error encountered in qstat --- {}".format(error)
-				logger.error("wait additional 20s before retry")
-				time.sleep(20)
-				# ????? HOW DO WE HANDLE THIS ERROR ????? 
-				# Current solution is just to wait longer.... 
-				# unclear what the best option might be
-			 
-			# happy path --- everything goes correctly 
-			logger.info(chidout)
-			# convert the id to an integer
-			# the length of the list. should be zero or one. one means the job ID is found 
-			still_running_list = list(filter(lambda x: x == jobid, chidout))
-			still_running = len(still_running_list)
-			logger.info('jobID {} is still running...'.format(still_running_list))
-			logger.info('sleep for 10 seconds')
-			time.sleep(10)
+		chid = "qstat | grep {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)   
+			# the qstat -u option parses the jobname oddly 
 	
 	if scheduler == 'SLURM':
-		while still_running == 1: # as long as theres a job running, keep looping and checking
-			# command
-			chid = "squeue -u {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)   
-			# run command and parse output 
-			chidout, chiderr = SystemCmd(chid)    
-			chidout = [i.decode("utf-8") for i in chidout]
-			# convert the id to an integer
-			# the length of the list. should be zero or one. one means the job ID is found 
-			still_running_list = list(filter(lambda x: x == jobid, chidout))
-			still_running = len(still_running_list)
-			logger.debug('jobID {} is still running...'.format(still_running_list))
-			logger.debug('sleep for 10 seconds')
-			time.sleep(10)
-
+		chid = "squeue -u {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)   
+	
+	still_running = 1     # start with 1 for still running 
+	while still_running == 1:
+		logger.info('wait for job')
+		# command
+		logger.info(chid)	
+		# run command and parse output 
+		chidout, chiderr = SystemCmd(chid)    
+		chidout = [i.decode("utf-8") for i in chidout]
+		
+		# decode the error, and mange error output --- the qstat 
+		# command can sometimes time out 
+		error = chiderr.decode("utf-8")
+		if error != '': # the error string is non-empty
+			logger.error("error encountered in qstat --- {}".format(error)
+			logger.error("wait additional 20s before retry")
+			time.sleep(20)
+			# ????? HOW DO WE HANDLE THIS ERROR ????? 
+			# Current solution is just to wait longer.... 
+			# unclear what the best option might be
+		 
+		# happy path --- everything goes correctly 
+		logger.info(chidout)
+		# convert the id to an integer
+		# the length of the list. should be zero or one. one means the job ID is found 
+		still_running_list = list(filter(lambda x: x == jobid, chidout))
+		still_running = len(still_running_list)
+		logger.info('jobID {} is still running...'.format(still_running_list))
+		logger.info('sleep for 10 seconds')
+		time.sleep(10)
+	
 	if scheduler not in ['PBS','SLURM']:
+		#!!!! THIS SHOULD BE CAUGHT WAY BEFORE THIS POINT!!!!
 		logger.error()
 		raise Exception('unknown scheduler type {}'.format(scheduler))
 
