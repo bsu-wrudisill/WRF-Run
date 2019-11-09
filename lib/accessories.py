@@ -117,7 +117,7 @@ def WaitForJob(jobid,user,scheduler):
 		# command can sometimes time out 
 		error = chiderr.decode("utf-8")
 		if error != '': # the error string is non-empty
-			logger.error("error encountered in qstat --- {}".format(error)
+			logger.error("error encountered in qstat --- {}".format(error))
 			logger.error("wait additional 20s before retry")
 			time.sleep(20)
 			# ????? HOW DO WE HANDLE THIS ERROR ????? 
@@ -174,7 +174,7 @@ def fetchFile(filepath):
 	# wget a file 
 	SystemCmd('wget --output-file=logfile {}'.format(filepath)) # CHANGE ME...
 
-@acc.passfail
+@passfail
 def log_check(logfile, message):
 	# function to check the log messages created 
 	# by the wrf/wps *.exe files that on execution
