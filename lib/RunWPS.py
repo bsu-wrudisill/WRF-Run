@@ -87,18 +87,20 @@ class RunWPS(SetMeUp):
 		
 	@acc.timer	
 	def ungrib(self):
-		logger = logging.getLogger(__name__)
-		logger.info('starting ungrib')
 		cwd = os.getcwd() 
+		logger = logging.getLogger(__name__)
+		logger.info('entering Ungrib process in directory')
+		logger.info('WRF Version {}'.format(self.wrf_version))
 		# fixed paths -- these should get created 
 		vtable = self.ungrib_run_dirc.joinpath('Vtable')
 		submit_script = self.ungrib_run_dirc.joinpath('submit_ungrib.sh')
 		namelist_wps = self.ungrib_run_dirc.joinpath('namelist.wps')        
 		ungrib_log = self.ungrib_run_dirc.joinpath('ungrib.log')
-		linkGrib = '{}/link_grib.csh {}/{}'
+		linkGrib = '{}/link_grib.csh {}/{}' # CHANGE ME 
 		catch_id = 'ungrib.catch'
 		unique_name = 'u_{}'.format(secrets.token_hex(2))
 		success_message = 'Successful completion of program ungrib.exe'
+
 		# replace namelist items 
 		if self.scheduler == 'SLURM':
 			# dictionary 
@@ -126,8 +128,7 @@ class RunWPS(SetMeUp):
 					      "JOBNAME": unique_name, 
 					      "CMD":"ungrib.exe &> ungrib.catch"
 						}
-		
-#PBS -l select=1:ncpus=36:mpiprocs=0:cputype=broadwell
+		# else ??? this error should be caught way before  
 		wps_replace_dic = {"GEOG_PATH":self.geog_data_path,
       			           "GEOG_TBL_PATH":self.geo_exe_dirc,
 			           "METGRID_TBL_PATH":self.met_exe_dirc,
@@ -137,11 +138,31 @@ class RunWPS(SetMeUp):
 			           }
 		
 		# MOVE THE TO THE UNGRIB DIRECTORY
-		if not vtable.exists():
-			os.symlink(self.ungrib_run_dirc.joinpath('Variable_Tables/Vtable.CFSR'), vtable) 
-			
 		os.chdir(self.ungrib_run_dirc)
 		
+		# symlink the vtable
+		# Different versions of WRF have differnt Vtables even for the same LBCs 
+		if self.wrf_version == '4.0':
+			# there is only one vtable for wrf 4.0... I think?? for CFSR 
+			required_vtable = self.ungrib_run_dirc.joinpath('Variable_Tables/Vtable.CFSR')
+			if not required_vtable.exists():
+				logger.error('variable table {} not found. exiting'.format(required_vtable))
+				sys.exit()
+			# link the files 
+			os.symlink(required_vtable, vtable)
+		
+		# check that BOTH required vtables exists for CFSR 	
+		if self.wrf_version == '3.8.1':
+			required_vtable_plv = self.ungrib_run_dirc.joinpath('Variable_Tables/Vtable.CFSR_press_pgbh06')
+			required_vtable_flx = self.ungrib_run_dirc.joinpath('Variable_Tables/Vtable.CFSR_press_flxf06')
+			required_vtables = [required_vtable_plv.exists(), required_vtable_flx.exists()] # returns true or false if the file exists/does not exist. we need both in order to run successfully 
+			if False in required_vtables: 
+				logger.error('WRF {} variable table {} not found. exiting'.format(self.wrf_version, required_vtable))
+				sys.exit()
+			os.symlink(required_vtable_plv, vtable) 
+		else:
+			sys.exit() # THIS ERROR SHOULD BE CAUGHT WAY EARLIER --- UNKONW WRF VERSION
+ 
 		# ---- UNGRIB PRESSURE FILES 
 		logger.info('starting on PLEVS')
 		acc.GenericWrite(self.main_run_dirc.joinpath('namelist.wps.template'), wps_replace_dic, namelist_wps)
@@ -151,15 +172,15 @@ class RunWPS(SetMeUp):
 		jobid, error = acc.Submit(submit_script,self.scheduler)	
 		acc.WaitForJob(jobid, self.user, self.scheduler)
 		
-		## verify completion 
-		#success, status = log_check(ungrib_log, success_message)
-		#if success: logger.info(acc.tail(1,ungrib_log))
-		#if not success: 
-		#	logger.error(acc.tail(1, ungrib_log))
-		#	logger.info("fatal error encountered. exiting")
-		#	sys.exit()
-		
-
+		## verify completion of ungrib PLEVS 
+		success, status = log_check(ungrib_log, success_message)
+		if success: 
+			logger.info(acc.tail(1,ungrib_log))
+		if not success: 
+			logger.error(acc.tail(1, ungrib_log))
+			logger.error("Ungrib PLEVS step (1/2) did not finish correctly. Exiting")
+			logger.error("check {}".format(self.ungrib_run_dirc))
+			sys.exit()
 		# clean up 
 		globfiles = self.ungrib_run_dirc.glob('GRIBFILE*')
 		for globfile in globfiles:
@@ -167,6 +188,11 @@ class RunWPS(SetMeUp):
 			os.unlink(globfile)
 		
 		## ---- UNGRIB SFLUX FILES 	
+		# we need to switch vtables if we are using 3.8.1
+		if self.wrf_version == '3.8.1':
+			os.unlunk('unlink plevs vtable; link flx vtable')
+			os.symlink(required_vtable_flx, vtable) 
+		
 		## upate dictionaries
 		logger.info('starting on SFLUX')
 		wps_replace_dic['ungribprefix'] = 'SFLUX'
@@ -179,12 +205,14 @@ class RunWPS(SetMeUp):
 		acc.WaitForJob(jobid, self.user, self.scheduler) 
 		
 		# verify completion
-		#success, status = log_check(ungrib_log, success_message)
-		#if success: logger.info(acc.tail(1,ungrib_log))
-		#if not success: 
-		#	logger.error(acc.tail(1, ungrib_log))
-		#	logger.error("fatal error encountered. exiting")
-		#	sys.exit()
+		success, status = log_check(ungrib_log, success_message)
+		if success: 
+			logger.info(acc.tail(1,ungrib_log))
+		if not success: 
+			logger.error(acc.tail(1, ungrib_log))
+			logger.error("Ungrib SFLUX step (2/2) did not finish correctly. Exiting")
+			logger.error("check {}".format(self.ungrib_run_dirc))
+			sys.exit()
 		
 		# cleanup 
 		globfiles = self.ungrib_run_dirc.glob('GRIBFILE*')
