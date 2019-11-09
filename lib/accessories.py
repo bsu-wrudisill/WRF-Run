@@ -63,7 +63,7 @@ def CleanUp(path):
 
 def SystemCmd(cmd):
 	# issue system commands 
-	proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
+	proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 	out,err = proc.communicate()
 	return out.split(),err
 
