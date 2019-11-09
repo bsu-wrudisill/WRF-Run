@@ -9,29 +9,32 @@ The purpose is to be QUICK -- not completely thorough. The goal is to check for 
 '''
 import logging
 logger = logging.getLogger(__name__)
-from SetMeUp import SetMeUp
+#from SetMeUp import SetMeUp
 
 # Checker Classes 
-class geogrid_ver(SetMeUp):
+class StatusChecker():
 	# checks that the config.yaml file is sensible (paths exist, etc)
-	def __init__(self,setup):
+	def __init__(self):
 		# This is an incredibly handy function all of the self.X attrs. from SetMeUP 
 		# instance get put into the "self" of this object
 		# same as super(RunPreCheck, self).__init__(setup)
-		super(self.__class__, self).__init__(setup)  
+		#super(self.__class__, self).__init__(setup)  
+		pass 
 	
 	@acc.passfail
-	def test_logmesssage(self):
+	def test_geolog(geo_run_dirc):
 		# interpret the log file  
-		geolog= self.geo_run_dirc.joinpath('geogrid.log')
+		geolog= geo_run_dirc.joinpath('geogrid.log')
 		string = acc.tail(1, geolog)
 		success_message = "Successful completion of program geogrid.exe"
 		assert success_message in string, "geogrid failure likely. check {}".format(geolog)
 
 	@acc.passfail
-	def test_files(self):
-		geo_em= self.geo_run_dirc.joinpath('geo_em.d01.nc')  # MAKE LOCIC TO CHECK MULTIPLE !!!!
-		assert geo_em.is_file(), "geo_em? file not found"
+	def test_geofiles(geo_run_dirc):
+		geo_em_01 = geo_run_dirc.joinpath('geo_em.d01.nc')  # MAKE LOCIC TO CHECK MULTIPLE !!!!
+		geo_em_02 = geo_run_dirc.joinpath('geo_em.d02.nc')  # MAKE LOCIC TO CHECK MULTIPLE !!!!
+		assert geo_em_01.is_file(), "geo_em? file not found"  # !!!! NOT GENERAL !!!!!
+		assert geo_em_02.is_file(), "geo_em? file not found"
 
 	# FIND A WAY TO MAKE THIS APPLY TO ALL CLASSES 
 	def run_all(self):
@@ -53,10 +56,4 @@ class geogrid_ver(SetMeUp):
 			return False 
 		else:	
 			return True
-
-@acc.passfail
-def log_check(logfile, message):
-	string = acc.tail(1, logfile)
-	assert message in string, string 
-
 
