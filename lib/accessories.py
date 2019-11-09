@@ -102,6 +102,19 @@ def WaitForJob(jobid,user,scheduler):
 			# run command and parse output 
 			chidout, chiderr = SystemCmd(chid)    
 			chidout = [i.decode("utf-8") for i in chidout]
+			
+			# decode the error, and mange error output --- the qstat 
+			# command can sometimes time out 
+			error = chiderr.decode("utf-8")
+			if error != '': # the error string is non-empty
+				logger.error("error encountered in qstat --- {}".format(error)
+				logger.error("wait additional 20s before retry")
+				time.sleep(20)
+				# ????? HOW DO WE HANDLE THIS ERROR ????? 
+				# Current solution is just to wait longer.... 
+				# unclear what the best option might be
+			 
+			# happy path --- everything goes correctly 
 			logger.info(chidout)
 			# convert the id to an integer
 			# the length of the list. should be zero or one. one means the job ID is found 
