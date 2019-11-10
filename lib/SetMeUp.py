@@ -18,43 +18,49 @@ def path(obj):
 		return None
 
 class SetMeUp:
-	def __init__(self,setup):
-		# read stuff from yaml
-		#with open(setup) as y:
-		#	yamlfile = yaml.load(y, Loader=yaml.FullLoader)
+	def __init__(self,main):
+		# open up the 'main' file	
+		# there should be a list of multiple 'includes', listing
+		# other .yml files to read in. this is the simplest way 
+		# to separate multiple config files but read them in as one
+		with open(main) as m:
+			yamlfile = yaml.load(m, Loader=yaml.FullLoader)
+			for include in yamlfile.get("includes", []):
+				yamlfile.update(yaml.load(open(include)), Loader=yaml.FullLoader)
+	
+		# 2 files should be read into the main 'yamlfile' dictionary -- a 'setup' and a 'config'
+		# apply some logic to read in the correct config information based on setup params (machine
+		# type, for example 
 		
-		with open(setup) as y:
-			yamlfile = yaml.load(y, Loader=yaml.FullLoader)
-			for include in main.get("includes", []):
-				yamlfile.update(yaml.load(open(include)))
+		# read the appropriate configuration from the config.yml file 
+		machine=yamlfile.get('machine')
+		if machine not in yamlfile.keys(): # check that the machine spec. in setup. is in the config file  
+			logger.error('machine specification <{}> not found in config.yml'.format(machine))
+			sys.exit()
 		
+		# get the queue submission information from the config.yml file 
+		queue_params  = yamlfile.get(machine) #yuck this is kind of ugly. 
+		if yamlfile.get('queue') not in queue_params.get('queue_list'):
+			logger.error()
+			sys.exit()
 		
-		self.setup = setup # name of the setup file. THIS MIGHT CHANGE LATER !!!!	
+		# Main Configuration -- machine related
+		self.queue_params = queue_params
+		self.setup = main # name of the setup file
 		self.cwd = path(os.getcwd())
-		self.scheduler = yamlfile['scheduler']	
-		self.lbc_type = yamlfile['lbc_type'] 
+		self.user = yamlfile['user']
+		self.scheduler = yamlfile.get(machine).get('scheduler')
+		self.queue = yamlfile['queue']  # this is located in the 'setup.yml' file since it will freqently change 
 		self.wrf_version = yamlfile['wrf_version']
-		#!!!!!!!!!!!!!!!!!!!!! VERY UGLY RELATIVE PATHS ---- NOT LONG TERM SOLUTION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		# READ FROM THE MAIN CONFIG SECTION 
-		self.submit_template = self.cwd.parent.joinpath('namelists/submit.template.{}.sh'.format(self.scheduler))	 # CHANGE ME CHANGE ME CHANGE ME
-		self.environment_file = self.cwd.parent.joinpath(yamlfile['environment'])
-		self.queue = yamlfile['queue']
-		self.cpu_type = yamlfile['cpu_type']
-		#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		self.environment_file = self.cwd.parent.joinpath(yamlfile['environment'])	
 		
-		# gather static paths 
+		# Establish system paths to required things !# 		
 		self.geog_data_path = path(yamlfile['geog_data_path'])
 		self.wps_namelist_file = path(yamlfile['wps_namelist_file'])
 		self.input_namelist_file = path(yamlfile['input_namelist_file'])
 		
-		# LOGIC
-		# determing whether or not we need to run... metgrid, lbc download, geogrid 
-		self.run_download_flag = True
-		self.run_metgrid_flag = True
-		self.run_geogrid_flag = True
 		
-		
-		# directories to copy from the compiled WRF model (or wherever they live on the system) 
+		# Directories to copy from the compiled WRF model (or wherever they live on the system) 
 		self.wrf_exe_dirc = path(yamlfile['wrf_exe_directory'])
 		self.wps_exe_dirc = path(yamlfile['wps_exe_directory'])
 		self.geo_exe_dirc = self.wps_exe_dirc.joinpath('geogrid')
@@ -63,6 +69,11 @@ class SetMeUp:
 		
 		#self.metgrid_files = path(yamlfile['metgrid_files'])   # OPTION FOR IF THESE ALREADY EXIST
 		#self.geogrid_file = yamlfile['geogrid_file']           # "                               " 
+		
+		# Determine whether or not we need to run... metgrid, lbc download, geogrid 
+		self.run_download_flag = True
+		self.run_metgrid_flag = True
+		self.run_geogrid_flag = True
 		
 		# these get created 
 		self.main_run_dirc = path(yamlfile['main_run_dirc'])
@@ -81,11 +92,8 @@ class SetMeUp:
 		run_date = yamlfile['run_date']
 		self.start_date = pd.to_datetime(run_date['start_date'])
 		self.end_date = pd.to_datetime(run_date['end_date'])
+		self.lbc_type = yamlfile['lbc_type'] 
 		
-		# !!! Run Configuration Options !!!# 	
-		self.user = yamlfile['user']
-		self.wrf_params = yamlfile['wrf_params']
-		self.wps_params = yamlfile['wps_params']
 		
 	
 	def createRunDirectory(self):
@@ -131,5 +139,5 @@ class SetMeUp:
 		os.symlink(updated_wps_file, self.geo_run_dirc.joinpath('namelist.wps'))
 
 if __name__ == '__main__':
-	setup = SetMeUp('setup.yaml')
+	setup = SetMeUp('main.yml')
 	setup.createRunDirectory()

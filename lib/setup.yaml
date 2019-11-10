@@ -1,7 +1,11 @@
-# !!!!!! RUN CONFIG !!!!!!!!
-# wrf run setup parameter file 
+# main parameters
+machine : R2        
+user: wrudisill
+queue : ipowerq 
+wrf_version : 4.0
 run_name : TEST
-     
+
+
 # existing paths-- executable directories, LBCs (if they exist), geogrid file (if it exists), etc:
 wrf_exe_directory : /home/wrudisill/WRFV4/4.1.2/WRF-4.1.2/  # contains the 'run' dir 
 wps_exe_directory : /home/wrudisill/WRFV4/4.1.2/WPS-4.1/
@@ -28,9 +32,4 @@ run_date :
         end_date : 1999-01-05
 
 
-# !!!! MAIN CONFIG BELOW HERE !!!!
-machine : R2        # name of computing environment
-user: wrudisill
-queue : leaf 
-wrf_version : 4.0
 

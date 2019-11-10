@@ -26,7 +26,7 @@ R2:
            "#SBATCH --exclusive",                 # no sharing of node with other tasks(?)
            "#SBATCH -p QUEUE",                  # must be one of items in queue_list
            "#SBATCH -J JOBNAME",                # name of the job-- different than the jobid assigned by scheduler  
-           "#SBATCH -t queuetime=WALLTIME",     # Default WPS walltime--this might change for different WRF configs
+           "#SBATCH -t WALLTIME",     # Default WPS walltime--this might change for different WRF configs
            "#SBATCH -e pbs_LOGNAME.err",
            "#SBATCH -o pbs_LOGNAME.out"
            ]
@@ -37,7 +37,7 @@ R2:
            "#SBATCH -n 1",                       
            "#SBATCH -p QUEUE",                  
            "#SBATCH -J JOBNAME",                
-           "#SBATCH -t queuetime=01:00:00",       
+           "#SBATCH -t 01:00:00",       
            "#SBATCH -e pbs_LOGNAME.err",
            "#SBATCH -o pbs_LOGNAME.out"
            ]
@@ -45,7 +45,7 @@ R2:
      real: [
            "#SBATCH -N 1",                        
            "#SBATCH -n 1",                         
-           "#SBATCH -t queuetime=01:00:00",       
+           "#SBATCH -t 01:00:00",       
            "#SBATCH -p QUEUE",
            "#SBATCH -J JOBNAME",
            "#SBATCH -e pbs_LOGNAME.err",
