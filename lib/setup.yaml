@@ -1,16 +1,14 @@
-
-
 # !!!!!! RUN CONFIG !!!!!!!!
 # wrf run setup parameter file 
 run_name : TEST
      
 # existing paths-- executable directories, LBCs (if they exist), geogrid file (if it exists), etc:
-wrf_exe_directory : /home/rudiwill/WRF/3.8.1/WRFV3/ 
-wps_exe_directory : /home/rudiwill/WRF/3.8.1/WPS 
-geog_data_path : /scratch/bsu_wrf/WPS_GEOG/ 
-wps_namelist_file : /home/rudiwill/WRF-INL/namelists/namelist.wps.template
-input_namelist_file : /home/rudiwill/WRF-INL/namelists/namelist.input.template
-
+wrf_exe_directory : /home/wrudisill/WRFV4/4.1.2/WRF-4.1.2/  # contains the 'run' dir 
+wps_exe_directory : /home/wrudisill/WRFV4/4.1.2/WPS-4.1/
+geog_data_path : /home/wrudisill/leaf/WRF/WPS_GEOG 
+wps_namelist_file : ../namelists/namelist.wps.template
+input_namelist_file : ../namelists/namelist.input.template 
+environment: /home/wrudisill/WRF-Run/envWRF_4.1.2_R2.sh
 
 #opt_geogrid_tbl_path : /home/wrudisill/LEAF/WRF/3.8.1/WPS/geogrid/
 #opt_metgrid_tbl_path : /home/wrudisill/LEAF/WRF/3.8.1/WPS/geogrid/
@@ -21,7 +19,7 @@ lbc_type : cfsr      # one of cfsr, cfsv2, ?????
 
         
 # write locations and user parameters 
-main_run_dirc: /home/rudiwill/WillWRF/TestRun2
+main_run_dirc: /home/wrudisill/WRF-Run/TestRun
 user_email : williamrudisill@u.boisestate.edu
 
 # run date 
@@ -30,33 +28,9 @@ run_date :
         end_date : 1999-01-05
 
 
-
 # !!!! MAIN CONFIG BELOW HERE !!!!
-
-# This stuff probably doesn't need to be changed !!!
-scheduler : PBS  # SLURM or PBS
-machine : INL    # name of computing environment
-environment: envWRF_3.8.1_INL.sh
-user: rudiwill
-
-# computing parameters 
-queue : iuc               # What are the other options ??? 
-cpu_type : broadwell 
-wrf_params:
-           num_nodes : 2
-           num_cpus : 36
-           num_mpiprocs : 36
-           run_time : None  # this gets dynamically updated 
-
-wps_params:
-           num_nodes : 1
-           num_cpus : 36
-           num_mpiprocs : 0
-           ungrib_run_time : 01:00:00
-           geogrid_run_time : 00:30:00
-           metgrid_run_time : 00:30:00
-
-
-
-
+machine : R2        # name of computing environment
+user: wrudisill
+queue : leaf 
+wrf_version : 4.0
 

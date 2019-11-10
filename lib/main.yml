@@ -1,1 +1,1 @@
-includes: [setup.yml, config.yml]
+includes: [setup.yaml, config.yml]
