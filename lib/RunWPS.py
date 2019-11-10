@@ -23,112 +23,113 @@ class RunWPS(SetMeUp):
 		self.logger.info('initialized RunWPS instance')	
 	
 	@acc.timer	
-	def geogrid(self):
-		# ---- gather information about the job -----# 
+	def geogrid(self, **kwargs):
+		# kwargs options: 1) 'queue'
+		#                 2) 'queue_params'
+		#                 3) 'submit_script'
+		
+		# gather information about the job
 		self.logger.info('starting geogrid')	
 		catch_id = 'geogrid.catch'
-		unique_name = "g_{}".format(secrets.token_hex(2))
+		unique_name = "g_{}".format(secrets.token_hex(2))              # create random name 
+		queue = kwargs.get('queue', self.queue)                        # get the queue 
+		qp = kwargs.get('queue_params', self.queue_params.get('wps'))  # get the submit parameters               
+		# location of submit script/name 
+		submit_script = kwargs.get('submit_script', self.geo_run_dirc.joinpath('submit_geogrid.sh')) 
 		
-		# ---- create the run script based on the type of job scheduler system ----# 
-		if self.scheduler == 'PBS':
-			replacedata = {"LOGNAME":"geogrid",
-					"QUEUE":self.queue,
-					"RUN_TIME":self.geogrid_wall_time,
-				        "NODES":self.num_wps_nodes,
-				        "NCPUS":self.num_wps_cpus,
-				        "MPIPROCS":self.num_wps_mpiprocs,
-				        "CPUTYPE":self.wps_cpu_type,
-					"ENVIRONMENT_FILE": self.environment_file,
-					"RUN_DIR":self.geo_run_dirc,
-					"JOBNAME": unique_name, 
-					"CMD":"geogrid.exe &> geogrid.catch",
-					}
+		# form the command 
+		lines = ["source %s" %self.environment_file,
+			 "cd %s" %self.geo_run_dirc,
+			 "./geogrid.exe &> geogrid.catch"]
+		command = "\n".join(lines)  # create a single string separated by spaces
 		
-		if self.scheduler == 'SLURM':
-			replacedata = {"LOGNAME":"geogrid",
-					"QUEUE":self.queue,
-					"RUN_TIME":"00:30:00",
-					"ENVIRONMENT_FILE": self.environment_file,
-					"RUN_DIR":self.geo_run_dirc,
-					"JOBNAME": unique_name,			
-					"CMD":"geogrid.exe &> geogrid.catch",
-					}
+		# create the run script based on the type of job scheduler system  
+		replacedata = {"QUEUE":queue,
+			       "JOBNAME":unique_name,
+			       "LOGNAME":"geogrid",
+			       "CMD": command
+			       }
+		
+		acc.WriteSubmit(qp, replacedata, filename=submit_script)
 			
 		# --- copy over the submit script information and submit the job-----# 
 		# copy/update the SLURM submit template ---> ~/geo/. directory  
-		submit_script = self.geo_run_dirc.joinpath('submit_geogrid.sh')
-		acc.GenericWrite(self.submit_template, replacedata, submit_script) 
+		#submit_script = self.geo_run_dirc.joinpath('submit_geogrid.sh')
+		#acc.GenericWrite(self.submit_template, replacedata, submit_script) 
+		##
+		### this seems to be easier to submit jobs this way ... 
+		#cwd = os.getcwd()
+		#os.chdir(self.geo_run_dirc)
+		### now run geogrid 
+		#jobid, error = acc.Submit(submit_script, self.scheduler)	
+		### wait for the job to complete 
+		#acc.WaitForJob(jobid, self.user, self.scheduler)  #CHANGE_ME 
+		#os.chdir(cwd)
 		#
-		## this seems to be easier to submit jobs this way ... 
-		cwd = os.getcwd()
-		os.chdir(self.geo_run_dirc)
-		## now run geogrid 
-		jobid, error = acc.Submit(submit_script, self.scheduler)	
-		## wait for the job to complete 
-		acc.WaitForJob(jobid, self.user, self.scheduler)  #CHANGE_ME 
-		os.chdir(cwd)
-		
-		# !!! check stuff !!!!
-		# ! check that the geogrid.log file says "success"
-		success, status = SC.test_geolog(self.geo_run_dirc)
-		if not success:
-			self.logger.error(status)
-		else:
-			self.logger.info(status)
-		#! check that the geo_em? files get created 
-		success, status = SC.test_geofiles(self.geo_run_dirc)
-		if not success:
-			self.logger.error(status)
-		else:
-			self.logger.info(status)
+		## !!! check stuff !!!!
+		## ! check that the geogrid.log file says "success"
+		#success, status = SC.test_geolog(self.geo_run_dirc)
+		#if not success:
+		#	self.logger.error(status)
+		#else:
+		#	self.logger.info(status)
+		##! check that the geo_em? files get created 
+		#success, status = SC.test_geofiles(self.geo_run_dirc)
+		#if not success:
+		#	self.logger.error(status)
+		#else:
+		#	self.logger.info(status)
 
 
 		
 		
 	@acc.timer	
-	def ungrib(self):
-		cwd = os.getcwd() 
+	def ungrib(self, **kwargs):
+		'''
+		Run the ungrib.exe program
+		kwargs:
+			1) queue
+			2) queue_params
+			3) submit_script 
+			(# Defaults to the options found in 'self')
+		'''
+		# Start logging
 		logger = logging.getLogger(__name__)
 		logger.info('entering Ungrib process in directory')
 		logger.info('WRF Version {}'.format(self.wrf_version))
-		# fixed paths -- these should get created 
+		
+		# Fixed paths -- these should get created 
+		cwd = os.getcwd() 
 		vtable = self.ungrib_run_dirc.joinpath('Vtable')
 		submit_script = self.ungrib_run_dirc.joinpath('submit_ungrib.sh')
-		namelist_wps = self.ungrib_run_dirc.joinpath('namelist.wps')        
 		ungrib_log = self.ungrib_run_dirc.joinpath('ungrib.log')
+		namelist_wps = self.ungrib_run_dirc.joinpath('namelist.wps')        
 		linkGrib = '{}/link_grib.csh {}/{}' # CHANGE ME 
 		catch_id = 'ungrib.catch'
 		unique_name = 'u_{}'.format(secrets.token_hex(2))
 		success_message = 'Successful completion of program ungrib.exe'
-
-		# replace namelist items 
-		if self.scheduler == 'SLURM':
-			# dictionary 
-			submit_replace_dic = {"LOGNAME":"ungrib",
-					      "TASKS":1,
-					      "NODES":1,
-					      "QUEUE":self.queue,
-					      "RUN_TIME":"01:00:00",
-					      "ENVIRONMENT_FILE": self.environment_file,
-					      "CATCHID":catch_id,
-					      "EXECUTABLE":"ungrib.exe"
-						}
-		if self.scheduler == 'PBS':
-			# dictionary 
-			submit_replace_dic = {"LOGNAME":"ubgrib",
-					      "QUEUE":self.queue,
-					      "RUN_TIME":self.wps_params['ungrib_run_time'],
-					      "NODES":self.wps_params['num_nodes'],
-					      "NCPUS":self.wps_params['num_cpus'],
-					      "MPIPROCS":self.wps_params['num_mpiprocs'],
-					      "CPUTYPE":self.cpu_type,
-					      "ADDITIONAL_OPTIONS": '',    #!!!! Any additional PBS opitions can be insterted here !!!#
-					      "ENVIRONMENT_FILE": self.environment_file,
-					      "RUN_DIR":self.ungrib_run_dirc,
-					      "JOBNAME": unique_name, 
-					      "CMD":"ungrib.exe &> ungrib.catch"
-						}
-		# else ??? this error should be caught way before  
+		
+		# Get pbs submission parameters and create submit command 
+		queue = kwargs.get('queue', self.queue)                        # get the queue 
+		qp = kwargs.get('queue_params', self.queue_params.get('wps'))  # get the submit parameters               
+		submit_script = kwargs.get('submit_script', self.geo_run_dirc.joinpath('submit_geogrid.sh')) 
+		
+		# Form the job submission command 
+		lines = ["source %s" %self.environment_file,
+			 "cd %s" %self.ungrib_run_dirc,
+			 "./ungrib.exe &> ungrib.catch"]
+		command = "\n".join(lines)  # create a single string separated by spaces
+		
+		# Create the run script based on the type of job scheduler system  
+		replacedata = {"QUEUE":queue,
+			       "JOBNAME":unique_name,
+			       "LOGNAME":"ungrib-PLEVS",
+			       "CMD": command
+			       }
+		
+		
+		
+		# Adjust parameters in the namelist.wps template script 
 		wps_replace_dic = {"GEOG_PATH":self.geog_data_path,
       			           "GEOG_TBL_PATH":self.geo_exe_dirc,
 			           "METGRID_TBL_PATH":self.met_exe_dirc,
@@ -136,80 +137,94 @@ class RunWPS(SetMeUp):
 			           "startdate":self.start_date.strftime(self.time_format),
 			           "enddate":self.end_date.strftime(self.time_format),
 			           }
-		
-		# MOVE THE TO THE UNGRIB DIRECTORY
+		# Navigate to the ungrib director. !!! NOT SURE IF WE NEED TO DO THIS !!!
 		os.chdir(self.ungrib_run_dirc)
 		
-		# symlink the vtable
+		# Symlink the vtable
 		# Different versions of WRF have differnt Vtables even for the same LBCs 
-		if self.wrf_version == '4.0':
+		
+		# WRF V 4.0++
+		if str(self.wrf_version) == '4.0':
+			logger.info('Running WRF Version {} ungrib for {}' .format(self.wrf_version, self.lbc_type))
 			# there is only one vtable for wrf 4.0... I think?? for CFSR 
 			required_vtable = self.ungrib_run_dirc.joinpath('Variable_Tables/Vtable.CFSR')
 			if not required_vtable.exists():
 				logger.error('variable table {} not found. exiting'.format(required_vtable))
 				sys.exit()
-			# link the files 
+			# Link the Vtable; unlink if there already is one for whatver reason  
+			if vtable.exists():
+				os.unlink(vtable)
 			os.symlink(required_vtable, vtable)
 		
-		# check that BOTH required vtables exists for CFSR 	
-		if self.wrf_version == '3.8.1':
+		# WRF V 3.8.1 
+		elif str(self.wrf_version) == '3.8.1':
 			required_vtable_plv = self.ungrib_run_dirc.joinpath('Variable_Tables/Vtable.CFSR_press_pgbh06')
 			required_vtable_flx = self.ungrib_run_dirc.joinpath('Variable_Tables/Vtable.CFSR_press_flxf06')
-			required_vtables = [required_vtable_plv.exists(), required_vtable_flx.exists()] # returns true or false if the file exists/does not exist. we need both in order to run successfully 
+			required_vtables = [required_vtable_plv.exists(), required_vtable_flx.exists()] 
 			if False in required_vtables: 
 				logger.error('WRF {} variable table {} not found. exiting'.format(self.wrf_version, required_vtable))
 				sys.exit()
 			os.symlink(required_vtable_plv, vtable) 
+		
+		# Other WRF Version (Catch this error earlier!!)
 		else:
-			sys.exit() # THIS ERROR SHOULD BE CAUGHT WAY EARLIER --- UNKONW WRF VERSION
+			logger.error('unknown wrf version {}'.format(self.wrf_version))
+			sys.exit() 
  
-		# ---- UNGRIB PRESSURE FILES 
-		logger.info('starting on PLEVS')
+		# 1) Ungrib the Pressure Files (PLEVS) first  
+		logger.info('Starting on PLEVS (1/2)')
 		acc.GenericWrite(self.main_run_dirc.joinpath('namelist.wps.template'), wps_replace_dic, namelist_wps)
-		acc.GenericWrite(self.submit_template, submit_replace_dic, submit_script) 
+		acc.WriteSubmit(qp, replacedata, filename=submit_script)
 		acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc, self.data_dl_dirc, 'pgbh06'))	
-		## pressure files job submission	
+		
+		# pressure files job submission	
 		jobid, error = acc.Submit(submit_script,self.scheduler)	
 		acc.WaitForJob(jobid, self.user, self.scheduler)
 		
-		## verify completion of ungrib PLEVS 
-		success, status = log_check(ungrib_log, success_message)
+		# Verify the completion of 1) 
+		success, status = acc.log_check(ungrib_log, success_message)
 		if success: 
-			logger.info(acc.tail(1,ungrib_log))
+			logger.info(status)
 		if not success: 
-			logger.error(acc.tail(1, ungrib_log))
+			logger.error(status)
 			logger.error("Ungrib PLEVS step (1/2) did not finish correctly. Exiting")
 			logger.error("check {}".format(self.ungrib_run_dirc))
 			sys.exit()
-		# clean up 
+		# Clean up 1) 
 		globfiles = self.ungrib_run_dirc.glob('GRIBFILE*')
 		for globfile in globfiles:
 			logger.debug('unlinked {}'.format(str(globfile)))
 			os.unlink(globfile)
 		
-		## ---- UNGRIB SFLUX FILES 	
-		# we need to switch vtables if we are using 3.8.1
+		# 2) Ungrib the Surface Flux files (SFLUX) 
+		logger.info('Starting on SFLUX (2/2)')
+		
+		# We need to switch vtables if we are using 3.8.1	
 		if self.wrf_version == '3.8.1':
-			os.unlunk('unlink plevs vtable; link flx vtable')
+			os.unlink('unlink plevs vtable; link flx vtable')
 			os.symlink(required_vtable_flx, vtable) 
 		
-		## upate dictionaries
-		logger.info('starting on SFLUX')
+		# Upate Dictionaries -- regardless of wrf versio we do this 
 		wps_replace_dic['ungribprefix'] = 'SFLUX'
-		submit_replace_dic['logname'] = "ungrib_flx"
+		replacedata['LOGNANE'] = "ungrib-SFLUX"
+		
+		# Write the submit script and the wps namelist updates
+		acc.WriteSubmit(qp, replacedata, filename=submit_script)
 		acc.GenericWrite(self.main_run_dirc.joinpath('namelist.wps.template'), wps_replace_dic, namelist_wps)
-		## link flxf files 
+		
+		# Link SFLXF files 
 		acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc, self.data_dl_dirc, 'flxf06'))
-		## submit the job
+		
+		# Submit the job	
 		jobid, error = acc.Submit(submit_script, self.scheduler)
 		acc.WaitForJob(jobid, self.user, self.scheduler) 
 		
-		# verify completion
-		success, status = log_check(ungrib_log, success_message)
+		# Verify completion
+		success, status = acc.log_check(ungrib_log, success_message)
 		if success: 
-			logger.info(acc.tail(1,ungrib_log))
+			logger.info(status)
 		if not success: 
-			logger.error(acc.tail(1, ungrib_log))
+			logger.error(status)
 			logger.error("Ungrib SFLUX step (2/2) did not finish correctly. Exiting")
 			logger.error("check {}".format(self.ungrib_run_dirc))
 			sys.exit()
@@ -219,7 +234,6 @@ class RunWPS(SetMeUp):
 		for globfile in globfiles:
 			logger.debug('unlinked {}'.format(str(globfile)))
 			os.unlink(globfile)
-		# run the link csh script 
 		# check that the script finished correctly
 		os.chdir(cwd)
 
