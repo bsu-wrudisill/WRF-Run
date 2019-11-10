@@ -163,16 +163,48 @@ def GenericWrite(readpath,replacedata,writepath):
 	# done 
 
 
-#------------- slightly less generic commands ---------# 
+def fetchFile(filepath):
+	# wget a file 
+	SystemCmd('wget --output-file=logfile {}'.format(filepath)) # CHANGE ME...
+
+
+
+def WriteSubmit(queue_params,
+		 replacedic = {},   
+		 filename='testsubmit.sh'):
+
+	# write out a submit script based on 
+	# the queue parameters configuration file
+	# open the file and write out the options line by line 
+	assert 'CMD' in replacedic.keys()
+	with open(filename, 'w') as f:
+		f.write('#!/bin/bash \n') # write the header 
+		for qp in queue_params:
+			if qp.endswith('\n'):
+				line = qp 
+			else:
+				line = "{}\n".format(qp)
+			# replace things  
+			for key in replacedic.keys():
+				if key in line:
+					print(key)
+					line = line.replace(key, replacedic.get(key))
+			f.write(line)
+		# write three blank lines
+		f.write('\n')
+		f.write('\n')
+		f.write('\n')
+		f.write('# job execute command goes below here\n')
+		f.write(replacedic['CMD'])
+		f.write('\n')
+
+
 def tail(linenumber, filename):
 	# issue a system tail commnad 
 	returnString, error = SystemCmd('tail -n {} {}'.format(linenumber, filename))
 	returnString = ' '.join([x.decode("utf-8")  for x in returnString])
 	return returnString 	
 
-def fetchFile(filepath):
-	# wget a file 
-	SystemCmd('wget --output-file=logfile {}'.format(filepath)) # CHANGE ME...
 
 @passfail
 def log_check(logfile, message):
