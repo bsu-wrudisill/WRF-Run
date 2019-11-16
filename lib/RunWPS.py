@@ -29,6 +29,7 @@ class RunWPS(SetMeUp):
 		#                 3) 'submit_script'
 		
 		# gather information about the job
+		cwd = os.getcwd() 
 		self.logger.info('starting geogrid')	
 		catch_id = 'geogrid.catch'
 		unique_name = "g_{}".format(secrets.token_hex(2))              # create random name 
@@ -51,38 +52,35 @@ class RunWPS(SetMeUp):
 			       }
 		
 		acc.WriteSubmit(qp, replacedata, filename=submit_script)
-			
-		# --- copy over the submit script information and submit the job-----# 
-		# copy/update the SLURM submit template ---> ~/geo/. directory  
-		#submit_script = self.geo_run_dirc.joinpath('submit_geogrid.sh')
-		#acc.GenericWrite(self.submit_template, replacedata, submit_script) 
-		##
-		### this seems to be easier to submit jobs this way ... 
-		#cwd = os.getcwd()
-		#os.chdir(self.geo_run_dirc)
-		### now run geogrid 
-		#jobid, error = acc.Submit(submit_script, self.scheduler)	
-		### wait for the job to complete 
-		#acc.WaitForJob(jobid, self.user, self.scheduler)  #CHANGE_ME 
-		#os.chdir(cwd)
-		#
-		## !!! check stuff !!!!
-		## ! check that the geogrid.log file says "success"
-		#success, status = SC.test_geolog(self.geo_run_dirc)
-		#if not success:
-		#	self.logger.error(status)
-		#else:
-		#	self.logger.info(status)
-		##! check that the geo_em? files get created 
-		#success, status = SC.test_geofiles(self.geo_run_dirc)
-		#if not success:
-		#	self.logger.error(status)
-		#else:
-		#	self.logger.info(status)
-
-
 		
+		# Job Submission 
+		# navigate to the run directory 
+		os.chdir(self.ungrib_run_dirc)		
+		jobid, error = acc.Submit(submit_script, self.scheduler)	
+		# wait for the job to complete 
+		acc.WaitForJob(jobid, self.user, self.scheduler)  #CHANGE_ME 
 		
+		# move back to main directory after job completion/failure 
+		os.chdir(cwd)		
+	
+		# !!! check stuff !!!!
+		# ! check that the geogrid.log file says "success"
+		success, status = SC.test_geolog(self.geo_run_dirc)
+		if not success:
+			self.logger.error(status)
+			self.geoStatus = True 
+		else:
+			self.logger.info(status)
+			self.geoStatus = False 
+
+		#! check that the geo_em? files get created 
+		success, status = SC.test_geofiles(self.geo_run_dirc)
+		if not success:
+			self.logger.error(status)
+			self.geoStatus = False 
+		else:
+			self.logger.info(status)
+
 	@acc.timer	
 	def ungrib(self, **kwargs):
 		'''
@@ -235,6 +233,7 @@ class RunWPS(SetMeUp):
 		# check that the script finished correctly
 		os.chdir(cwd)
 	
+	
 	@acc.timer
 	def metgrid(self, **kwargs):
 		# ----------------------------------------------
@@ -262,15 +261,6 @@ class RunWPS(SetMeUp):
 		unique_name = 'm_{}'.format(secrets.token_hex(2))
 		success_message = 'Successful completion of program metgrid.exe'
 		
-		# verify that we are 'metgrid ready'
-		#if self.ungrib_success and self.geogrid_success:
-		#	logger.info('metgrid ready -- procede')
-		#else: 
-			# maybe the satus hasn't been updated yet, or it's 
-			# not ready. check anyway
-			# acc.file_check(	
-		#	pass
-	
 		# link ungrib files 
 		logger.info('Creating symlink for SFLUX')
 		for sflux in self.ungrib_run_dirc.glob('SFLUX*'):
@@ -317,6 +307,20 @@ class RunWPS(SetMeUp):
 		acc.GenericWrite(self.main_run_dirc.joinpath('namelist.wps.template'), wps_replace_dic, namelist_wps)
 		acc.WriteSubmit(qp, replacedata, filename=submit_script)
 
+		# 
+		jobid, error = acc.Submit(submit_script, self.scheduler)
+		acc.WaitForJob(jobid, self.user, self.scheduler) 
+		
+		# Verify completion
+		success, status = acc.log_check(ungrib_log, success_message)
+		if success: 
+			logger.info(status)
+		if not success: 
+			logger.error(status)
+			logger.error("Metgrid finsihed successfully")
+			logger.error("check {}".format(self.ungrib_run_dirc))
+			sys.exit()
+	
 	@acc.timer
 	def dataDownload(self):
 		logger = logging.getLogger(__name__)
