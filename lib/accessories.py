@@ -10,6 +10,8 @@ import time
 import traceback
 import logging
 import threading 
+import pathlib 
+
 logger = logging.getLogger(__name__)
 
 
@@ -117,9 +119,9 @@ def WaitForJob(jobid,user,scheduler):
 		# command can sometimes time out 
 		error = chiderr.decode("utf-8")
 		if error != '': # the error string is non-empty
-			logger.error("error encountered in qstat --- {}".format(error))
+			logger.error("error encountered in qstat:\n    {}".format(error))
 			logger.error("wait additional 20s before retry")
-			time.sleep(20)
+			time.sleep(60)
 			# ????? HOW DO WE HANDLE THIS ERROR ????? 
 			# Current solution is just to wait longer.... 
 			# unclear what the best option might be
@@ -145,6 +147,10 @@ def formatDate(dstr):
 	if type(dstr) == datetime.datetime:
 		return dstr
 	
+def namelistToDic(namelist):
+	# read a wrf namelist and return 
+	# a python dictionary object 
+	pass 	
 
 def GenericWrite(readpath,replacedata,writepath):
 	# path to file to read 
@@ -168,11 +174,9 @@ def fetchFile(filepath):
 	SystemCmd('wget --output-file=logfile {}'.format(filepath)) # CHANGE ME...
 
 
-
 def WriteSubmit(queue_params,
 		 replacedic = {},   
 		 filename='testsubmit.sh'):
-
 	# write out a submit script based on 
 	# the queue parameters configuration file
 	# open the file and write out the options line by line 
@@ -204,6 +208,22 @@ def tail(linenumber, filename):
 	returnString, error = SystemCmd('tail -n {} {}'.format(linenumber, filename))
 	returnString = ' '.join([x.decode("utf-8")  for x in returnString])
 	return returnString 	
+
+
+@passfail
+def file_check(file_pointer):
+	# verify that a file list, or a single file, exists
+	# file pointer should be a list of strings or a list 
+	# of pathlib objects 
+	if type(f) == list:
+		for f in file_pointer:
+			assert os.path.exists(f), '{} not found'.format(f)
+	
+	elif type(f) == pathlib.PosixPath:
+			assert os.path.exists(f), '{} not found'.format(f)
+	
+	elif type(f) == str:
+			assert os.path.exists(f), '{} not found'.format(f)
 
 
 @passfail
