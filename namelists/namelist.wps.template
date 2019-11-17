@@ -1,7 +1,7 @@
 &share
  wrf_core = 'ARW',
  max_dom = 1,
- start_date = '1999-01-01_06:00:00'
+ start_date = 'startdate' 
  end_date   = 'enddate'
  interval_seconds = 10800,
  io_form_geogrid = 2,
