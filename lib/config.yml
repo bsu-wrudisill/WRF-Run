@@ -11,6 +11,7 @@
 #           WRFNODES
 #           WALLTIME
 #           JOBNAME
+#           RUNDIR
 #----------------------------------------------------------------------------------------------------------
 
 # Boise State Research Computing (R2) Cluster 
@@ -27,8 +28,8 @@ R2:
            "#SBATCH -p QUEUE",                  # must be one of items in queue_list
            "#SBATCH -J JOBNAME",                # name of the job-- different than the jobid assigned by scheduler  
            "#SBATCH -t WALLTIME",     # Default WPS walltime--this might change for different WRF configs
-           "#SBATCH -e pbs_LOGNAME.err",
-           "#SBATCH -o pbs_LOGNAME.out"
+           "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+           "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
            ]
      
      # wps job submission header          
@@ -38,8 +39,8 @@ R2:
            "#SBATCH -p QUEUE",                  
            "#SBATCH -J JOBNAME",                
            "#SBATCH -t 01:00:00",       
-           "#SBATCH -e pbs_LOGNAME.err",
-           "#SBATCH -o pbs_LOGNAME.out"
+           "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+           "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
            ]
      
      real: [
@@ -48,8 +49,8 @@ R2:
            "#SBATCH -t 01:00:00",       
            "#SBATCH -p QUEUE",
            "#SBATCH -J JOBNAME",
-           "#SBATCH -e pbs_LOGNAME.err",
-           "#SBATCH -o pbs_LOGNAME.out"
+           "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+           "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
            ]
       
       # ??? specify memory  ???    
@@ -69,8 +70,8 @@ INL-FALCON:
            "#PBS -l place=excl",              # exclusive memory usage
            "#PBS -l walltime=WALLTIME",     # runtime -- this is dynamic
            "#PBS -N JOBNAME",               # jobname, different than the ID assigned by PBS 
-           "#PBS -e pbs_LOGNAME.err",       # standard err from scheduler 
-           "#PBS -o pbs_LOGNAME.out"        # standard out from scheduler 
+           "#PBS -e RUNDIR/pbs_LOGNAME.err",       # standard err from scheduler 
+           "#PBS -o RUNDIR/pbs_LOGNAME.out"        # standard out from scheduler 
            ]
      
      wps: ["#PBS -P iuc",                      
@@ -82,8 +83,8 @@ INL-FALCON:
            "#PBS -l mpiprocs=0",              #WPS and REAL are run serially--i.e. not as an mpi job
            "#PBS -l walltime=WALLTIME",
            "#PBS -l cputype=broadwell",        
-           "#PBS -e pbs_LOGNAME.err",
-           "#PBS -o pbs_LOGNAME.out"
+           "#PBS -e RUNDIR/pbs_LOGNAME.err",
+           "#PBS -o RUNDIR/pbs_LOGNAME.out"
            ]
 
      real: ["#PBS -P iuc",                      
@@ -95,6 +96,6 @@ INL-FALCON:
             "#PBS -l mpiprocs=0",             
             "#PBS -l walltime=WALLTIME",
             "#PBS -l cputype=broadwell",         
-            "#PBS -e pbs_LOGNAME.err",
-            "#PBS -o pbs_LOGNAME.out"
+            "#PBS -e RUNDIR/pbs_LOGNAME.err",
+            "#PBS -o RUNDIR/pbs_LOGNAME.out"
            ]
