@@ -1,176 +1,202 @@
-import RunDivide as RD
-import datetime 
-import sys,os
-import subprocess
+import sys
+import shutil
+import os 
 import time 
-from shutil import copyfile
+import sys 
+import datetime 
+import logging
+import yaml 
+import pathlib as pl
+import pandas as pd 
+import accessories as acc 
+from SetMeUp import SetMeUp
+from check_completion import StatusChecker as SC 
+from functools import partial 
+import glob 
+import secrets
 
-"""
-General structure:
-The "RunDivde" script creates a "chunk" object given a starting and ending date.
-This object divides up the run into intervals with the appropriate times. The 
-chunk object contains a method to update and write out namelist files when called 
-(chunk.UpdateNamelist and chunk.WriteNameList respectively).
-The RunWRF class is used to make calls to the chunk object when appropriate (to update 
-namelists/submit scripts) and make system calls to run wrf.exe and real.exe
-"""
 
-class WRF_Run():
-    # chunk is a chunk object created by ____.py 
-    user='wrudisill'
-    current_state = "starting WRF Run"
-    
-    """
-    initialize the run
-    """ 
-    def __init__(self,chunk,runDirectory):
-        self.runDirectory=runDirectory       # Copy files into the run directory and CD there
-        self.chunk = chunk
-        copyfile("namelist.input.template", "{}/namelist.input.template".format(self.runDirectory))
-        copyfile("submit_template.sh", "{}/submit_template.sh".format(self.runDirectory))
-        os.chdir(self.runDirectory)
-        
+class RunWRF(SetMeUp):
+	def __init__(self, setup):
+		super(self.__class__, self).__init__(setup)	
+		self.logger = logging.getLogger(__name__)
+		self.logger.info('initialized RunWRF instance')	
+	
+		'''
+		Divide up the run into the correct size of 'chunks'
+		We generally (perhaps debatably...) don't want to 
+		run WRF for long run times. Also figure out the walltime 
+		for the runs  
+		'''
+		
+		zippedlist = list(acc.DateGenerator(self.start_date, self.end_date, chunksize=1))
+		chunk_tracker = {}
+		
+		self.logger.info('WRF start date: %s', self.start_date)
+		self.logger.info('WRF end date: %s', self.end_date)
+		self.logger.info('WRF chunk time: %s days', self.wrf_run_options['chunk_size'])
+		self.logger.info('WRF number of chunks: %s', len(zippedlist))
+		for i,chunk in enumerate(zippedlist):
+			# calculate the lenght of the chunk 
+			chunk_start = chunk[0]
+			chunk_end = chunk[1]
+			chunk_days  = (chunk_end - chunk_start).days
+			chunk_hours  = (chunk_end - chunk_start).days*24 + (chunk_end - chunk_start).seconds/3600
+			self.logger.info('Chunk %s: %s -- %s (%s hours)', i, chunk_start, chunk_end, chunk_hours)
+			
+			# assign things to the dictionary
+			chunk_tracker[i] = {'start_date': chunk_start,
+					    'end_date': chunk_end,
+					    'run_hours': chunk_hours,
+					    'walltime_request': chunk_hours*self.wrf_run_options['wall_time_per_hour']}
+		
+		# assign chunk list to self
+		self.chunk_tracker = chunk_tracker	
+	
+	def SetupRunFiles(self, **kwargs):
+		''' kwargs:
+		      1) start_date
+		      2) end_date
+		      3) met_dirc   (location of metfiles. str or posixPath)
+		'''
+		# Gather kwargs or assign defaults
+		# -------------------------------
+		# if no path is assigned, the met dirc will look in the 
+		# metgrid run directory by default 	
+		geo_dirc = kwargs.get('geo_dirc', self.geo_run_dirc)
+		met_dirc = kwargs.get('met_dirc', self.met_run_dirc)
+		
+		# log start 
+		self.logger.info('Setting up...\n{}'.format(self.wrf_run_dirc))
+		self.logger.info('Seeking met files in...\n{}'.format(met_dirc))
+		self.logger.info('Seeking geogrid files in...\n{}'.format(geo_dirc))
+		
+		# Geogrid 1) Check and 2) Link to WRF/run directory
+		# -------------------------------------------------
+		required_geo_files = ['geo_em.d01.nc']   # CHANGE ME--- need to read the namelist to get this right
+		geo_found, message = acc.file_check(required_geo_files,
+				                  geo_dirc,
+						  desc='GeoFiles',
+						  logger=self.logger)
+		if not geo_found:
+			logger.error('req. geogrid files not found in {}\nExiting.'.format(geo_dirc))
+		
+			
 
-    """ 
-    System Commands:
-    1) system_cmd: run an arbitrary system command (shell) and store the output
-    2) WaitForJobs: query the job scheduler and wait for a job to finish
-    3) 
-    """ 
+		# Metgrid 1) Check and 2) Link to WRF/run directory 
+		#-------------------------------------------------
+		# create list of the required dates 
+		date_range = pd.date_range(self.start_date, self.end_date, freq='3H')  #!!! ALERT !!! 3 hours... is it always?
+		# what controls the timestep for metgrid????
+		
+		met_format = 'met_em.d01.{}-{}-{}_{}:00:00.nc'
+		required_met_files = []
+		for date in date_range:
+			y = date.strftime('%Y')
+			m = date.strftime('%m')
+			d = date.strftime('%d')
+			h = date.strftime('%H')
+			required_met_files.append(met_format.format(y,m,d,h))
+			
 
-    def system_cmd(self,cmd):
-        # issue system commands 
-        proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
-        out,err = proc.communicate()
-        return out.split(),err
-    
-    def WaitForJob(self,catch):
-        # Gather the Job id from the catch file
-        # (the catchid gets updated with eath iteration of real/wrf)
-        gid = "grep \"\" ./{} | cut -d' ' -f4".format(catch)    
-        gidout,giderr = self.system_cmd(gid)    
-         
-        # IF STDERROR NULL (NO ERRORS) THEN CONTINUE
-        jobid = gidout[0]           # assign jobid
-        print "jobid found {}".format(jobid)
 
-        still_running = 1                # start with 1 for still running 
-        while still_running == 1:        # as long as theres a job running, keep looping and checking
-            # command
-            chid = "squeue -u {} | sed \"s/^ *//\" | cut -d' ' -f1".format(self.user)   
-            # run command and parse output 
-            chidout, chiderr = self.system_cmd(chid)    
-            # the length of the list. should be zero or one. one means the job ID is found 
-            still_running_list = list(filter(lambda x: x == jobid, chidout))
-            still_running = len(still_running_list)
-            time.sleep(5)
-        pass 
+		# Check if the required metgrid files exist in the metgrid directory
+		met_found, message = acc.file_check(required_met_files, 
+				                 met_dirc, 
+						 desc='MetgridFiles', 
+						 logger=self.logger)
+		
+		if not met_found: # required metgrid files have not been found 
+			self.logger.error('unable to located the required metgrid files. exiting')
 
-    def Message(self):
-        pass 
-    
-    """
-    Run Commands:
-    1) real.exe
-    2) wrf.exe
-    3) run complete job (wrf and real)
-    4) arbitrary wrapper to run a function w/in wrf run   
-    """
-    
-    def Real(self):
-        # remove real files 
-        self.cleanReal()        
-        # create wrf submit script 
-        self.chunk.SlurmUpdate('r')
-        self.chunk.WriteSlurm()
-        # get the catchid and jobname
-        catch   = self.chunk.slurmlist['CATCHID']
-        jobname = self.chunk.slurmlist['JOBNAME']
-        # submit the script 
-        cmd_submit = "sbatch submit_{}.sh > {}".format(jobname, catch)
-        # submit and gather the output 
-        out,err = self.system_cmd(cmd_submit)
-        # wait for jobs 
-        self.WaitForJob(catch)
+		# Link appropriate files
+		# ---------------------
+		# Symlinks in the destination directory will be overwritten 
+		if met_found and geo_found:	
+			self.logger.info('Found required geogrid and metgrid files')
+			self.logger.info('Symlinking geo and met files to {}'.format(self.wrf_run_dirc))
+			# move metgrid files to the run directory 
+			for metfile in required_met_files:
+				src = self.met_run_dirc.joinpath(metfile)
+				dst = self.wrf_run_dirc.joinpath(metfile)
+				# remove destination link if it exists 
+				if dst.is_symlink():
+					dst.unlink()
+				os.symlink(src, dst)
 
-    def WRF(self):
-        # create wrf submit script 
-        self.chunk.SlurmUpdate('w')
-        self.chunk.WriteSlurm()
-        # get the catchid and jobname
-        jobname = self.chunk.slurmlist['JOBNAME']
-        catch   = self.chunk.slurmlist['CATCHID']
-        # submit the script 
-        cmd_submit = "sbatch submit_{}.sh > {}".format(jobname, catch)
-        # submit and gather the output 
-        out,err = self.system_cmd(cmd_submit)
-        # wait for jobs 
-        self.WaitForJob(catch)
+			for geofile in required_geo_files: 
+				src = self.geo_run_dirc.joinpath(geofile)
+				dst = self.wrf_run_dirc.joinpath(geofile)
+				# remove destination link if it exists 
+				if dst.is_symlink():
+					dst.unlink()
+				os.symlink(src, dst)
+			# log success message 
+			self.logger.info('******Success********')
+		else:
+			self.logger.error('Required met/geo files not found.\nExiting')
+			sys.exit()
+			
 
-    def Run(self):
-        # loop through the list of chunk time periods and 
-        # 1) update/write namelists
-        # 2) run real.exe  
-        # 3) update/write namelists 
-        # 4) run wrf.exe 
-        # loop through chunks         
-        for i in range(self.chunk.Counter):
-            print i
-            # do stuff           
-            # update namelist 
-            self.chunk.UpdateNamelist(i)
-            self.chunk.WriteNamelist()
-            
-            # Run Real
-            self.Real()
 
-            # do this function after real  
-            self.WrfinputUpdate()
-
-            # Run WRF 
-            self.WRF()
-
-            # finish and clean up
-            # CLEAN ME 
-        self.cleanRun()
-        #end run
-    
-    def function(self,i):
-        # Do some things based on the counter index i. one
-        # could easily stick other functions into here
-        pass
-    
-    def WrfinputUpdate(self):
-        # update the wrfinput file if a replacement file exists
-        if os.path.isfile("wrfinput_d02_REPLACE"):
-            wrfcmd = ['mv wrfinput_d02_REPLACE wrfinput_d02']
-            map(self.system_cmd, wrfcmd)
-            print "REPLACED WRFINPUT FILE"
-        else:
-            pass
-    
-    """
-    Clean up scripts to manage outputs
-    """
-    def cleanReal(self):
-        # if a wrfinput_d02_UPDATE exits... switch 
-        # rename previous wrfinput files  
-        mvcmd = ['mv wrfinput_d0{} wrfinput_d0{}_{}'.format(i, i, self.chunk.slurmlist['JOBNAME']) for i in [1,2]]
-        map(self.system_cmd, mvcmd)
-
-        # remove files 
-        rmcmd = ['rm wrfbdy_* wrflowinp_*']
-        map(self.system_cmd, rmcmd)
-        pass 
-
-    def cleanRun(self):
-        rslcmd=["cat rsl.out.???? >> rsl_out_all",
-                "cat rsl.error.???? >> rsl_error_all",
-                "rm rsl.error.*",
-                "rm rsl.out.*"]
-        # clean up the rsl files  
-        map(self.system_cmd, rslcmd)
-    
-    def cleanWRF(self):
-        pass 
-    
+	def _real(self, **kwargs):
+		'''
+		kwargs: 
+		1) geo_dir:
+		2) met_dir:
+		3) wrf_dir: 
+		4) start_date:
+		5) end_date: 
+		6) restart_file: 
+		'''
+		cwd = os.getcwd()
+		self.logger.info('starting real')	
+		catch_id = 'real.catch'
+		unique_name = "r_{}".format(secrets.token_hex(2))              # create random name 
+		queue = kwargs.get('queue', self.queue)                        # get the queue 
+		qp = kwargs.get('queue_params', self.queue_params.get('real'))  # get the submit parameters               
+		
+		# location of submit script/name 
+		submit_script = self.wrf_run_dirc.joinpath('submit_real.sh')
+		
+		# form the command 
+		lines = ["source %s" %self.environment_file,
+			 "cd %s" %self.wrf_run_dirc,
+			 "./real.exe &> real.catch"]
+		command = "\n".join(lines)  # create a single string separated by spaces
+		
+		# create the run script based on the type of job scheduler system  
+		replacedata = {"QUEUE":queue,
+			       "JOBNAME":unique_name,
+			       "LOGNAME":"real",
+			       "CMD": command
+			       }
+		
+		acc.WriteSubmit(qp, replacedata, filename=submit_script)
+		
+		# Job Submission 
+		# navigate to the run directory 
+		os.chdir(self.wrf_run_dirc)		
+		jobid, error = acc.Submit(submit_script, self.scheduler)	
+		# wait for the job to complete 
+		acc.WaitForJob(jobid, self.user, self.scheduler)  
+		
+		# move back to main directory after job completion/failure 
+		os.chdir(cwd)		
+	
+	def _wrf(self, **kwargs):
+		pass 	
+		
+	def WRF(self, **kwargs):
+		'''
+		kwargs: 
+		1) geo_dir:
+		2) met_dir:
+		3) wrf_dir: 
+		4) start_date:
+		5) end_date: 
+		6) restart_file: 
+		'''
+		
+		
+		pass
