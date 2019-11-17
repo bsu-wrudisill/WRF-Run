@@ -48,7 +48,8 @@ class RunWPS(SetMeUp):
 		replacedata = {"QUEUE":queue,
 			       "JOBNAME":unique_name,
 			       "LOGNAME":"geogrid",
-			       "CMD": command
+			       "CMD": command,
+			       "RUNDIR":self.geo_run_dirc
 			       }
 		
 		acc.WriteSubmit(qp, replacedata, filename=submit_script)
@@ -121,7 +122,8 @@ class RunWPS(SetMeUp):
 		replacedata = {"QUEUE":queue,
 			       "JOBNAME":unique_name,
 			       "LOGNAME":"ungrib-PLEVS",
-			       "CMD": command
+			       "CMD": command,
+			       "RUNDIR": self.ungrib_run_dirc
 			       }
 		
 		
@@ -264,17 +266,24 @@ class RunWPS(SetMeUp):
 		# link ungrib files 
 		logger.info('Creating symlink for SFLUX')
 		for sflux in self.ungrib_run_dirc.glob('SFLUX*'):
-			os.symlink(sflux, self.met_run_dirc.joinpath(sflux.name))
+			dst = self.met_run_dirc.joinpath(sflux.name)
+			if dst.is_symlink():
+				dst.unlink()
+			os.symlink(sflux, dst)
 		
 		logger.info('Creating symlink for PLEVS')
 		for plevs in self.ungrib_run_dirc.glob('PLEVS*'):
-			os.symlink(plevs, self.met_run_dirc.joinpath(plevs.name))
+			dst = self.met_run_dirc.joinpath(plevs.name)
+			if dst.is_symlink():
+				dst.unlink()	
+			os.symlink(plevs, dst) 
 
 		# link geogrid files 
 		for geo_em in self.geo_run_dirc.glob('geo_em.d0?.nc'):
-			logger.info('Creating symlink...')
-			logger.info('Found {} in {}'.format(geo_em.name, self.geo_run_dirc))
-			os.symlink(geo_em, self.met_run_dirc.joinpath(geo_em.name))
+			dst = self.met_run_dirc.joinpath(geo_em.name)
+			if dst.is_symlink():
+				dst.unlink()
+			os.symlink(geo_em, dst)
 
 		
 		# Get pbs submission parameters and create submit command 
@@ -292,7 +301,8 @@ class RunWPS(SetMeUp):
 		replacedata = {"QUEUE":queue,
 			       "JOBNAME":unique_name,
 			       "LOGNAME":"metgrid",
-			       "CMD": command
+			       "CMD": command,
+			       "RUNDIR": self.met_run_dirc
 			       }
 		
 		# Adjust parameters in the namelist.wps template script 
