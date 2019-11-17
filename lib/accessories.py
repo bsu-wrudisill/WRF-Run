@@ -150,9 +150,6 @@ def WaitForJob(jobid,user,scheduler):
 	
 	still_running = 1     # start with 1 for still running 
 	while still_running == 1:
-		logger.info('wait for job')
-		# command
-		logger.info(chid)	
 		# run command and parse output 
 		chidout, chiderr = SystemCmd(chid)    
 		chidout = [i.decode("utf-8") for i in chidout]
@@ -174,8 +171,7 @@ def WaitForJob(jobid,user,scheduler):
 		# the length of the list. should be zero or one. one means the job ID is found 
 		still_running_list = list(filter(lambda x: x == jobid, chidout))
 		still_running = len(still_running_list)
-		logger.info('jobID {} is still running...'.format(still_running_list))
-		logger.info('sleep for 10 seconds')
+		logger.info('JobID {} is still running...Sleep({})'.format(still_running_list, 10))
 		time.sleep(10)
 	
 	if scheduler not in ['PBS','SLURM']:
@@ -217,12 +213,12 @@ def fetchFile(filepath):
 
 
 def WriteSubmit(queue_params,
-		 replacedic = {},   
-		 filename='testsubmit.sh'):
+		 replacedic,   
+		 filename):
 	# write out a submit script based on 
 	# the queue parameters configuration file
 	# open the file and write out the options line by line 
-	assert 'CMD' in replacedic.keys()
+	#assert 'CMD' in replacedic.keys()
 	with open(filename, 'w') as f:
 		f.write('#!/bin/bash \n') # write the header 
 		for qp in queue_params:
@@ -233,7 +229,6 @@ def WriteSubmit(queue_params,
 			# replace things  
 			for key in replacedic.keys():
 				if key in line:
-					print(key)
 					line = line.replace(key, replacedic.get(key))
 			f.write(line)
 		# write three blank lines
