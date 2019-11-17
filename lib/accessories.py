@@ -15,17 +15,27 @@ import pathlib
 logger = logging.getLogger(__name__)
 
 
-# function decorators 
+# Function Decorators 
 def passfail(func):
 	def wrapped_func(*args, **kwargs):
+		desc = kwargs.get('desc', None)
+		logger = kwargs.get('logger', None)
 		try:
 			func(*args)
-			message = "{} Passed".format(str(func))
+			message = "{}**{}**Passed".format(str(func), desc)
+			if logger:
+				logger.info(message)
 			return (True,message)
 		except Exception as e:
 			trace_string =  traceback.format_exc()	
-			error_message = "{} Failed with the following Error: {}\n {}".format(str(func), e, trace_string)
-			return (False, error_message)
+			message = "{} {} Failed with the following Error: {}\n {}".format(
+			           str(func), 
+				   desc, 
+				   e, 
+				   trace_string)		
+			if logger:
+				logger.error(message)
+			return (False, message)
 	return wrapped_func
 
 
@@ -40,7 +50,7 @@ def timer(function):
 		return wrapped_function
 	return wrapper
 
-# functions 
+# Functions 
 def CleanUp(path):
 	# remove files from the run directory 
 	cwd = os.getcwd()
@@ -63,6 +73,37 @@ def CleanUp(path):
 	# move back to o.g. dir
 	os.chdir(cwd)
 
+def DateGenerator(start_date, end_date, chunksize=3):
+	#check that the command makes sense
+	if end_date<=start_date:
+	    logger.error("{} LTE {}".format(end_date,start_date))  #CATCH ME WAY EARLIER
+	    sys.exit()
+	
+	# wrf run time  
+	delta=datetime.timedelta(days=chunksize)    # length of WRF runs  
+	DateList = [start_date]                     # list of dates 
+	
+	# round to nearest h=00":00 to make things nicer 
+	if start_date.hour!=0:
+	    round_up_hour = 24 - start_date.hour
+	    whole=start_date+datetime.timedelta(round_up_hour)
+	    DateList.append(start_date+datetime.timedelta(hours=round_up_hour))
+
+	# now create list of <start> <end> date pairs
+	next_date = DateList[-1]                  
+	while (next_date+delta) < end_date:
+	    next_date = next_date + delta
+	    DateList.append(next_date)  
+	# append final date 
+	DateList.append(end_date)
+
+	#update parameters 
+	zippedlist=zip(DateList[:-1],DateList[1:])
+	# update self 
+	return zippedlist
+
+
+
 def SystemCmd(cmd):
 	# issue system commands 
 	proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -79,6 +120,7 @@ def Submit(subname, scheduler):
 		jobid = jobid.decode("utf-8").rstrip()
 		logger.info('jobid: {}'.format(jobid))
 		return jobid,err
+	
 	if scheduler == 'SLURM':
 		cmd = 'sbatch --parsable {}'.format(subname)
 		proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)	
@@ -147,7 +189,7 @@ def formatDate(dstr):
 	if type(dstr) == datetime.datetime:
 		return dstr
 	
-def namelistToDic(namelist):
+def NamelistToDic(namelist):
 	# read a wrf namelist and return 
 	# a python dictionary object 
 	pass 	
@@ -209,21 +251,34 @@ def tail(linenumber, filename):
 	returnString = ' '.join([x.decode("utf-8")  for x in returnString])
 	return returnString 	
 
+def smart_log(logger):
+	pass
 
 @passfail
-def file_check(file_pointer):
-	# verify that a file list, or a single file, exists
-	# file pointer should be a list of strings or a list 
-	# of pathlib objects 
-	if type(f) == list:
-		for f in file_pointer:
-			assert os.path.exists(f), '{} not found'.format(f)
+def file_check(required_files, 
+	       directory, 
+	       value='E',
+	       **kwargs):
+	# required_files : list of files
+	# directory: path in which they should exists
+	# value: E (Exist), DnE (Does Not Exist)
+	# returns: succes,message
+	missing_files = []
+	for required in required_files:
+		if not directory.joinpath(required).is_file():
+			missing_files.append(required)
+	num_req = len(required_files)
+	num_mis = len(missing_files)
 	
-	elif type(f) == pathlib.PosixPath:
-			assert os.path.exists(f), '{} not found'.format(f)
-	
-	elif type(f) == str:
-			assert os.path.exists(f), '{} not found'.format(f)
+	if value=='E':
+		# assert that ALL of the required files have been found in directory 
+		message = 'missing {} of {} required files'.format(num_req, num_mis)
+		assert num_mis  == 0, message
+	if value == 'DnE':
+		# assert that NONE of the files have been found in the directory 
+		message = 'found {} of {} files'.format(num_req, num_ms)
+		assert num_miss == num_req, message 
+		
 
 
 @passfail
