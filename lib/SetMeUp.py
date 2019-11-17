@@ -77,7 +77,7 @@ class SetMeUp:
 		
 		# these get created 
 		self.main_run_dirc = path(yamlfile['main_run_dirc'])
-		self.wrf_run_dirc = self.main_run_dirc.joinpath('wrf')
+		self.wrf_run_dirc = self.main_run_dirc.joinpath('wrf').joinpath('run')
 		self.wps_run_dirc = self.main_run_dirc.joinpath('wps')
 		self.geo_run_dirc = self.wps_run_dirc.joinpath('geogrid')
 		self.ungrib_run_dirc = self.wps_run_dirc.joinpath('ungrib')
@@ -94,7 +94,8 @@ class SetMeUp:
 		self.end_date = pd.to_datetime(run_date['end_date'])
 		self.lbc_type = yamlfile['lbc_type'] 
 		
-		
+		#get wrf_run_options
+		self.wrf_run_options = yamlfile['wrf_run_options']
 	
 	def createRunDirectory(self):
 		# copy contents of the 'WRFVX/run' directory to the main run dir 
