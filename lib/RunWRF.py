@@ -199,10 +199,67 @@ class RunWRF(SetMeUp):
 		if not success:
 			logger.error('Real.exe did not finish successfully.\nExiting')
 			logger.error('check {}/rsl.error* for details'.format(self.wrf_run_dirc))
-			
 
 	def _wrf(self, **kwargs):
-		pass 	
+		"""
+		kwargs: 1) walltime (defaults to 05:00)
+		"""
+		
+		# 0/xxx Check that a namelist exists (this function does not update namelists!)
+		# -----------------------------------------------------------------------------
+		namelist = self.wrf_run_dirc.joinpath('namelist.input')
+		if namelist.is_file():
+			self.logger.info('Found {}. Continuing'.format(namelist))
+		else:
+			self.logger.error('No namelist.input found in {}. Exiting\n'.format(namelist.parent()))
+			raise FileNotFound	
+	
+		# 1/xxx Gather/create parameters
+		# ------------------------------
+		cwd = os.getcwd()
+		self.logger.info('starting wrf')	
+		walltime = kwargs.get("walltime","05:00:00")
+		catch_id = 'wrf.catch'
+		unique_name = "w_{}".format(secrets.token_hex(2))              # create random name 
+		queue = kwargs.get('queue', self.queue)                        # get the queue 
+		qp = kwargs.get('queue_params', self.queue_params.get('wrf'))  # get the submit parameters               
+		#success_message = "wrf_em: SUCCESS COMPLETE REAL_EM INIT"
+		#wrf_log = self.wrf_run_dirc.joinpath('rsl.out.0000')
+		
+		# 2/xxx Create the REAL job submission script 
+		# -------------------------------------------
+		submit_script = self.wrf_run_dirc.joinpath('submit_wrf.sh')
+		
+		# form the command 
+		lines = ["source %s" %self.environment_file,
+			 "cd %s" %self.wrf_run_dirc,
+			 "mpirun ./wrf.exe &> wrf.catch"]
+		command = "\n".join(lines)  # create a single string separated by spaces
+		
+		# create the run script based on the type of job scheduler system  
+		replacedata = {"QUEUE":queue,
+			       "JOBNAME":unique_name,
+			       "LOGNAME":"wrf",
+			       "WALLTIME": walltime,
+			       "CMD": command,
+			       "RUNDIR":str(self.wrf_run_dirc)
+			       }
+		# write the submit script 
+		acc.WriteSubmit(qp, replacedata, submit_script)
+		
+		# 3/xxx Submit the Job and wait for completion
+		#---------------------------------------------	
+		#jobid, error = acc.Submit(submit_script, self.scheduler)	
+		# wait for the job to complete 
+		#acc.WaitForJob(jobid, self.user, self.scheduler)  
+		
+		
+		# 4/xxx check that the job completed correctly 
+		#success, status = acc.log_check(wrf_log, success_message, logger=self.logger)
+		#if not success:
+		#	logger.error('Real.exe did not finish successfully.\nExiting')
+		#	logger.error('check {}/rsl.error* for details'.format(self.wrf_run_dirc))
+
 		
 	def WRF_TimePeriod(self, **kwargs):
 		'''
