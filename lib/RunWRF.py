@@ -30,26 +30,34 @@ class RunWRF(SetMeUp):
 		'''
 		
 		zippedlist = list(acc.DateGenerator(self.start_date, self.end_date, chunksize=1))
-		chunk_tracker = {}
+		chunk_tracker = [] 
 		
 		self.logger.info('WRF start date: %s', self.start_date)
 		self.logger.info('WRF end date: %s', self.end_date)
 		self.logger.info('WRF chunk time: %s days', self.wrf_run_options['chunk_size'])
 		self.logger.info('WRF number of chunks: %s', len(zippedlist))
-		for i,chunk in enumerate(zippedlist):
+		for i,dates in enumerate(zippedlist):
 			# calculate the lenght of the chunk 
-			chunk_start = chunk[0]
-			chunk_end = chunk[1]
+			chunk_start = dates[0]
+			chunk_end = dates[1]
 			chunk_days  = (chunk_end - chunk_start).days
 			chunk_hours  = (chunk_end - chunk_start).days*24 + (chunk_end - chunk_start).seconds/3600
 			self.logger.info('Chunk %s: %s -- %s (%s hours)', i, chunk_start, chunk_end, chunk_hours)
+			# determine if the initial run is a restart:
+			if i == 0:
+				restart = False #self.restart -- pass into the setup file TODO
+			else:
+				restart = True
 			
 			# assign things to the dictionary
-			chunk_tracker[i] = {'start_date': chunk_start,
-					    'end_date': chunk_end,
-					    'run_hours': chunk_hours,
-					    'walltime_request': chunk_hours*self.wrf_run_options['wall_time_per_hour']}
-		
+			chunk = {'start_date': chunk_start,  # timestamp obj
+			         'end_date': chunk_end,      # timestamp obj
+			         'run_hours': int(chunk_hours),
+				 'restart': restart,
+			         'walltime_request': chunk_hours*self.wrf_run_options['wall_time_per_hour']}
+			# assign to the list 
+			chunk_tracker.append(chunk)
+				
 		# assign chunk list to self
 		self.chunk_tracker = chunk_tracker	
 	
@@ -140,23 +148,27 @@ class RunWRF(SetMeUp):
 
 
 	def _real(self, **kwargs):
-		'''
-		kwargs: 
-		1) geo_dir:
-		2) met_dir:
-		3) wrf_dir: 
-		4) start_date:
-		5) end_date: 
-		6) restart_file: 
-		'''
+		# 0/xxx Check that a namelist exists (this function does not update namelists!)
+		namelist = self.wrf_run_dirc.joinpath('namelist.input')
+		if namelist.is_file():
+			self.logger.info('Found {}. Continuing'.format(namelist))
+		else:
+			self.logger.error('No namelist.input found in {}. Exiting\n'.format(namelist.parent()))
+			raise FileNotFound	
+
+		# 1/xxx Gather/create parameters
+		# ------------------------------
 		cwd = os.getcwd()
 		self.logger.info('starting real')	
 		catch_id = 'real.catch'
 		unique_name = "r_{}".format(secrets.token_hex(2))              # create random name 
 		queue = kwargs.get('queue', self.queue)                        # get the queue 
 		qp = kwargs.get('queue_params', self.queue_params.get('real'))  # get the submit parameters               
+		success_message = "real_em: SUCCESS COMPLETE REAL_EM INIT"
+		real_log = self.wrf_run_dirc.joinpath('rsl.out.0000')
 		
-		# location of submit script/name 
+		# 2/xxx Create the REAL job submission script 
+		# -------------------------------------------
 		submit_script = self.wrf_run_dirc.joinpath('submit_real.sh')
 		
 		# form the command 
@@ -169,34 +181,67 @@ class RunWRF(SetMeUp):
 		replacedata = {"QUEUE":queue,
 			       "JOBNAME":unique_name,
 			       "LOGNAME":"real",
-			       "CMD": command
+			       "CMD": command,
+			       "RUNDIR":str(self.wrf_run_dirc)
 			       }
+		# write the submit script 
+		acc.WriteSubmit(qp, replacedata, submit_script)
 		
-		acc.WriteSubmit(qp, replacedata, filename=submit_script)
-		
-		# Job Submission 
-		# navigate to the run directory 
-		os.chdir(self.wrf_run_dirc)		
+		# 3/xxx Submit the Job and wait for completion
+		#---------------------------------------------	
 		jobid, error = acc.Submit(submit_script, self.scheduler)	
 		# wait for the job to complete 
 		acc.WaitForJob(jobid, self.user, self.scheduler)  
 		
-		# move back to main directory after job completion/failure 
-		os.chdir(cwd)		
-	
+		
+		# 4/xxx check that the job completed correctly 
+		success, status = acc.log_check(real_log, success_message, logger=self.logger)
+		if not success:
+			logger.error('Real.exe did not finish successfully.\nExiting')
+			logger.error('check {}/rsl.error* for details'.format(self.wrf_run_dirc))
+			
+
 	def _wrf(self, **kwargs):
 		pass 	
 		
-	def WRF(self, **kwargs):
+	def WRF_TimePeriod(self, **kwargs):
 		'''
-		kwargs: 
-		1) geo_dir:
-		2) met_dir:
-		3) wrf_dir: 
-		4) start_date:
-		5) end_date: 
-		6) restart_file: 
+		Run WRF and Real
 		'''
-		
-		
-		pass
+		#numer of chunks
+		num_chunks = len(self.chunk_tracker)
+		for num,chunk in enumerate(self.chunk_tracker):
+			self.logger.info('starting chunk {} of {}'.format(num, num_chunks)) 
+			self.logger.info(self.wrf_run_dirc)	
+			framesperout=24
+			framesperaux=24
+			restartinterval=chunk['run_hours']*60
+			
+			# update starting dates  
+			update = {"RUN_DAYS": 0,  # fairly sure this can always be zero so long as we update the rest
+			          "RUN_HOURS": chunk['run_hours'], 
+			          "START_YEAR": chunk['start_date'].strftime('%Y'),
+			          "START_MONTH": chunk['start_date'].strftime('%m'),
+			          "START_DAY": chunk['start_date'].strftime('%d'),
+			          "START_HOUR": chunk['start_date'].strftime('%H'),
+			          "END_YEAR": chunk['end_date'].strftime('%Y'),
+			          "END_MONTH": chunk['end_date'].strftime('%m'),
+			          "END_DAY": chunk['end_date'].strftime('%d'),
+			          "END_HOUR": chunk['end_date'].strftime('%H'),
+			          "FRAMES_PER_OUTFILE":framesperout,
+			          "RESTART_RUN":chunk['restart'],
+			          "RESTART_INTERVAL_MINS":restartinterval,
+			          "FRAMES_PER_AUXHIST":framesperaux} 
+
+			# Write the namelist 
+			template_namelist_input = self.main_run_dirc.joinpath('namelist.input.template')
+			namelist_input = self.wrf_run_dirc.joinpath('namelist.input')
+			# write out namelist files 
+			acc.GenericWrite(template_namelist_input, update, namelist_input)
+			self.logger.info('wrote namelist')
+			
+			#Run Real for chunk_X
+			self._real()
+
+
+
