@@ -89,7 +89,7 @@ class RunWPS(SetMeUp):
 			1) queue
 			2) queue_params
 			3) submit_script 
-			(# Defaults to the options found in 'self')
+			# Defaults to the options found in 'self')
 		'''
 		# Start logging
 		logger = logging.getLogger(__name__)
@@ -268,7 +268,7 @@ class RunWPS(SetMeUp):
 		
 		logger.info('Creating symlink for PLEVS')
 		for plevs in self.ungrib_run_dirc.glob('PLEVS*'):
-			os.symlink(sflux, self.met_run_dirc.joinpath(plevs.name))
+			os.symlink(plevs, self.met_run_dirc.joinpath(plevs.name))
 
 		# link geogrid files 
 		for geo_em in self.geo_run_dirc.glob('geo_em.d0?.nc'):
@@ -312,13 +312,12 @@ class RunWPS(SetMeUp):
 		acc.WaitForJob(jobid, self.user, self.scheduler) 
 		
 		# Verify completion
-		success, status = acc.log_check(ungrib_log, success_message)
+		success, status = acc.log_check(metgrid_log, success_message)
 		if success: 
 			logger.info(status)
 		if not success: 
 			logger.error(status)
-			logger.error("Metgrid finsihed successfully")
-			logger.error("check {}".format(self.ungrib_run_dirc))
+			logger.error("check {}".format(self.met_run_dirc))
 			sys.exit()
 	
 	@acc.timer
