@@ -165,10 +165,8 @@ def WaitForJob(jobid,user,scheduler):
 			# Current solution is just to wait longer.... 
 			# unclear what the best option might be
 		 
-		# happy path --- everything goes correctly 
-		logger.info(chidout)
-		# convert the id to an integer
-		# the length of the list. should be zero or one. one means the job ID is found 
+		# Filter the 'chidout' list for elements matching the jobid. 
+		# If zero, a match was not found  
 		still_running_list = list(filter(lambda x: x == jobid, chidout))
 		still_running = len(still_running_list)
 		logger.info('JobID {} is still running...Sleep({})'.format(still_running_list, 10))
