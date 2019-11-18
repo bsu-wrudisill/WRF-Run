@@ -15,6 +15,48 @@
 #----------------------------------------------------------------------------------------------------------
 
 # Boise State Research Computing (R2) Cluster 
+R2_smalljob:  
+     # general info 
+     scheduler: "SLURM"
+     queue_list: ["leaf","defq","ipowerq","gpuq"] 
+     
+     # wrf job submission header 
+     wrf: [
+           "#SBATCH -N 1",                        # number of nodes requested
+           "#SBATCH -n 2",                       # number of cores requested == 2*28
+           "#SBATCH --exclusive",                 # no sharing of node with other tasks(?)
+           "#SBATCH -p QUEUE",                  # must be one of items in queue_list
+           "#SBATCH -J JOBNAME",                # name of the job-- different than the jobid assigned by scheduler  
+           "#SBATCH -t WALLTIME",     # Default WPS walltime--this might change for different WRF configs
+           "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+           "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
+           ]
+     
+     # wps job submission header          
+     wps: [
+           "#SBATCH -N 1",                        
+           "#SBATCH -n 1",                       
+           "#SBATCH -p QUEUE",                  
+           "#SBATCH -J JOBNAME",                
+           "#SBATCH -t 01:00:00",       
+           "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+           "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
+           ]
+     
+     real: [
+           "#SBATCH -N 1",                        
+           "#SBATCH -n 1",                         
+           "#SBATCH -t 01:00:00",       
+           "#SBATCH -p QUEUE",
+           "#SBATCH -J JOBNAME",
+           "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+           "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
+           ]
+      
+      # ??? specify memory  ???    
+      #"--mem-per-cpu=50000",         # memory request per cpu
+        
+
 R2:  
      # general info 
      scheduler: "SLURM"
