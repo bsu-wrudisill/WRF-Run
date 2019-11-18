@@ -196,15 +196,19 @@ class RunWRF(SetMeUp):
 		
 		# 4/xxx check that the job completed correctly 
 		success, status = acc.log_check(real_log, success_message, logger=self.logger)
+		if success:
+			return True 
+		
 		if not success:
 			logger.error('Real.exe did not finish successfully.\nExiting')
 			logger.error('check {}/rsl.error* for details'.format(self.wrf_run_dirc))
-
+			return False 
 	def _wrf(self, **kwargs):
 		"""
 		kwargs: 1) walltime (defaults to 05:00)
 		"""
-		
+		self.logger.info('starting wrf')
+
 		# 0/xxx Check that a namelist exists (this function does not update namelists!)
 		# -----------------------------------------------------------------------------
 		namelist = self.wrf_run_dirc.joinpath('namelist.input')
@@ -217,14 +221,13 @@ class RunWRF(SetMeUp):
 		# 1/xxx Gather/create parameters
 		# ------------------------------
 		cwd = os.getcwd()
-		self.logger.info('starting wrf')	
 		walltime = kwargs.get("walltime","05:00:00")
 		catch_id = 'wrf.catch'
 		unique_name = "w_{}".format(secrets.token_hex(2))              # create random name 
 		queue = kwargs.get('queue', self.queue)                        # get the queue 
 		qp = kwargs.get('queue_params', self.queue_params.get('wrf'))  # get the submit parameters               
-		#success_message = "wrf_em: SUCCESS COMPLETE REAL_EM INIT"
-		#wrf_log = self.wrf_run_dirc.joinpath('rsl.out.0000')
+		success_message = "wrf: SUCCESS COMPLETE WRF"
+		wrf_log = self.wrf_run_dirc.joinpath('rsl.out.0000')
 		
 		# 2/xxx Create the REAL job submission script 
 		# -------------------------------------------
@@ -249,16 +252,18 @@ class RunWRF(SetMeUp):
 		
 		# 3/xxx Submit the Job and wait for completion
 		#---------------------------------------------	
-		#jobid, error = acc.Submit(submit_script, self.scheduler)	
+		jobid, error = acc.Submit(submit_script, self.scheduler)	
 		# wait for the job to complete 
-		#acc.WaitForJob(jobid, self.user, self.scheduler)  
-		
+		acc.WaitForJob(jobid, self.user, self.scheduler)  
 		
 		# 4/xxx check that the job completed correctly 
-		#success, status = acc.log_check(wrf_log, success_message, logger=self.logger)
-		#if not success:
-		#	logger.error('Real.exe did not finish successfully.\nExiting')
-		#	logger.error('check {}/rsl.error* for details'.format(self.wrf_run_dirc))
+		success, status = acc.log_check(wrf_log, success_message, logger=self.logger)
+		if success:
+			return True
+		if not success:
+			return False 
+			logger.error('Wrf.exe did not finish successfully.\nExiting')
+			logger.error('check {}/rsl.error* for details'.format(self.wrf_run_dirc))
 
 		
 	def WRF_TimePeriod(self, **kwargs):
@@ -268,7 +273,7 @@ class RunWRF(SetMeUp):
 		#numer of chunks
 		num_chunks = len(self.chunk_tracker)
 		for num,chunk in enumerate(self.chunk_tracker):
-			self.logger.info('starting chunk {} of {}'.format(num, num_chunks)) 
+			self.logger.info('****Starting Real/WRF Chunk ({}/{})****'.format(num, num_chunks)) 
 			self.logger.info(self.wrf_run_dirc)	
 			framesperout=24
 			framesperaux=24
@@ -298,7 +303,16 @@ class RunWRF(SetMeUp):
 			self.logger.info('wrote namelist')
 			
 			#Run Real for chunk_X
-			self._real()
-
-
-
+			real_success = self._real()
+			if not real_success:  # real worked (or at least returned True)
+				logger.error('Real failed for chunk {}'.format(num))
+				logger.error('Check rsl* logs in {}'.format(self.wrf_run_dirc))
+				sys.exit()
+				
+			wrf_success = self._wrf()
+			if not wrf_success:
+				logger.error('WRF failed for chunk {}'.format(num))
+				logger.error('Check rsl* logs in {}'.format(self.wrf_run_dirc))
+				sys.exit()
+			self.logger.info('****Completed Real/WRF Chunk ({}/{})****'.format(num,num_chunks))
+		
