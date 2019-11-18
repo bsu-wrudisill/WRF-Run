@@ -1,5 +1,5 @@
 # main parameters
-machine : R2        
+machine : R2_smalljob
 user: wrudisill
 queue : leaf 
 wrf_version : 4.0
