@@ -32,17 +32,24 @@ class RunWPS(SetMeUp):
 
 	@acc.timer	
 	def geogrid(self, **kwargs):
-		# kwargs options: 1) 'queue'
-		#                 2) 'queue_params'
-		#                 3) 'submit_script'
+		'''
+		kwargs options: 1) 'queue'
+		                2) 'queue_params'
+		                3) 'submit_script'
+		'''
+		
+		# Start logging
+		logger = logging.getLogger(__name__)
+		logger.info('Entering Geogrid process')
 		
 		# gather information about the job
 		cwd = os.getcwd() 
-		self.logger.info('starting geogrid')	
 		catch_id = 'geogrid.catch'
 		unique_name = "g_{}".format(secrets.token_hex(2))              # create random name 
 		queue = kwargs.get('queue', self.queue)                        # get the queue 
 		qp = kwargs.get('queue_params', self.queue_params.get('wps'))  # get the submit parameters               
+		geogrid_log = self.geo_run_dirc.joinpath('geogrid.log')	
+		success_message = "Successful completion of program geogrid.exe"
 		
 		# () Write the submission script
 		# ------------------------------
@@ -64,7 +71,6 @@ class RunWPS(SetMeUp):
 			       }
 		
 		acc.WriteSubmit(qp, replacedata, str(submit_script))
-		
 		# () Adjust parameters in the namelist.wps template script 
 		# --------------------------------------------------------
 		old_namelist_wps = str(self.main_run_dirc.joinpath('namelist.wps.template'))
@@ -75,33 +81,22 @@ class RunWPS(SetMeUp):
 		
 		# () Job Submission 
 		# -----------------
-
 		# Navigate to the run directory 
 		jobid, error = acc.Submit(submit_script, self.scheduler)	
 			
 		# Wait for the job to complete 
 		acc.WaitForJob(jobid, self.user, self.scheduler)  #CHANGE_ME 
+	
+		# () Check Job Completion
+		# --------------------
+		success, status = acc.log_check(geogrid_log, success_message)
+		if success: 
+			logger.info(status)
+		if not success: 
+			logger.error(status)
+			logger.error("check {}".format(self.geo_run_dirc))
+			sys.exit()
 		
-		# () Check job finish status
-		#---------------------------
-		
-		# Check that the geogrid.log file says "success"
-		success, status = SC.test_geolog(self.geo_run_dirc)
-		if not success:
-			self.logger.error(status)
-			self.geoStatus = True 
-		else:
-			self.logger.info(status)
-			self.geoStatus = False 
-
-		# Check that the geo_em? files get created 
-		success, status = SC.test_geofiles(self.geo_run_dirc)
-		if not success:
-			self.logger.error(status)
-			self.geoStatus = False 
-		else:
-			self.logger.info(status)
-
 		# () Complete 
 		# -----------
 		#self.logger.info('**Success**')
