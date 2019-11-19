@@ -9,6 +9,7 @@ import yaml
 import pathlib as pl
 import pandas as pd 
 import accessories as acc 
+import f90nml #must be installed via pip
 
 def path(obj):
 	# turn object into a posix path if its not none
@@ -43,8 +44,23 @@ class SetMeUp:
 		if yamlfile.get('queue') not in queue_params.get('queue_list'):
 			logger.error()
 			sys.exit()
+			
+		# Establish system paths to required things !# 		
+		self.wps_namelist_file_path = path(yamlfile['wps_namelist_file'])
+		self.input_namelist_file_path  = path(yamlfile['input_namelist_file'])
+		
+		# read the namelist file 
+		with open(self.wps_namelist_file_path) as nml_file:
+			self.wps_namelist_file = f90nml.read(nml_file)	
+
+		with open(self.input_namelist_file_path) as nml_file:
+			self.wps_namelist_file = f90nml.read(nml_file)	
+
+		# Extrack key parameters about the WRF configuration
+		self.num_wrf_dom = self.wps_namelist_file['domains']['max_dom']
 		
 		# Main Configuration -- machine related
+		self.geog_data_path = path(yamlfile['geog_data_path'])
 		self.queue_params = queue_params
 		self.setup = main # name of the setup file
 		self.cwd = path(os.getcwd())
@@ -54,10 +70,6 @@ class SetMeUp:
 		self.wrf_version = yamlfile['wrf_version']
 		self.environment_file = self.cwd.parent.joinpath(yamlfile['environment'])	
 		
-		# Establish system paths to required things !# 		
-		self.geog_data_path = path(yamlfile['geog_data_path'])
-		self.wps_namelist_file = path(yamlfile['wps_namelist_file'])
-		self.input_namelist_file = path(yamlfile['input_namelist_file'])
 		
 		
 		# Directories to copy from the compiled WRF model (or wherever they live on the system) 
@@ -110,24 +122,13 @@ class SetMeUp:
 		self.ungrib_run_dirc.mkdir()
 		self.data_dl_dirc.mkdir()
 		
-		# NAMELIST.WPS--update template and create copy 
-		replace_dic = {"GEOG_PATH":self.geog_data_path,
-			       "GEOG_TBL_PATH":self.geo_exe_dirc,
-			       "METGRID_TBL_PATH":self.met_exe_dirc
-				}
-		# deal w/ filenmaes 
-		wps_base = self.wps_namelist_file.name
-		updated_wps_file = self.main_run_dirc.joinpath(wps_base)
-		# 
-		acc.GenericWrite(self.wps_namelist_file, replace_dic, updated_wps_file)
-		
 		# NAMELIST.INPUT
-		shutil.copy(self.input_namelist_file, self.main_run_dirc)
+		shutil.copy(self.input_namelist_file_path, self.main_run_dirc)
+		shutil.copy(self.wps_namelist_file_path, self.main_run_dirc)
 		
 		# copy METGRID
 		shutil.copy(self.met_exe_dirc.joinpath('metgrid.exe'), self.met_run_dirc)
 		shutil.copy(self.met_exe_dirc.joinpath('METGRID.TBL'), self.met_run_dirc)
-		os.symlink(updated_wps_file, self.met_run_dirc.joinpath('namelist.wps'))
 		
 		# copy ungrib files 
 		shutil.copytree(self.ungrib_exe_dirc.joinpath('Variable_Tables'), self.ungrib_run_dirc.joinpath('Variable_Tables'))		
@@ -137,7 +138,6 @@ class SetMeUp:
 		# copy geogrid files 
 		shutil.copy(self.geo_exe_dirc.joinpath('geogrid.exe'), self.geo_run_dirc)		
 		shutil.copy(self.geo_exe_dirc.joinpath('GEOGRID.TBL'), self.geo_run_dirc)		
-		os.symlink(updated_wps_file, self.geo_run_dirc.joinpath('namelist.wps'))
 
 if __name__ == '__main__':
 	setup = SetMeUp('main.yml')

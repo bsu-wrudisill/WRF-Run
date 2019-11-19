@@ -14,14 +14,22 @@ from check_completion import StatusChecker as SC
 from functools import partial 
 import glob 
 import secrets
-
+import f90nml   # this must be installed via pip ... ugh
 class RunWPS(SetMeUp):
 	#
 	def __init__(self, setup):
 		super(self.__class__, self).__init__(setup)	
 		self.logger = logging.getLogger(__name__)
 		self.logger.info('initialized RunWPS instance')	
-	
+		
+		# WPS patch object 
+		self.wps_patch = {"geogrid": {"opt_geogrid_tbl_path":str(self.geo_exe_dirc),
+			                      "geog_data_path": str(self.geog_data_path)},
+      			          "metgrid": {"opt_metgrid_tbl_path":str(self.met_exe_dirc)},
+			          "ungrib" : {"prefix":"PLEVS"},
+			          "share": {"start_date":self.start_date.strftime(self.time_format),
+			                    "end_date":self.end_date.strftime(self.time_format)}}
+
 	@acc.timer	
 	def geogrid(self, **kwargs):
 		# kwargs options: 1) 'queue'
@@ -35,6 +43,9 @@ class RunWPS(SetMeUp):
 		unique_name = "g_{}".format(secrets.token_hex(2))              # create random name 
 		queue = kwargs.get('queue', self.queue)                        # get the queue 
 		qp = kwargs.get('queue_params', self.queue_params.get('wps'))  # get the submit parameters               
+		
+		# () Write the submission script
+		# ------------------------------
 		# location of submit script/name 
 		submit_script = kwargs.get('submit_script', self.geo_run_dirc.joinpath('submit_geogrid.sh')) 
 		
@@ -49,23 +60,32 @@ class RunWPS(SetMeUp):
 			       "JOBNAME":unique_name,
 			       "LOGNAME":"geogrid",
 			       "CMD": command,
-			       "RUNDIR":self.geo_run_dirc
+			       "RUNDIR":str(self.geo_run_dirc)
 			       }
 		
-		acc.WriteSubmit(qp, replacedata, filename=submit_script)
+		acc.WriteSubmit(qp, replacedata, str(submit_script))
 		
-		# Job Submission 
-		# navigate to the run directory 
-		os.chdir(self.ungrib_run_dirc)		
+		# () Adjust parameters in the namelist.wps template script 
+		# --------------------------------------------------------
+		old_namelist_wps = str(self.main_run_dirc.joinpath('namelist.wps.template'))
+		new_namelist_wps = str(self.geo_run_dirc.joinpath('namelist.wps'))
+
+		# update the file 
+		f90nml.patch(old_namelist_wps, self.wps_patch, new_namelist_wps)		
+		
+		# () Job Submission 
+		# -----------------
+
+		# Navigate to the run directory 
 		jobid, error = acc.Submit(submit_script, self.scheduler)	
-		# wait for the job to complete 
+			
+		# Wait for the job to complete 
 		acc.WaitForJob(jobid, self.user, self.scheduler)  #CHANGE_ME 
 		
-		# move back to main directory after job completion/failure 
-		os.chdir(cwd)		
-	
-		# !!! check stuff !!!!
-		# ! check that the geogrid.log file says "success"
+		# () Check job finish status
+		#---------------------------
+		
+		# Check that the geogrid.log file says "success"
 		success, status = SC.test_geolog(self.geo_run_dirc)
 		if not success:
 			self.logger.error(status)
@@ -74,13 +94,17 @@ class RunWPS(SetMeUp):
 			self.logger.info(status)
 			self.geoStatus = False 
 
-		#! check that the geo_em? files get created 
+		# Check that the geo_em? files get created 
 		success, status = SC.test_geofiles(self.geo_run_dirc)
 		if not success:
 			self.logger.error(status)
 			self.geoStatus = False 
 		else:
 			self.logger.info(status)
+
+		# () Complete 
+		# -----------
+		#self.logger.info('**Success**')
 
 	@acc.timer	
 	def ungrib(self, **kwargs):
@@ -118,29 +142,27 @@ class RunWPS(SetMeUp):
 			 "./ungrib.exe &> ungrib.catch"]
 		command = "\n".join(lines)  # create a single string separated by spaces
 		
+		# (XXX/NNN) Update namelist.wps script and write to directory
+		# -----------------------------------------------------------
 		# Create the run script based on the type of job scheduler system  
 		replacedata = {"QUEUE":queue,
 			       "JOBNAME":unique_name,
 			       "LOGNAME":"ungrib-PLEVS",
 			       "CMD": command,
-			       "RUNDIR": self.ungrib_run_dirc
+			       "RUNDIR": str(self.ungrib_run_dirc)
 			       }
 		
 		
 		# Adjust parameters in the namelist.wps template script 
-		wps_replace_dic = {"GEOG_PATH":self.geog_data_path,
-      			           "GEOG_TBL_PATH":self.geo_exe_dirc,
-			           "METGRID_TBL_PATH":self.met_exe_dirc,
-			           "ungribprefix":'PLEVS',	
-			           "startdate":self.start_date.strftime(self.time_format),
-			           "enddate":self.end_date.strftime(self.time_format),
-			           }
-		# Navigate to the ungrib director. !!! NOT SURE IF WE NEED TO DO THIS !!!
-		os.chdir(self.ungrib_run_dirc)
+		old_namelist_wps = self.main_run_dirc.joinpath('namelist.wps.template')
+		new_namelist_wps = self.ungrib_run_dirc.joinpath('namelist.wps')        
 		
-		# Symlink the vtable
+		# update the file 
+		patch = f90nml.patch(old_namelist_wps, self.wps_patch, new_namelist_wps)		
+		
+		# (XXX/NNN)Symlink the vtables (check WRF-Version)
+		# ----------------------------------------
 		# Different versions of WRF have differnt Vtables even for the same LBCs 
-		
 		# WRF V 4.0++
 		if str(self.wrf_version) == '4.0':
 			logger.info('Running WRF Version {} ungrib for {}' .format(self.wrf_version, self.lbc_type))
@@ -168,14 +190,25 @@ class RunWPS(SetMeUp):
 		else:
 			logger.error('unknown wrf version {}'.format(self.wrf_version))
 			sys.exit() 
- 
-		# 1) Ungrib the Pressure Files (PLEVS) first  
-		logger.info('Starting on PLEVS (1/2)')
-		acc.GenericWrite(self.main_run_dirc.joinpath('namelist.wps.template'), wps_replace_dic, namelist_wps)
-		acc.WriteSubmit(qp, replacedata, filename=submit_script)
-		acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc, self.data_dl_dirc, 'pgbh06'))	
+ 		
 		
-		# pressure files job submission	
+		
+		# (XXX/NNN) Begin Ungrib (2 parts--Plevs and SFLUX (FOR CFSR)) 
+		# ------------------------------------------------------------
+		
+		# (XXX/NNN.1) Ungrib the Pressure Files (PLEVS) first  
+		# ---------------------------------------------------	
+		logger.info('Starting on PLEVS (1/2)')
+		
+		# issue the link command 
+		os.chdir(self.ungrib_run_dirc)
+		acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc, self.data_dl_dirc, 'pgbh06'))	
+		os.chdir(cwd)
+		
+		# Create the submit script, link grib files
+		acc.WriteSubmit(qp, replacedata, submit_script)
+		
+		# Pressure files job submission	
 		jobid, error = acc.Submit(submit_script,self.scheduler)	
 		acc.WaitForJob(jobid, self.user, self.scheduler)
 		
@@ -194,7 +227,8 @@ class RunWPS(SetMeUp):
 			logger.debug('unlinked {}'.format(str(globfile)))
 			os.unlink(globfile)
 		
-		# 2) Ungrib the Surface Flux files (SFLUX) 
+		# (XXX/NNN.2) Ungrib the Surface Flux files (SFLUX) 
+		# -------------------------------------------------
 		logger.info('Starting on SFLUX (2/2)')
 		
 		# We need to switch vtables if we are using 3.8.1	
@@ -202,22 +236,27 @@ class RunWPS(SetMeUp):
 			os.unlink('unlink plevs vtable; link flx vtable')
 			os.symlink(required_vtable_flx, vtable) 
 		
-		# Upate Dictionaries -- regardless of wrf versio we do this 
-		wps_replace_dic['ungribprefix'] = 'SFLUX'
-		replacedata['LOGNANE'] = "ungrib-SFLUX"
-		
-		# Write the submit script and the wps namelist updates
+		# Update Dictionaries -- regardless of wrf versio we do this 
+		replacedata['LOGNAME'] = "ungrib-SFLUX"
+		# Write the submit script
 		acc.WriteSubmit(qp, replacedata, filename=submit_script)
-		acc.GenericWrite(self.main_run_dirc.joinpath('namelist.wps.template'), wps_replace_dic, namelist_wps)
+
+		# Switch the ungrib prefix--PLEVS --> SFLUX 
+		self.wps_patch['ungrib']['prefix'] = "SFLUX"
+		# Patch the file, rewriting the old one 
+		patch = f90nml.patch(old_namelist_wps, self.wps_patch, new_namelist_wps)		
 		
 		# Link SFLXF files 
+		os.chdir(self.ungrib_run_dirc)
 		acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc, self.data_dl_dirc, 'flxf06'))
-		
+		os.chdir(cwd)
+
 		# Submit the job	
 		jobid, error = acc.Submit(submit_script, self.scheduler)
 		acc.WaitForJob(jobid, self.user, self.scheduler) 
 		
-		# Verify completion
+		# (XXX/NNN) Verify completion
+		# ---------------------------
 		success, status = acc.log_check(ungrib_log, success_message)
 		if success: 
 			logger.info(status)
@@ -258,7 +297,7 @@ class RunWPS(SetMeUp):
 		# Fixed paths -- these should get created 
 		cwd = os.getcwd() 
 		metgrid_log = self.met_run_dirc.joinpath('metgrid.log')
-		namelist_wps = self.met_run_dirc.joinpath('namelist.wps')        
+	
 		catch_id = 'metgrid.catch'
 		unique_name = 'm_{}'.format(secrets.token_hex(2))
 		success_message = 'Successful completion of program metgrid.exe'
@@ -302,26 +341,28 @@ class RunWPS(SetMeUp):
 			       "JOBNAME":unique_name,
 			       "LOGNAME":"metgrid",
 			       "CMD": command,
-			       "RUNDIR": self.met_run_dirc
+			       "RUNDIR": str(self.met_run_dirc)
 			       }
+		# write the submit script 
+		acc.WriteSubmit(qp, replacedata, str(submit_script))
 		
 		# Adjust parameters in the namelist.wps template script 
-		wps_replace_dic = {"GEOG_PATH":self.geog_data_path,
-      			           "GEOG_TBL_PATH":self.geo_exe_dirc,
-			           "METGRID_TBL_PATH":self.met_exe_dirc,
-			           "startdate":self.start_date.strftime(self.time_format),
-			           "enddate":self.end_date.strftime(self.time_format),
-			           }
+		# ----------------------------------------------------
 		
-		# Navigate to the metgrid director. !!! NOT SURE IF WE NEED TO DO THIS !!!
-		acc.GenericWrite(self.main_run_dirc.joinpath('namelist.wps.template'), wps_replace_dic, namelist_wps)
-		acc.WriteSubmit(qp, replacedata, filename=submit_script)
-
-		# 
+		# New Method: use f90nml module
+		old_namelist_wps = self.main_run_dirc.joinpath('namelist.wps.template')	
+		new_namelist_wps = self.met_run_dirc.joinpath('namelist.wps')        
+		
+		# update the file 
+		patch = f90nml.patch(old_namelist_wps, self.wps_patch, new_namelist_wps)		
+		
+		# Submit the job and wait for completion
+		# --------------------------------------
 		jobid, error = acc.Submit(submit_script, self.scheduler)
 		acc.WaitForJob(jobid, self.user, self.scheduler) 
 		
 		# Verify completion
+		# -----------------
 		success, status = acc.log_check(metgrid_log, success_message)
 		if success: 
 			logger.info(status)
