@@ -147,7 +147,8 @@ def WaitForJob(jobid,user,scheduler):
 	
 	if scheduler == 'SLURM':
 		chid = "squeue -u {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)   
-	
+
+	# Issue the parse command and check if the jobid exists
 	still_running = 1     # start with 1 for still running 
 	while still_running == 1:
 		# run command and parse output 
@@ -186,6 +187,7 @@ def formatDate(dstr):
 def NamelistToDic(namelist):
 	# read a wrf namelist and return 
 	# a python dictionary object 
+	
 	pass 	
 
 def GenericWrite(readpath,replacedata,writepath):
@@ -236,6 +238,24 @@ def WriteSubmit(queue_params,
 		f.write('# job execute command goes below here\n')
 		f.write(replacedic['CMD'])
 		f.write('\n')
+
+def RepN(string, n):
+	# input: (string) str or any other object
+	#        (n) number of times to repeat
+	# returns: list of string repeated n times 
+	if type(string) == list:
+		return string * n
+	elif type(string) == str:
+		l = [string]
+		return l*n
+
+def RemoveQuotes(filepathR, filepathW):
+	# remove all of the single quotation marks from a file 
+	# UGH!! THis is terrible. f90nml 
+	with open(filepathR, 'r') as read_data:
+		with open(filepathW, 'w') as write_data:
+			d = read_data.read()
+			write_data.write(d.replace("'", ""))
 
 
 def tail(linenumber, filename):

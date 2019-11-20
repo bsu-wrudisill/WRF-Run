@@ -10,11 +10,10 @@ import pathlib as pl
 import pandas as pd 
 import accessories as acc 
 from SetMeUp import SetMeUp
-from check_completion import StatusChecker as SC 
 from functools import partial 
 import glob 
 import secrets
-
+import f90nml 
 
 class RunWRF(SetMeUp):
 	def __init__(self, setup):
@@ -94,9 +93,11 @@ class RunWRF(SetMeUp):
 		# Metgrid 1) Check and 2) Link to WRF/run directory 
 		#-------------------------------------------------
 		# create list of the required dates 
-		date_range = pd.date_range(self.start_date, self.end_date, freq='3H')  #!!! ALERT !!! 3 hours... is it always?
-		# what controls the timestep for metgrid????
-		
+		date_range = pd.date_range(self.start_date, self.end_date, freq='3H')  
+		# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		#            ALERT !!! 3 hours...(IS IT ALWAYS THIS???)
+		# What controls the timestep for metgrid???? 
+		# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		met_format = 'met_em.d01.{}-{}-{}_{}:00:00.nc'
 		required_met_files = []
 		for date in date_range:
@@ -106,8 +107,6 @@ class RunWRF(SetMeUp):
 			h = date.strftime('%H')
 			required_met_files.append(met_format.format(y,m,d,h))
 			
-
-
 		# Check if the required metgrid files exist in the metgrid directory
 		met_found, message = acc.file_check(required_met_files, 
 				                 met_dirc, 
@@ -200,8 +199,8 @@ class RunWRF(SetMeUp):
 			return True 
 		
 		if not success:
-			logger.error('Real.exe did not finish successfully.\nExiting')
-			logger.error('check {}/rsl.error* for details'.format(self.wrf_run_dirc))
+			self.logger.error('Real.exe did not finish successfully.\nExiting')
+			self.logger.error('check {}/rsl.error* for details'.format(self.wrf_run_dirc))
 			return False 
 	def _wrf(self, **kwargs):
 		"""
@@ -262,8 +261,8 @@ class RunWRF(SetMeUp):
 			return True
 		if not success:
 			return False 
-			logger.error('Wrf.exe did not finish successfully.\nExiting')
-			logger.error('check {}/rsl.error* for details'.format(self.wrf_run_dirc))
+			self.logger.error('Wrf.exe did not finish successfully.\nExiting')
+			self.logger.error('check {}/rsl.error* for details'.format(self.wrf_run_dirc))
 
 		
 	def WRF_TimePeriod(self, **kwargs):
@@ -278,41 +277,47 @@ class RunWRF(SetMeUp):
 			framesperout=24
 			framesperaux=24
 			restartinterval=chunk['run_hours']*60
+			n = self.num_wrf_dom			
 			
+			# TODO: create a chunk class where the strings formatting is a method..
 			# update starting dates  
-			update = {"RUN_DAYS": 0,  # fairly sure this can always be zero so long as we update the rest
-			          "RUN_HOURS": chunk['run_hours'], 
-			          "START_YEAR": chunk['start_date'].strftime('%Y'),
-			          "START_MONTH": chunk['start_date'].strftime('%m'),
-			          "START_DAY": chunk['start_date'].strftime('%d'),
-			          "START_HOUR": chunk['start_date'].strftime('%H'),
-			          "END_YEAR": chunk['end_date'].strftime('%Y'),
-			          "END_MONTH": chunk['end_date'].strftime('%m'),
-			          "END_DAY": chunk['end_date'].strftime('%d'),
-			          "END_HOUR": chunk['end_date'].strftime('%H'),
-			          "FRAMES_PER_OUTFILE":framesperout,
-			          "RESTART_RUN":chunk['restart'],
-			          "RESTART_INTERVAL_MINS":restartinterval,
-			          "FRAMES_PER_AUXHIST":framesperaux} 
+			input_patch = {"time_control": {"run_days": 0,  
+				                        "run_hours": chunk['run_hours'],
+			                                "start_year": acc.RepN(chunk['start_date'].strftime('%Y'), n),
+			                                "start_month": acc.RepN(chunk['start_date'].strftime('%m'), n),
+			                                "start_day": acc.RepN(chunk['start_date'].strftime('%d'), n),
+			                                "start_hour": acc.RepN(chunk['start_date'].strftime('%H'), n),
+			                                "end_year":  acc.RepN(chunk['end_date'].strftime('%Y'), n),
+			                                "end_month": acc.RepN(chunk['end_date'].strftime('%m'), n), 
+			                                "end_day":  acc.RepN(chunk['end_date'].strftime('%d'), n), 
+			                                "end_hour": acc.RepN(chunk['end_date'].strftime('%H'), n),
+			                                "frames_per_outfile": framesperout,
+			                                "restart":chunk['restart'],
+			                                "restart_interval": restartinterval,
+			                                "frames_per_auxhist3": framesperaux}
+			                                }
 
 			# Write the namelist 
 			template_namelist_input = self.main_run_dirc.joinpath('namelist.input.template')
+			namelist_input_quotes = self.wrf_run_dirc.joinpath('namelist.input.quotes')
 			namelist_input = self.wrf_run_dirc.joinpath('namelist.input')
-			# write out namelist files 
-			acc.GenericWrite(template_namelist_input, update, namelist_input)
-			self.logger.info('wrote namelist')
 			
-			#Run Real for chunk_X
+			# write out namelist files 
+			# there does not seem to be a way to write double padded integers using f90nml ... :( 
+			f90nml.patch(template_namelist_input, input_patch, namelist_input_quotes)
+			acc.RemoveQuotes(namelist_input_quotes, namelist_input)
+			
+			#run Real for chunk_X
 			real_success = self._real()
 			if not real_success:  # real worked (or at least returned True)
-				logger.error('Real failed for chunk {}'.format(num))
-				logger.error('Check rsl* logs in {}'.format(self.wrf_run_dirc))
+				self.logger.error('Real failed for chunk {}'.format(num))
+				self.logger.error('Check rsl* logs in {}'.format(self.wrf_run_dirc))
 				sys.exit()
 				
 			wrf_success = self._wrf()
 			if not wrf_success:
-				logger.error('WRF failed for chunk {}'.format(num))
-				logger.error('Check rsl* logs in {}'.format(self.wrf_run_dirc))
+				self.logger.error('WRF failed for chunk {}'.format(num))
+				self.logger.error('Check rsl* logs in {}'.format(self.wrf_run_dirc))
 				sys.exit()
 			self.logger.info('****Completed Real/WRF Chunk ({}/{})****'.format(num,num_chunks))
 		
