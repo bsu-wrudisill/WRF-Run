@@ -89,7 +89,7 @@ class SetMeUp:
 		
 		# these get created 
 		self.main_run_dirc = path(yamlfile['main_run_dirc'])
-		self.wrf_run_dirc = self.main_run_dirc.joinpath('wrf').joinpath('run')
+		self.wrf_run_dirc = self.main_run_dirc.joinpath('wrf')
 		self.wps_run_dirc = self.main_run_dirc.joinpath('wps')
 		self.geo_run_dirc = self.wps_run_dirc.joinpath('geogrid')
 		self.ungrib_run_dirc = self.wps_run_dirc.joinpath('ungrib')
@@ -113,7 +113,8 @@ class SetMeUp:
 		# copy contents of the 'WRFVX/run' directory to the main run dir 
 		self.main_run_dirc.mkdir()
 		#self.wrf_run_dirc.mkdir()
-		shutil.copytree(self.wrf_exe_dirc, self.wrf_run_dirc, symlinks=True)
+		shutil.copytree(self.wrf_exe_dirc.joinpath('run'),
+				self.wrf_run_dirc, symlinks=True)
 		
 		# get geogrid  
 		self.wps_run_dirc.mkdir()
@@ -131,9 +132,14 @@ class SetMeUp:
 		shutil.copy(self.met_exe_dirc.joinpath('METGRID.TBL'), self.met_run_dirc)
 		
 		# copy ungrib files 
-		shutil.copytree(self.ungrib_exe_dirc.joinpath('Variable_Tables'), self.ungrib_run_dirc.joinpath('Variable_Tables'))		
-		shutil.copy(self.ungrib_exe_dirc.joinpath('ungrib.exe'), self.ungrib_run_dirc)		
-		shutil.copy(self.wps_exe_dirc.joinpath('link_grib.csh'), self.ungrib_run_dirc)		
+		shutil.copytree(self.ungrib_exe_dirc.joinpath('Variable_Tables'), 
+				self.ungrib_run_dirc.joinpath('Variable_Tables'))		
+		
+		shutil.copy(self.ungrib_exe_dirc.joinpath('ungrib.exe'), 
+			    self.ungrib_run_dirc)		
+		
+		shutil.copy(self.wps_exe_dirc.joinpath('link_grib.csh'), 
+			    self.ungrib_run_dirc)		
 
 		# copy geogrid files 
 		shutil.copy(self.geo_exe_dirc.joinpath('geogrid.exe'), self.geo_run_dirc)		
