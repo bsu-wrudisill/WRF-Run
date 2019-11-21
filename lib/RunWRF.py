@@ -78,9 +78,12 @@ class RunWRF(SetMeUp):
 		self.logger.info('Seeking met files in...\n{}'.format(met_dirc))
 		self.logger.info('Seeking geogrid files in...\n{}'.format(geo_dirc))
 		
+		# Get the number of WRF domains 
+		n = self.num_wrf_dom
+		
 		# Geogrid 1) Check and 2) Link to WRF/run directory
 		# -------------------------------------------------
-		required_geo_files = ['geo_em.d01.nc']   # CHANGE ME--- need to read the namelist to get this right
+		required_geo_files = ['geo_em.d0{}.nc'.format(i+1) for i in range(n)]   
 		geo_found, message = acc.file_check(required_geo_files,
 				                  geo_dirc,
 						  desc='GeoFiles',
@@ -98,14 +101,15 @@ class RunWRF(SetMeUp):
 		#            ALERT !!! 3 hours...(IS IT ALWAYS THIS???)
 		# What controls the timestep for metgrid???? 
 		# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		met_format = 'met_em.d01.{}-{}-{}_{}:00:00.nc'
+		met_format = 'met_em.d0{}.{}-{}-{}_{}:00:00.nc'
 		required_met_files = []
-		for date in date_range:
-			y = date.strftime('%Y')
-			m = date.strftime('%m')
-			d = date.strftime('%d')
-			h = date.strftime('%H')
-			required_met_files.append(met_format.format(y,m,d,h))
+		for i in range(n): # number of wrf_domains
+			for date in date_range:
+				y = date.strftime('%Y')
+				m = date.strftime('%m')
+				d = date.strftime('%d')
+				h = date.strftime('%H')
+				required_met_files.append(met_format.format(i+1,y,m,d,h))
 			
 		# Check if the required metgrid files exist in the metgrid directory
 		met_found, message = acc.file_check(required_met_files, 
@@ -280,6 +284,7 @@ class RunWRF(SetMeUp):
 			n = self.num_wrf_dom			
 			
 			# TODO: create a chunk class where the strings formatting is a method..
+			# This is Gnar...
 			# update starting dates  
 			input_patch = {"time_control": {"run_days": 0,  
 				                        "run_hours": chunk['run_hours'],
