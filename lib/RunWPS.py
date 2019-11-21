@@ -15,21 +15,56 @@ from functools import partial
 import glob 
 import secrets
 import f90nml   # this must be installed via pip ... ugh
+
+
+
 class RunWPS(SetMeUp):
 	#
-	def __init__(self, setup):
+	def __init__(self, setup, **kwargs):
 		super(self.__class__, self).__init__(setup)	
 		self.logger = logging.getLogger(__name__)
 		self.logger.info('initialized RunWPS instance')	
 		
+		# get the start/end dates 
+		start_date = self.start_date.strftime(self.time_format)
+		end_date = self.end_date.strftime(self.time_format)
+		
+		# get number of domains 
+		n = self.num_wrf_dom
+		
+		# create a repeated list of start/end dates for namelists 
+		start_date_rep = acc.RepN(start_date, n)		
+		end_date_rep = acc.RepN(end_date, n)		
+
 		# WPS patch object 
 		self.wps_patch = {"geogrid": {"opt_geogrid_tbl_path":str(self.geo_exe_dirc),
 			                      "geog_data_path": str(self.geog_data_path)},
       			          "metgrid": {"opt_metgrid_tbl_path":str(self.met_exe_dirc)},
 			          "ungrib" : {"prefix":"PLEVS"},
-			          "share": {"start_date":self.start_date.strftime(self.time_format),
-			                    "end_date":self.end_date.strftime(self.time_format)}}
+			          "share": {"start_date": start_date_rep,
+			                    "end_date": end_date_rep}}
 
+	def writeNamelist(self, directory, remove_quotes=False):
+		# Write the WPS namelist into the given directory  
+		# () Adjust parameters in the namelist.wps template script 
+		# --------------------------------------------------------
+		if remove_quotes:
+			# Do this whole dumb thing to remove quotes line by line 
+			template_namelist_wps = self.main_run_dirc.joinpath('namelist.wps.template')
+			namelist_wps_quotes = directory.joinpath('namelist.wps.quotes')
+			namelist_wps = directory.joinpath('namelist.wps')
+			# Apply the 'patch' to the namelist 
+			f90nml.patch(template_namelist_wps, self.wps_patch, namelist_wps_quotes)		
+			# Remove the quotes ...
+			acc.RemoveQuotes(namelist_wps_quotes, namelist_wps)	
+		else:
+			# Leave in the quotes ... ugh. For WPS this is ok. namelist.input, it's not
+			template_namelist_wps = self.main_run_dirc.joinpath('namelist.wps.template')
+			namelist_wps = directory.joinpath('namelist.wps')
+			
+			# Update the file 
+			f90nml.patch(template_namelist_wps, self.wps_patch, namelist_wps)		
+		
 	@acc.timer	
 	def geogrid(self, **kwargs):
 		'''
@@ -37,7 +72,6 @@ class RunWPS(SetMeUp):
 		                2) 'queue_params'
 		                3) 'submit_script'
 		'''
-		
 		# Start logging
 		logger = logging.getLogger(__name__)
 		logger.info('Entering Geogrid process')
@@ -71,14 +105,11 @@ class RunWPS(SetMeUp):
 			       }
 		
 		acc.WriteSubmit(qp, replacedata, str(submit_script))
+		
 		# () Adjust parameters in the namelist.wps template script 
 		# --------------------------------------------------------
-		old_namelist_wps = str(self.main_run_dirc.joinpath('namelist.wps.template'))
-		new_namelist_wps = str(self.geo_run_dirc.joinpath('namelist.wps'))
+		self.writeNamelist(self.geo_run_dirc)
 
-		# update the file 
-		f90nml.patch(old_namelist_wps, self.wps_patch, new_namelist_wps)		
-		
 		# () Job Submission 
 		# -----------------
 		# Navigate to the run directory 
@@ -97,9 +128,6 @@ class RunWPS(SetMeUp):
 			logger.error("check {}".format(self.geo_run_dirc))
 			sys.exit()
 		
-		# () Complete 
-		# -----------
-		#self.logger.info('**Success**')
 
 	@acc.timer	
 	def ungrib(self, **kwargs):
@@ -147,13 +175,9 @@ class RunWPS(SetMeUp):
 			       "RUNDIR": str(self.ungrib_run_dirc)
 			       }
 		
+		# Write the namelist.wps
+		self.writeNamelist(self.ungrib_run_dirc)
 		
-		# Adjust parameters in the namelist.wps template script 
-		old_namelist_wps = self.main_run_dirc.joinpath('namelist.wps.template')
-		new_namelist_wps = self.ungrib_run_dirc.joinpath('namelist.wps')        
-		
-		# update the file 
-		patch = f90nml.patch(old_namelist_wps, self.wps_patch, new_namelist_wps)		
 		
 		# (XXX/NNN)Symlink the vtables (check WRF-Version)
 		# ----------------------------------------
@@ -180,13 +204,10 @@ class RunWPS(SetMeUp):
 				logger.error('WRF {} variable table {} not found. exiting'.format(self.wrf_version, required_vtable))
 				sys.exit()
 			os.symlink(required_vtable_plv, vtable) 
-		
 		# Other WRF Version (Catch this error earlier!!)
 		else:
 			logger.error('unknown wrf version {}'.format(self.wrf_version))
 			sys.exit() 
- 		
-		
 		
 		# (XXX/NNN) Begin Ungrib (2 parts--Plevs and SFLUX (FOR CFSR)) 
 		# ------------------------------------------------------------
@@ -207,7 +228,7 @@ class RunWPS(SetMeUp):
 		jobid, error = acc.Submit(submit_script,self.scheduler)	
 		acc.WaitForJob(jobid, self.user, self.scheduler)
 		
-		# Verify the completion of 1) 
+		# Verify the completion of .1
 		success, status = acc.log_check(ungrib_log, success_message)
 		if success: 
 			logger.info(status)
@@ -216,7 +237,7 @@ class RunWPS(SetMeUp):
 			logger.error("Ungrib PLEVS step (1/2) did not finish correctly. Exiting")
 			logger.error("check {}".format(self.ungrib_run_dirc))
 			sys.exit()
-		# Clean up 1) 
+		# Clean up .1 
 		globfiles = self.ungrib_run_dirc.glob('GRIBFILE*')
 		for globfile in globfiles:
 			logger.debug('unlinked {}'.format(str(globfile)))
@@ -238,8 +259,9 @@ class RunWPS(SetMeUp):
 
 		# Switch the ungrib prefix--PLEVS --> SFLUX 
 		self.wps_patch['ungrib']['prefix'] = "SFLUX"
+		
 		# Patch the file, rewriting the old one 
-		patch = f90nml.patch(old_namelist_wps, self.wps_patch, new_namelist_wps)		
+		self.writeNamelist(self.ungrib_run_dirc)
 		
 		# Link SFLXF files 
 		os.chdir(self.ungrib_run_dirc)
@@ -312,14 +334,13 @@ class RunWPS(SetMeUp):
 				dst.unlink()	
 			os.symlink(plevs, dst) 
 
-		# link geogrid files 
+		# link geogrid files TODO: how many geogrid are needed???  
 		for geo_em in self.geo_run_dirc.glob('geo_em.d0?.nc'):
 			dst = self.met_run_dirc.joinpath(geo_em.name)
 			if dst.is_symlink():
 				dst.unlink()
 			os.symlink(geo_em, dst)
 
-		
 		# Get pbs submission parameters and create submit command 
 		queue = kwargs.get('queue', self.queue)                        # get the queue 
 		qp = kwargs.get('queue_params', self.queue_params.get('wps'))  # get the submit parameters               
@@ -343,13 +364,7 @@ class RunWPS(SetMeUp):
 		
 		# Adjust parameters in the namelist.wps template script 
 		# ----------------------------------------------------
-		
-		# New Method: use f90nml module
-		old_namelist_wps = self.main_run_dirc.joinpath('namelist.wps.template')	
-		new_namelist_wps = self.met_run_dirc.joinpath('namelist.wps')        
-		
-		# update the file 
-		patch = f90nml.patch(old_namelist_wps, self.wps_patch, new_namelist_wps)		
+		self.writeNamelist(self.met_run_dirc)
 		
 		# Submit the job and wait for completion
 		# --------------------------------------
