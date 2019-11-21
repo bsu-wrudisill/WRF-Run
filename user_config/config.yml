@@ -1,0 +1,147 @@
+# ----------------------------------------------------------------------------------------------------------
+# !!!!!!!!!!!!!!!!!!     WRF-RUN Job Submission Configuration  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ----------------------------------------------------------------------------------------------------------
+# Description: Each computer cluster is unique, so the job submission parameters might change from machine to 
+#              machine. Some are static and will not get updated by the run script. Any paramter in the "globals"
+#              category will get inserted somewhere in the run scripts. Other anything hard-coded is 
+#              up to the user to decide
+#
+# ! GLOBALS !!!!
+# ! These names get dynamically update in the python process 
+#           QUEUE (name of the queue; leaf, defq, etc.), 
+#           WRFNODES
+#           WALLTIME
+#           JOBNAME
+#           RUNDIR (this will be the directory in which the executable (wrf.exe, geogrid.exe, etc. is being run).
+# ---------------------------------------------------------------------------------------------------------------
+
+
+
+# Boise State Research Computing (R2) Cluster 
+# ------------------------------------------
+
+R2_smalljob:  
+     # General info 
+     scheduler: "SLURM"
+     queue_list: ["leaf","defq","ipowerq","gpuq"] 
+     
+     # WRF job submission header 
+     wrf: [
+           "#SBATCH -N 1",                         # Number of nodes requested
+           "#SBATCH -n 2",                         # Number of cores requested == 2*28
+           "#SBATCH --exclusive",                  # No sharing of node with other tasks(?)
+           "#SBATCH -p QUEUE",                     # Must be one of items in queue_list
+           "#SBATCH -J JOBNAME",                   # Name of the job-- different than the jobid assigned by scheduler  
+           "#SBATCH -t WALLTIME",                  # Default WPS walltime--this might change for different WRF configs
+           "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+           "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
+           ]
+     
+     # WPS job submission header          
+     wps: [
+           "#SBATCH -N 1",                        
+           "#SBATCH -n 1",                       
+           "#SBATCH -p QUEUE",                  
+           "#SBATCH -J JOBNAME",                
+           "#SBATCH -t 01:00:00",       
+           "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+           "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
+           ]
+     
+     real: [
+           "#SBATCH -N 1",                        
+           "#SBATCH -n 1",                         
+           "#SBATCH -t 01:00:00",       
+           "#SBATCH -p QUEUE",
+           "#SBATCH -J JOBNAME",
+           "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+           "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
+           ]
+      
+      #"--mem-per-cpu=50000",         # memory request per cpu
+        
+
+R2:  
+     # General info 
+     scheduler: "SLURM"
+     queue_list: ["leaf","defq","ipowerq","gpuq"] 
+     
+     # WRF Job submission header 
+     wrf: [
+           "#SBATCH -N 2",                        # number of nodes requested
+           "#SBATCH -n 56",                       # number of cores requested == 2*28
+           "#SBATCH --exclusive",                 # no sharing of node with other tasks(?)
+           "#SBATCH -p QUEUE",                  # must be one of items in queue_list
+           "#SBATCH -J JOBNAME",                # name of the job-- different than the jobid assigned by scheduler  
+           "#SBATCH -t WALLTIME",     # Default WPS walltime--this might change for different WRF configs
+           "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+           "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
+           ]
+     
+     # WPS Job submission header          
+     wps: [
+           "#SBATCH -N 1",                        
+           "#SBATCH -n 1",                       
+           "#SBATCH -p QUEUE",                  
+           "#SBATCH -J JOBNAME",                
+           "#SBATCH -t 01:00:00",       
+           "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+           "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
+           ]
+     
+     real: [
+           "#SBATCH -N 1",                        
+           "#SBATCH -n 1",                         
+           "#SBATCH -t 01:00:00",       
+           "#SBATCH -p QUEUE",
+           "#SBATCH -J JOBNAME",
+           "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+           "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
+           ]
+      
+      # ??? specify memory  ???    
+      #"--mem-per-cpu=50000",         # memory request per cpu
+        
+         
+# Idaho National Labs Falcon HPC Environment 
+INL-FALCON: 
+     scheduler: "PBS"
+     queue_list: ["iuc"]                  
+     wrf: ["#PBS -P iuc",                     # idaho university queue   
+           "#PBS -q iuc",                     # same as P for some reason 
+           "#PBS -l select=2",                # select 2 nodes for WRF 
+           "#PBS -l ncpus=36",                # 36 cpus/node on INL-Falcon
+           "#PBS -l mpiprocs=36",             # number of mpiprocesses per ... cpu 
+           "#PBS -l cputype=broadwell",       # not sure what the other options are 
+           "#PBS -l place=excl",              # exclusive memory usage
+           "#PBS -l walltime=WALLTIME",     # runtime -- this is dynamic
+           "#PBS -N JOBNAME",               # jobname, different than the ID assigned by PBS 
+           "#PBS -e RUNDIR/pbs_LOGNAME.err",       # standard err from scheduler 
+           "#PBS -o RUNDIR/pbs_LOGNAME.out"        # standard out from scheduler 
+           ]
+     
+     wps: ["#PBS -P iuc",                      
+           "#PBS -q iuc",
+           "#PBS -N JOBNAME",
+           "#PBS -l walltime=WALLTIME",
+           "#PBS -l select=1",                 
+           "#PBS -l ncpus=36",                 
+           "#PBS -l mpiprocs=0",              #WPS and REAL are run serially--i.e. not as an mpi job
+           "#PBS -l walltime=WALLTIME",
+           "#PBS -l cputype=broadwell",        
+           "#PBS -e RUNDIR/pbs_LOGNAME.err",
+           "#PBS -o RUNDIR/pbs_LOGNAME.out"
+           ]
+
+     real: ["#PBS -P iuc",                      
+            "#PBS -q iuc",
+            "#PBS -N JOBNAME",
+            "#PBS -l walltime=WALLTIME",
+            "#PBS -l select=1",                 
+            "#PBS -l ncpus=36",                 
+            "#PBS -l mpiprocs=0",             
+            "#PBS -l walltime=WALLTIME",
+            "#PBS -l cputype=broadwell",         
+            "#PBS -e RUNDIR/pbs_LOGNAME.err",
+            "#PBS -o RUNDIR/pbs_LOGNAME.out"
+           ]

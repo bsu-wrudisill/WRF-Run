@@ -1,0 +1,47 @@
+# --------------------------------------------------------------------------------------
+# Main setup parameters for WRF/WPS Runs.
+#
+# Specify.... 1) Filepaths (executables, run directory, etc).
+#             2) WRF Run parameters (version, submission queue, etc.)
+#             3) Boundary conditions aka. 'lbc_type'. Currently only ONE option! (CFSR)
+#
+# --------------------------------------------------------------------------------------
+
+# main parameters
+machine : R2   # Name must match an entry in config.yml
+user: wrudisill
+queue : leaf 
+wrf_version : 4.0
+run_name : TEST
+
+
+# existing paths-- executable directories, LBCs (if they exist), geogrid file (if it exists), etc:
+wrf_exe_directory : /home/wrudisill/WRFV4/4.1.2/WRF-4.1.2/  # contains the 'run' dir 
+wps_exe_directory : /home/wrudisill/WRFV4/4.1.2/WPS-4.1/
+geog_data_path : /home/wrudisill/leaf/WRF/WPS_GEOG 
+environment: envWRF_4.1.2_R2.sh
+wps_namelist_file : namelist.wps.template.LARGE
+input_namelist_file : namelist.input.template.LARGE
+
+
+geo_em_file : None           # If None, geogrid.exe will be run
+metgrid_files : None         # If None, metgrid.exe will be run
+lbc_files : None             # If None, data will be downloaded based on specified LBC condition
+lbc_type : cfsr              # one of cfsr, cfsv2, ?????
+
+        
+# write locations and user parameters 
+main_run_dirc: /home/wrudisill/WRF-Run/TestierTest
+user_email : williamrudisill@u.boisestate.edu
+
+# run date 
+run_date: 
+        start_date : 1999-01-01-00:00
+        end_date : 1999-01-05-00:00
+
+# WRF Parameters
+wrf_run_options:
+        chunk_size: 2               # (days). How long do we want the wrf run 'chunks' to be?
+        wall_time_per_hour: .25     # (hours). wrftime::real world time 
+                                          
+                                       
