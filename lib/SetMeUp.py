@@ -25,9 +25,11 @@ class SetMeUp:
 		# other .yml files to read in. this is the simplest way 
 		# to separate multiple config files but read them in as one
 		with open(main) as m:
+			config_location = main.parent
 			yamlfile = yaml.load(m, Loader=yaml.FullLoader)
 			for include in yamlfile.get("includes", []):
-				yamlfile.update(yaml.load(open(include)), Loader=yaml.FullLoader)
+				include_path = config_location.joinpath(include)
+				yamlfile.update(yaml.load(open(include_path), Loader=yaml.FullLoader), Loader=yaml.FullLoader)
 	
 		# 2 files should be read into the main 'yamlfile' dictionary -- a 'setup' and a 'config'
 		# apply some logic to read in the correct config information based on setup params (machine
@@ -45,20 +47,6 @@ class SetMeUp:
 			logger.error()
 			sys.exit()
 			
-		# Establish system paths to required things !# 		
-		self.wps_namelist_file_path = path(yamlfile['wps_namelist_file'])
-		self.input_namelist_file_path  = path(yamlfile['input_namelist_file'])
-		
-		# read the namelist file 
-		with open(self.wps_namelist_file_path) as nml_file:
-			self.wps_namelist_file = f90nml.read(nml_file)	
-
-		with open(self.input_namelist_file_path) as nml_file:
-			self.wps_namelist_file = f90nml.read(nml_file)	
-
-		# Extrack key parameters about the WRF configuration
-		self.num_wrf_dom = self.wps_namelist_file['domains']['max_dom']
-		
 		# Main Configuration -- machine related
 		self.geog_data_path = path(yamlfile['geog_data_path'])
 		self.queue_params = queue_params
@@ -68,9 +56,22 @@ class SetMeUp:
 		self.scheduler = yamlfile.get(machine).get('scheduler')
 		self.queue = yamlfile['queue']  # this is located in the 'setup.yml' file since it will freqently change 
 		self.wrf_version = yamlfile['wrf_version']
-		self.environment_file = self.cwd.parent.joinpath(yamlfile['environment'])	
+		self.environment_file = self.cwd.joinpath(yamlfile['environment'])	
 		
+		# Find/Parse the namelist files using f90nml  
+		# Assumes that they live in the /parent/namelists directory 
+		# !!DANGER!! self.cwd --> this is the directory where the script gets called from !!DANGER!!
+		self.wps_namelist_file_path = self.cwd.joinpath('namelists', yamlfile['wps_namelist_file'])
+		self.input_namelist_file_path = self.cwd.joinpath('namelists', yamlfile['input_namelist_file'])
 		
+		# read the namelist file 
+		with open(self.wps_namelist_file_path) as nml_file:
+			self.wps_namelist_file = f90nml.read(nml_file)	
+
+		with open(self.input_namelist_file_path) as nml_file:
+			self.wps_namelist_file = f90nml.read(nml_file)	
+		# Extrack key parameters about the WRF configuration
+		self.num_wrf_dom = self.wps_namelist_file['domains']['max_dom']
 		
 		# Directories to copy from the compiled WRF model (or wherever they live on the system) 
 		self.wrf_exe_dirc = path(yamlfile['wrf_exe_directory'])
@@ -124,14 +125,14 @@ class SetMeUp:
 		self.data_dl_dirc.mkdir()
 		
 		# NAMELIST.INPUT
-		shutil.copy(self.input_namelist_file_path, self.main_run_dirc)
-		shutil.copy(self.wps_namelist_file_path, self.main_run_dirc)
+		shutil.copy(self.input_namelist_file_path, self.main_run_dirc.joinpath('namelist.input.template'))
+		shutil.copy(self.wps_namelist_file_path, self.main_run_dirc.joinpath('namelist.wps.template'))
 		
-		# copy METGRID
+		# Copy METGRID
 		shutil.copy(self.met_exe_dirc.joinpath('metgrid.exe'), self.met_run_dirc)
 		shutil.copy(self.met_exe_dirc.joinpath('METGRID.TBL'), self.met_run_dirc)
 		
-		# copy ungrib files 
+		# Copy ungrib files 
 		shutil.copytree(self.ungrib_exe_dirc.joinpath('Variable_Tables'), 
 				self.ungrib_run_dirc.joinpath('Variable_Tables'))		
 		
@@ -141,9 +142,15 @@ class SetMeUp:
 		shutil.copy(self.wps_exe_dirc.joinpath('link_grib.csh'), 
 			    self.ungrib_run_dirc)		
 
-		# copy geogrid files 
+		# Copy geogrid files 
 		shutil.copy(self.geo_exe_dirc.joinpath('geogrid.exe'), self.geo_run_dirc)		
 		shutil.copy(self.geo_exe_dirc.joinpath('GEOGRID.TBL'), self.geo_run_dirc)		
+		
+		# Copy the environment file 
+		shutil.copy(self.environment_file, self.main_run_dirc)
+		
+		# Copy the configure scripts  ### !!!! DANGER !!!! cwd #####
+		shutil.copytree(self.cwd.joinpath('user_config'), self.main_run_dirc.joinpath('user_config'))
 
 if __name__ == '__main__':
 	setup = SetMeUp('main.yml')
