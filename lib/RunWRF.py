@@ -345,10 +345,10 @@ class RunWRF(SetMeUp):
         for num,chunk in enumerate(self.chunk_tracker):
             self.logger.info('****Starting Real/WRF Chunk ({}/{})****'.format(num, num_chunks)) 
             self.logger.info(self.wrf_run_dirc) 
-            framesperout = 24
-            framesperaux = 24
-            restartinterval = chunk['run_hours']*60
-            walltime_request = chunk['walltime_request']
+            framesperout = str(24)  #TODO 
+            framesperaux = str(24)  #TODO
+            restartinterval = str(chunk['run_hours']*60)
+            walltime_request = str(chunk['walltime_request'])
             n = self.num_wrf_dom            
             
             # TODO: create a chunk class where the strings formatting is a method..
