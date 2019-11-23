@@ -80,7 +80,7 @@ class RunWRF(SetMeUp):
             chunk = {'start_date': chunk_start,  # timestamp obj
                      'end_date': chunk_end,      # timestamp obj
                      'run_hours': int(chunk_hours),
-                 'restart': restart,
+                     'restart': restart,
                      'walltime_request': chunk_hours*self.wrf_run_options['wall_time_per_hour']}
             # assign to the list 
             chunk_tracker.append(chunk)
@@ -134,15 +134,19 @@ class RunWRF(SetMeUp):
                 d = date.strftime('%d')
                 h = date.strftime('%H')
                 required_met_files.append(met_format.format(i+1,y,m,d,h))
-            
+
+        # Assign the 'required met files' to self
+        # (why do this, but return the found status (and not assign to self?))
+        # (can't exactly say why...)
+        
         # Check if the required metgrid files exist in the metgrid directory
         met_found, met_message = acc.file_check(required_met_files, 
                                  met_dirc, 
-                         desc='MetgridFiles')
+                                 desc='MetgridFiles')
         
         # create status and return 
-        status = {'geo': [geo_found, geo_message],
-                  'met': [met_found, met_message]}
+        status = {'geo': [geo_found, geo_message, required_geo_files],
+                  'met': [met_found, met_message, required_geo_files]}
         return status 
 
     def SetupRunFiles(self, **kwargs):
@@ -154,8 +158,9 @@ class RunWRF(SetMeUp):
         status = self.PreCheck(geo_dirc=self.geo_run_dirc,
                                met_dirc=self.met_run_dirc)
         # 
-        met_found,met_message = status['met']
-        geo_found,geo_message = status['geo']
+        met_found, met_message, required_met_files = status['met']
+        geo_found, geo_message, required_geo_files = status['geo']
+       
         # Link appropriate files
         # ---------------------
         # Symlinks in the destination directory will be overwritten 
