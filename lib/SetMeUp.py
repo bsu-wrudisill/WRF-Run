@@ -20,6 +20,8 @@ def path(obj):
 
 class SetMeUp:
 	def __init__(self,main):
+		logger = logging.getLogger(__name__)
+		logger.info('Initializing...')	
 		# open up the 'main' file	
 		# there should be a list of multiple 'includes', listing
 		# other .yml files to read in. this is the simplest way 
@@ -58,6 +60,9 @@ class SetMeUp:
 		self.wrf_version = yamlfile['wrf_version']
 		self.environment_file = self.cwd.joinpath(yamlfile['environment'])	
 		
+		# Look for the restart file 
+		self.restart = yamlfile['restart']	
+
 		# Find/Parse the namelist files using f90nml  
 		# Assumes that they live in the /parent/namelists directory 
 		# !!DANGER!! self.cwd --> this is the directory where the script gets called from !!DANGER!!
@@ -99,7 +104,7 @@ class SetMeUp:
 
 		# forcing files stuff goes here 
 		self.time_format = "%Y-%m-%d_%H:%M:%S" #!!! FOR WRF -- CHANGE ME LATER !!! 
-		self.output_format ="wrfout_d02_{}"  # !! FOR WRF -- CHANGE ME LATER !!! 
+		self.output_format ="wrfout_d0{}_{}"  # !! FOR WRF -- CHANGE ME LATER !!! 
 		
 		# get dates for start, end of spinup,eval period
 		run_date = yamlfile['run_date']
@@ -111,6 +116,8 @@ class SetMeUp:
 		self.wrf_run_options = yamlfile['wrf_run_options']
 	
 	def createRunDirectory(self):
+		logger = logging.getLogger(__name__)	
+		logger.info('Initializing...')	
 		# copy contents of the 'WRFVX/run' directory to the main run dir 
 		self.main_run_dirc.mkdir()
 		#self.wrf_run_dirc.mkdir()

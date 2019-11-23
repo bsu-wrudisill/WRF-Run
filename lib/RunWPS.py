@@ -10,7 +10,6 @@ import pathlib as pl
 import pandas as pd 
 import accessories as acc 
 from SetMeUp import SetMeUp
-from check_completion import StatusChecker as SC 
 from functools import partial 
 import glob 
 import secrets
@@ -19,22 +18,51 @@ import f90nml   # this must be installed via pip ... ugh
 
 
 class RunWPS(SetMeUp):
-	#
+	'''
+	Description: Methods for running the WRF-PreProcessing (WPS) System.
+	             4 Parts -- 1) Download files
+		                2) *.exe
+	'''
 	def __init__(self, setup, **kwargs):
+		'''	
+		__init__: Inherit all of the parameters definted in SetMeUp __init__
+		kwargs: start_date: <str>   !!!THESE WILL OVERIDE DATES IN THE SETUP.YML FILE!!!
+			end_date: <str> 
+		'''
+		# Inherit methods/stuff from SetMeUp (read from main.yml)
 		super(self.__class__, self).__init__(setup)	
 		self.logger = logging.getLogger(__name__)
 		self.logger.info('initialized RunWPS instance')	
+	
+		# Read in OPTIONAL kwargs
+		self.start_date = acc.DateParser(kwargs.get('start_date', self.start_date))
+		self.end_date = acc.DateParser(kwargs.get('end_date', self.end_date))
+
+		# Create patch on iniitalization for the namelist
+		self.patch()
 		
-		# get the start/end dates 
-		start_date = self.start_date.strftime(self.time_format)
-		end_date = self.end_date.strftime(self.time_format)
+		# Internal flags
+		# Process Completed 
+		self.WRFready = False 
+
+	def patch(self, **kwargs):
+		'''
+		Create the dictionary with the right terms for updating the wps 
+		namelist files
+		'''
+		# Log what i'm doing 
+		self.logger.info('Calling wps.patch()')
 		
-		# get number of domains 
+		# Get the start/end dates in the right format for WPS namelist  
+		wps_start_date = self.start_date.strftime(self.time_format)
+		wps_end_date = self.end_date.strftime(self.time_format)
+		
+		# Get number of domains 
 		n = self.num_wrf_dom
 		
-		# create a repeated list of start/end dates for namelists 
-		start_date_rep = acc.RepN(start_date, n)		
-		end_date_rep = acc.RepN(end_date, n)		
+		# Create a repeated list of start/end dates for namelists 
+		start_date_rep = acc.RepN(wps_start_date, n)		
+		end_date_rep = acc.RepN(wps_end_date, n)		
 
 		# WPS patch object 
 		self.wps_patch = {"geogrid": {"opt_geogrid_tbl_path":str(self.geo_exe_dirc),
@@ -65,6 +93,10 @@ class RunWPS(SetMeUp):
 			# Update the file 
 			f90nml.patch(template_namelist_wps, self.wps_patch, namelist_wps)		
 		
+		# log/record state
+		self.logger.info('updated/wrote {}'.format(namelist_wps))
+		self.wrote = True 
+		
 	@acc.timer	
 	def geogrid(self, **kwargs):
 		'''
@@ -76,6 +108,9 @@ class RunWPS(SetMeUp):
 		logger = logging.getLogger(__name__)
 		logger.info('Entering Geogrid process')
 		
+		# update state -- geogrid has been attempted 
+		self.ran_geogrid = True
+
 		# gather information about the job
 		cwd = os.getcwd() 
 		catch_id = 'geogrid.catch'
@@ -144,6 +179,9 @@ class RunWPS(SetMeUp):
 		logger.info('entering Ungrib process in directory')
 		logger.info('WRF Version {}'.format(self.wrf_version))
 		
+		# update state --attempted 
+		self.ran_ungrib = True 
+
 		# Fixed paths -- these should get created 
 		cwd = os.getcwd() 
 		vtable = self.ungrib_run_dirc.joinpath('Vtable')
@@ -308,7 +346,10 @@ class RunWPS(SetMeUp):
 		logger.info('entering metgrib process in directory')
 		logger.info('WRF Version {}'.format(self.wrf_version))
 		
-		# 
+		# update state 
+		self.ran_metgrid = True
+
+		# what do i do w/ old met files?
 		clean = kwargs.get('force', True)  #whether or not to 'clean' the dir before running 
 
 		# Fixed paths -- these should get created 
@@ -383,8 +424,11 @@ class RunWPS(SetMeUp):
 	
 	@acc.timer
 	def dataDownload(self):
-		logger = logging.getLogger(__name__)
-		logger.info('beginning data download')
+		self.logger.info('beginning data download')
+		
+		# update state
+		self.ran_dl = True
+		
 		sub6 = datetime.timedelta(hours=6)
 		date_range = pd.date_range(self.start_date - sub6, self.end_date, freq='6H')
 		self.file_spec = '06.gdas'
@@ -421,7 +465,7 @@ class RunWPS(SetMeUp):
 		#acc.multi_thread(acc.fetchFile, urls) # BROKEN --- misses downloading some files 
 		for url in urls:
 			acc.fetchFile(url)
-			logger.debug('downloading ....{}'.format(url))
+			self.logger.debug('downloading ....{}'.format(url))
 		os.chdir(cwd)	
 		required_files = len(date_range)
 		missing_files = 0 
@@ -432,7 +476,7 @@ class RunWPS(SetMeUp):
 				print(self.data_dl_dirc.joinpath(f))
 				missing_files += 1 
 		if missing_files != 0:
-			logger.error("{} missing files... ".format(missing_files))
+			self.logger.error("{} missing files... ".format(missing_files))
 			sys.exit()
 		# check that the files are in fact there 
 	

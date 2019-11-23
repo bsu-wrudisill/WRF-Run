@@ -10,30 +10,60 @@ import pathlib as pl
 import pandas as pd 
 import accessories as acc 
 from SetMeUp import SetMeUp
+from RunWPS import RunWPS
 from functools import partial 
 import glob 
 import secrets
 import f90nml 
 
 class RunWRF(SetMeUp):
-	def __init__(self, setup):
+	def __init__(self, setup, wps=None):
 		super(self.__class__, self).__init__(setup)	
 		self.logger = logging.getLogger(__name__)
 		self.logger.info('initialized RunWRF instance')	
+		
+		
+		# OPTIONAL: Pass in a WPS instance 
+		# and read stuff from it. Get latest 
+		# WPS state. The internal WPS checks 
+		# should say that WPS is good-to-go
+		# The latest date information should
+		# should also be present 
+		if wps != None:
+			self.InheritWPS(wps)
+		
+		# Divide up the run into sections 	
+		self.RunDivide()	
 	
+	def InheritWPS(self,wps):
+		# update current state 	
+		self.start_date = wps.start_date 
+		self.end_date = wps.end_date 
+	
+		# new state 
+		self.WRFready = wps.WRFready
+		self.wps = wps
+	
+	def RunDivide(self, **kwargs):
 		'''
 		Divide up the run into the correct size of 'chunks'
 		We generally (perhaps debatably...) don't want to 
 		run WRF for long run times. Also figure out the walltime 
 		for the runs  
 		'''
-		
-		zippedlist = list(acc.DateGenerator(self.start_date, self.end_date, chunksize=1))
+		# THIS MODIFIES THE STATE OF ITSELF EVERYTIME IT GETS CALLED!!!! 
+		start_date = acc.DateParser(kwargs.get('start_date', self.start_date))
+		end_date = acc.DateParser(kwargs.get('end_date', self.end_date))
+		chunk_size = kwargs.get('chunk_size', self.wrf_run_options['chunk_size'])
+
+		# get the start/end dates 
+		zippedlist = list(acc.DateGenerator(start_date, end_date, chunk_size))
 		chunk_tracker = [] 
-		
+			
+		# log things 	
 		self.logger.info('WRF start date: %s', self.start_date)
 		self.logger.info('WRF end date: %s', self.end_date)
-		self.logger.info('WRF chunk time: %s days', self.wrf_run_options['chunk_size'])
+		self.logger.info('WRF chunk time: %s days', chunk_size)
 		self.logger.info('WRF number of chunks: %s', len(zippedlist))
 		for i,dates in enumerate(zippedlist):
 			# calculate the lenght of the chunk 
@@ -59,12 +89,14 @@ class RunWRF(SetMeUp):
 				
 		# assign chunk list to self
 		self.chunk_tracker = chunk_tracker	
-	
-	def SetupRunFiles(self, **kwargs):
-		''' kwargs:
-		      1) start_date
-		      2) end_date
-		      3) met_dirc   (location of metfiles. str or posixPath)
+		
+	def PreCheck(self,**kwargs):
+		'''
+		Based on the start:end date and other parameters... check that the 
+		required geogrid and metgrid files are found in the directory of your 
+		choosing. This can be used to search for files from the WPS directory
+		before linking them over, or to pre-check the WRF directrory before 
+		submitting a run. 
 		'''
 		# Gather kwargs or assign defaults
 		# -------------------------------
@@ -81,19 +113,13 @@ class RunWRF(SetMeUp):
 		# Get the number of WRF domains 
 		n = self.num_wrf_dom
 		
-		# Geogrid 1) Check and 2) Link to WRF/run directory
+		# Geogrid Check 
 		# -------------------------------------------------
 		required_geo_files = ['geo_em.d0{}.nc'.format(i+1) for i in range(n)]   
-		geo_found, message = acc.file_check(required_geo_files,
+		geo_found, geo_message = acc.file_check(required_geo_files,
 				                  geo_dirc,
-						  desc='GeoFiles',
-						  logger=self.logger)
-		if not geo_found:
-			logger.error('req. geogrid files not found in {}\nExiting.'.format(geo_dirc))
-		
-			
-
-		# Metgrid 1) Check and 2) Link to WRF/run directory 
+						  desc='GeoFiles')
+		# Metgrid Check 
 		#-------------------------------------------------
 		# create list of the required dates 
 		date_range = pd.date_range(self.start_date, self.end_date, freq='3H')  
@@ -112,14 +138,25 @@ class RunWRF(SetMeUp):
 				required_met_files.append(met_format.format(i+1,y,m,d,h))
 			
 		# Check if the required metgrid files exist in the metgrid directory
-		met_found, message = acc.file_check(required_met_files, 
+		met_found, met_message = acc.file_check(required_met_files, 
 				                 met_dirc, 
-						 desc='MetgridFiles', 
-						 logger=self.logger)
+						 desc='MetgridFiles')
 		
-		if not met_found: # required metgrid files have not been found 
-			self.logger.error('unable to located the required metgrid files. exiting')
+		# create status and return 
+		status = {'geo': [geo_found, geo_message],
+			  'met': [met_found, met_message]}
+		return status 
 
+	def SetupRunFiles(self, **kwargs):
+		''' kwargs:
+		      1) start_date
+		      2) end_date
+		      3) met_dirc   (location of metfiles. str or posixPath)
+		'''
+		status = self.PreCheck(geo_dirc=self.geo_run_dirc,
+				       met_dirc=self.met_run_dirc)
+		met_found,met_message = status['met']
+		geo_found,geo_message = status['geo']
 		# Link appropriate files
 		# ---------------------
 		# Symlinks in the destination directory will be overwritten 
@@ -144,11 +181,32 @@ class RunWRF(SetMeUp):
 				os.symlink(src, dst)
 			# log success message 
 			self.logger.info('******Success********')
+		
 		else:
+			if not geo_found:
+				logger.error('req. geogrid files not found in {}\nExiting.'.format(geo_dirc))
+				logger.error(geo_message)
+			if not met_found:
+				logger.error('req. metgrid files not found in {}\nExiting.'.format(geo_dirc))
+				logger.error(met_message)
 			self.logger.error('Required met/geo files not found.\nExiting')
 			sys.exit()
-			
-
+	
+	def TearDown(self):
+		# Move files to appropriate directories, if successful 
+		wrf_file_list = []
+		date_range = pd.date_range(self.start_date, self.end_date, freq='1D') 
+		for d in self.num_wrf_dom:
+			for date in date_range:
+				wrf_name = self.output_format(d, date)
+				wrf_file_list.append(wrf_name)
+		found_files, message = acc.filecheck(wrf_file_list, self.wrf_run_dirc)
+		if found_files:
+			self.logger.info(message)
+		else:
+			self.logger.error(message)
+			self.logger.info('Exiting')
+			sys.exit()
 
 	def _real(self, **kwargs):
 		# 0/xxx Check that a namelist exists (this function does not update namelists!)
@@ -206,8 +264,14 @@ class RunWRF(SetMeUp):
 			self.logger.error('Real.exe did not finish successfully.\nExiting')
 			self.logger.error('check {}/rsl.error* for details'.format(self.wrf_run_dirc))
 			return False 
+	
 	def _wrf(self, **kwargs):
 		"""
+		This function ONLY: runs WRF and waits for it to complete! It does NOT setup the namelist.input.
+		Namelist setup must be done elsewhere. It writes the submit script, however. Which is why 
+		the walltime gets passed in as a kwarg. I suppose that it could read the namelist.input
+		and figure out the correct walltime to write... but that's too much weird logic 
+
 		kwargs: 1) walltime (defaults to 05:00)
 		"""
 		self.logger.info('starting wrf')
@@ -281,6 +345,7 @@ class RunWRF(SetMeUp):
 			framesperout=24
 			framesperaux=24
 			restartinterval=chunk['run_hours']*60
+			walltime=chunk['walltime_request']
 			n = self.num_wrf_dom			
 			
 			# TODO: create a chunk class where the strings formatting is a method..
@@ -319,7 +384,7 @@ class RunWRF(SetMeUp):
 				self.logger.error('Check rsl* logs in {}'.format(self.wrf_run_dirc))
 				sys.exit()
 				
-			wrf_success = self._wrf()
+			wrf_success = self._wrf(walltime=walltime_request)
 			if not wrf_success:
 				self.logger.error('WRF failed for chunk {}'.format(num))
 				self.logger.error('Check rsl* logs in {}'.format(self.wrf_run_dirc))

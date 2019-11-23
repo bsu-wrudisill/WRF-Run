@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # Function Decorators 
 def passfail(func):
 	def wrapped_func(*args, **kwargs):
-		desc = kwargs.get('desc', None)
+		desc = kwargs.get('desc', '')
 		logger = kwargs.get('logger', None)
 		try:
 			func(*args)
@@ -73,14 +73,14 @@ def CleanUp(path):
 	# move back to o.g. dir
 	os.chdir(cwd)
 
-def DateGenerator(start_date, end_date, chunksize=3):
+def DateGenerator(start_date, end_date, chunk_size):
 	#check that the command makes sense
 	if end_date<=start_date:
 	    logger.error("{} LTE {}".format(end_date,start_date))  #CATCH ME WAY EARLIER
 	    sys.exit()
 	
 	# wrf run time  
-	delta=datetime.timedelta(days=chunksize)    # length of WRF runs  
+	delta=datetime.timedelta(days=chunk_size)    # length of WRF runs  
 	DateList = [start_date]                     # list of dates 
 	
 	# round to nearest h=00":00 to make things nicer 
@@ -102,6 +102,37 @@ def DateGenerator(start_date, end_date, chunksize=3):
 	# update self 
 	return zippedlist
 
+
+def DateParser(obj):
+	import pandas as pd 
+	# interpred the date type of an object. return the appropriate format
+	acceptable_string_formats = [
+				"%Y-%m-%d",
+				"%Y-%m-%d %H",
+				"%Y %m %d %H",
+				"%Y-%m-%d_%H",
+				"%Y-%m-%d-%H",
+				"%Y-%m-%d:%H",
+				"%Y-%m-%d:%H:00",
+				"%Y-%m-%d:%H:00:00"]
+	last_chance = len(acceptable_string_formats)-1
+	
+	if type(obj) == str:
+		for chance,asf in enumerate(acceptable_string_formats):
+			try:
+				return datetime.datetime.strptime(obj, asf)
+			except:
+				if chance == last_chance:
+					raise Exception("Not acceptable string format")
+	
+	if type(obj) == pd._libs.tslibs.timestamps.Timestamp:  #ugh that's dumb
+		return obj
+	
+	if type(obj) == datetime.datetime:
+		return obj
+	else:
+		raise ValueError("type ({}) not accepted".format(type(obj)))
+	
 
 
 def SystemCmd(cmd):
@@ -251,7 +282,7 @@ def RepN(string, n):
 
 def RemoveQuotes(filepathR, filepathW):
 	# remove all of the single quotation marks from a file 
-	# UGH!! THis is terrible. f90nml 
+	# UGH!! THis is terrible. f90nml
 	with open(filepathR, 'r') as read_data:
 		with open(filepathW, 'w') as write_data:
 			d = read_data.read()
@@ -282,7 +313,7 @@ def file_check(required_files,
 			missing_files.append(required)
 	num_req = len(required_files)
 	num_mis = len(missing_files)
-	
+	# ugh this is dumb TODO: make less dumb 
 	if value=='E':
 		# assert that ALL of the required files have been found in directory 
 		message = 'missing {} of {} required files'.format(num_req, num_mis)
