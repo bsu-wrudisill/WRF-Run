@@ -16,8 +16,8 @@
  e_we          = 50
  e_sn          = 50
  geog_data_res = 'modis_lakes+modis_fpar+30s'
- dx           = 1000,
- dy           = 1000,
+ dx           = 3000,
+ dy           = 3000,
  map_proj =  'lambert',
  ref_lat   = 44.3,
  ref_lon   = -114.7,
