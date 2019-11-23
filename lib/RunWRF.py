@@ -15,6 +15,7 @@ from functools import partial
 import glob 
 import secrets
 import f90nml 
+from math import ceil
 
 class RunWRF(SetMeUp):
     def __init__(self, setup, wps=None):
@@ -76,12 +77,16 @@ class RunWRF(SetMeUp):
             else:
                 restart = True
             
+            # Create the wall time string -- no need to EVER ask for less than an hour of wall time. Only whole hours allowed
+            wall_hours = ceil(chunk_hours*self.wrf_run_options['wall_time_per_hour']) # rounds up -- minumum is 1 hour
+            walltime_request= datetime.datetime(wall_hours).strftime("%H:%M:%S")      # no need
+
             # assign things to the dictionary
             chunk = {'start_date': chunk_start,  # timestamp obj
                      'end_date': chunk_end,      # timestamp obj
                      'run_hours': int(chunk_hours),
                      'restart': restart,
-                     'walltime_request': chunk_hours*self.wrf_run_options['wall_time_per_hour']}
+                     'walltime_request': walltime_request}
             # assign to the list 
             chunk_tracker.append(chunk)
                 
@@ -311,12 +316,13 @@ class RunWRF(SetMeUp):
         
         # create the run script based on the type of job scheduler system  
         replacedata = {"QUEUE":queue,
-                   "JOBNAME":unique_name,
-                   "LOGNAME":"wrf",
-                   "WALLTIME": walltime,
-                   "CMD": command,
-                   "RUNDIR":str(self.wrf_run_dirc)
-                   }
+                       "JOBNAME":unique_name,
+                       "LOGNAME":"wrf",
+                       "WALLTIME": walltime,
+                       "CMD": command,
+                       "RUNDIR":str(self.wrf_run_dirc)
+                       }
+
         # write the submit script 
         acc.WriteSubmit(qp, replacedata, submit_script)
         
@@ -372,7 +378,7 @@ class RunWRF(SetMeUp):
 
             # Write the namelist 
             template_namelist_input = self.main_run_dirc.joinpath('namelist.input.template')
-            namelist_input_quotes = self.wrf_run_dirc.joinpath('namelist.input.quotes')
+            namelist_input_quotes = self.wrf_run_dirc.joinpath('namelist.namelist_input_quotes.quotes')
             namelist_input = self.wrf_run_dirc.joinpath('namelist.input')
             
             # write out namelist files 
