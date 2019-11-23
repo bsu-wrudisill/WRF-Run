@@ -116,7 +116,7 @@ class RunWRF(SetMeUp):
         required_geo_files = ['geo_em.d0{}.nc'.format(i+1) for i in range(n)]   
         geo_found, geo_message = acc.file_check(required_geo_files,
                                   geo_dirc,
-                          desc='GeoFiles')
+                                  desc='GeoFiles')
         # Metgrid Check 
         #-------------------------------------------------
         # create list of the required dates 
@@ -146,7 +146,7 @@ class RunWRF(SetMeUp):
         
         # create status and return 
         status = {'geo': [geo_found, geo_message, required_geo_files],
-                  'met': [met_found, met_message, required_geo_files]}
+                  'met': [met_found, met_message, required_met_files]}
         return status 
 
     def SetupRunFiles(self, **kwargs):
@@ -185,7 +185,6 @@ class RunWRF(SetMeUp):
                 os.symlink(src, dst)
             # log success message 
             self.logger.info('******Success********')
-        
         else:
             if not geo_found:
                 logger.error('req. geogrid files not found in {}\nExiting.'.format(geo_dirc))
