@@ -78,10 +78,11 @@ class RunWRF(SetMeUp):
                 restart = True
             
             # Create the wall time string -- no need to EVER ask for less than an hour of wall time. Only whole hours allowed
+            wall_hours_format = "{}:00:00"
             wall_hours = ceil(chunk_hours*self.wrf_run_options['wall_time_per_hour']) # rounds up -- minumum is 1 hour
-            walltime_request= datetime.datetime(wall_hours).strftime("%H:%M:%S")      # no need
-
-            # assign things to the dictionary
+            walltime_request = wall_hours_format.format(wall_hours)
+	    # assign things to the dictionary
+            print(walltime_request)
             chunk = {'start_date': chunk_start,  # timestamp obj
                      'end_date': chunk_end,      # timestamp obj
                      'run_hours': int(chunk_hours),

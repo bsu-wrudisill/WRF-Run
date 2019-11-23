@@ -24,7 +24,7 @@ run_name : TEST
          
 # Relatively Static Parameters
 # ----------------------------
-machine : R2   # Name must match an entry in config.yml
+machine : R2_smalljob # Name must match an entry in config.yml
 user: wrudisill
 queue : leaf 
 wrf_version : 4.0
