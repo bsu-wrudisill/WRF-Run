@@ -40,15 +40,15 @@ class RunWRF(SetMeUp):
         '''
         Divide up the run into the correct size of 'chunks'. (We don't want to
         run WRF in one continuous run-- that is too much time on the scheduler
-        most likely...). Use logic to figure out the amount of walltime to 
-        request. 
+        most likely...). Use logic to figure out the amount of walltime to
+        request.
 
         :type       kwargs: start_date (str)
                             end_date: (str)
                             chunk_size: (int)
         '''
 
-        # Read in the kwargs and assign optional values 
+        # Read in the kwargs and assign optional values
         start_date = acc.DateParser(kwargs.get('start_date', self.start_date))
         end_date = acc.DateParser(kwargs.get('end_date', self.end_date))
         temporary_chunk_size = self.wrf_run_options['chunk_size']
@@ -241,8 +241,8 @@ class RunWRF(SetMeUp):
 
     def _real(self, **kwargs):
         """
-        Runs real.exe. Does NOT create the appropriate namelist file for the 
-        run. This is to be done elsewhere. It does write out a submission 
+        Runs real.exe. Does NOT create the appropriate namelist file for the
+        run. This is to be done elsewhere. It does write out a submission
         script, however.
 
         :param      kwargs:  The keywords arguments
@@ -343,7 +343,7 @@ class RunWRF(SetMeUp):
         walltime = kwargs.get("walltime", "05:00:00")
 
         # names,logs etc.
-        unique_name = "w_{}".format(secrets.token_hex(2))             
+        unique_name = "w_{}".format(secrets.token_hex(2))
         success_message = "wrf: SUCCESS COMPLETE WRF"
         wrf_log = self.wrf_run_dirc.joinpath('rsl.out.0000')
 
@@ -365,7 +365,7 @@ class RunWRF(SetMeUp):
                        "RUNDIR": str(self.wrf_run_dirc)
                        }
 
-        # write the submit script 
+        # write the submit script
         acc.WriteSubmit(qp, replacedata, submit_script)
 
         # 3/xxx Submit the Job and wait for completion
@@ -398,13 +398,13 @@ class RunWRF(SetMeUp):
         num_chunks = len(self.chunk_tracker)
         for num, chunk in enumerate(self.chunk_tracker):
             self.logger.info(open_message.format(num, num_chunks))
-            self.logger.info(self.wrf_run_dirc) 
+            self.logger.info(self.wrf_run_dirc)
             # TODO
             framesperout = str(24)
             framesperaux = str(24)
             restartinterval = str(chunk['run_hours']*60)
             walltime_request = str(chunk['walltime_request'])
-            n = self.num_wrf_dom 
+            n = self.num_wrf_dom
             # TODO: create a chunk class where the strings formatting
             # is a method.. This is Gnar...
             # update starting dates

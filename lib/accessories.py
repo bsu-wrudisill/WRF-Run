@@ -1,9 +1,7 @@
-import os
 import sys
 import datetime
 import subprocess
 import time
-import glob
 import traceback
 import logging
 import threading
