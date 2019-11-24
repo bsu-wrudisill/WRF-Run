@@ -111,13 +111,15 @@ class SetMeUp:
         self.run_geogrid_flag = True  # ! Not currently implemented
 
         # These get created
-        self.main_run_dirc = Path(yamlfile['main_run_dirc'])
+        self.run_name = yamlfile['run_name']
+        self.main_run_dirc = Path(yamlfile['sratch_space']).joinpath(self.run_name)
         self.wrf_run_dirc = self.main_run_dirc.joinpath('wrf')
         self.wps_run_dirc = self.main_run_dirc.joinpath('wps')
         self.geo_run_dirc = self.wps_run_dirc.joinpath('geogrid')
         self.ungrib_run_dirc = self.wps_run_dirc.joinpath('ungrib')
         self.met_run_dirc = self.wps_run_dirc.joinpath('metgrid')
         self.data_dl_dirc = self.wps_run_dirc.joinpath('raw_lbcs')
+        self.storage_dirc = Path(yamlfile['storage_dirc']) 
 
         # Forcing files time format
         self.time_format = "%Y-%m-%d_%H:%M:%S"
