@@ -1,82 +1,91 @@
 import sys
 import shutil
-import os 
-import time 
-import sys 
-import datetime 
+import os
+import time
+import sys
+import datetime
 import logging
-import yaml 
+import yaml
 import pathlib as pl
-import pandas as pd 
-import accessories as acc 
+import pandas as pd
+import accessories as acc
 from SetMeUp import SetMeUp
 from RunWPS import RunWPS
-from functools import partial 
-import glob 
+from functools import partial
+import glob
 import secrets
-import f90nml 
+import f90nml
 from math import ceil
 
+
 class RunWRF(SetMeUp):
+
     def __init__(self, setup, wps=None):
-        super(self.__class__, self).__init__(setup) 
+        super(self.__class__, self).__init__(setup)
         self.logger = logging.getLogger(__name__)
-        self.logger.info('initialized RunWRF instance') 
-        # OPTIONAL: Pass in a WPS instance 
-        # and read stuff from it. Get latest 
-        # WPS state. The internal WPS checks 
+        self.logger.info('initialized RunWRF instance')
+        # OPTIONAL: Pass in a WPS instance
+        # and read stuff from it. Get latest
+        # WPS state. The internal WPS checks
         # should say that WPS is good-to-go
         # The latest date information should
-        # should also be present 
-        if wps != None:
+        # should also be present
+
+        if wps ! = None:
             self.InheritWPS(wps)
-        
-        # Divide up the run into sections   
-        self.RunDivide()    
-    
-    def InheritWPS(self,wps):
-        # update current state  
-        self.start_date = wps.start_date 
-        self.end_date = wps.end_date 
-    
-        # new state 
+        # Divide up the run into sections
+        self.RunDivide()
+
+    def InheritWPS(self, wps):
+        # update current state
+        self.start_date = wps.start_date
+        self.end_date = wps.end_date
+
+        # new state
         self.WRFready = wps.WRFready
         self.wps = wps
-    
+
     def RunDivide(self, **kwargs):
         '''
         Divide up the run into the correct size of 'chunks'
-        We generally (perhaps debatably...) don't want to 
-        run WRF for long run times. Also figure out the walltime 
-        for the runs  
+        We generally (perhaps debatably...) don't want to
+        run WRF for long run times. Also figure out the walltime
+        for the runs
         '''
-        # THIS MODIFIES THE STATE OF ITSELF EVERYTIME IT GETS CALLED!!!! 
+        # THIS MODIFIES THE STATE OF ITSELF EVERYTIME IT GETS CALLED!!!!
         start_date = acc.DateParser(kwargs.get('start_date', self.start_date))
         end_date = acc.DateParser(kwargs.get('end_date', self.end_date))
-        chunk_size = kwargs.get('chunk_size', self.wrf_run_options['chunk_size'])
+        temporary_chunk_size = self.wrf_run_options['chunk_size']
+        chunk_size = kwargs.get('chunk_size', temporary_chunk_size)
 
-        # get the start/end dates 
+        # Get the start/end dates
         zippedlist = list(acc.DateGenerator(start_date, end_date, chunk_size))
-        chunk_tracker = [] 
-            
-        # log things    
+        chunk_tracker = []
+
+        # Log things
         self.logger.info('WRF start date: %s', self.start_date)
         self.logger.info('WRF end date: %s', self.end_date)
         self.logger.info('WRF chunk time: %s days', chunk_size)
         self.logger.info('WRF number of chunks: %s', len(zippedlist))
-        for i,dates in enumerate(zippedlist):
-            # calculate the lenght of the chunk 
+        for i, dates in enumerate(zippedlist):
+            # Calculate the lenght of the chunk
             chunk_start = dates[0]
             chunk_end = dates[1]
-            chunk_days  = (chunk_end - chunk_start).days
-            chunk_hours  = (chunk_end - chunk_start).days*24 + (chunk_end - chunk_start).seconds/3600
-            self.logger.info('Chunk %s: %s -- %s (%s hours)', i, chunk_start, chunk_end, chunk_hours)
+            chunk_days = (chunk_end - chunk_start).days
+            # Get hrs/days from length, compute hours
+            _cdays_to_hrs = (chunk_end - chunk_start).days*24
+            _cdays_to_sec = (chunk_end - chunk_start).seconds/3600
+            chunk_hours = _cdays_to_hrs + _cdays_to_sec
+            #
+            log_message_template = 'Chunk {}: {} -- {} ({} hours)'.format()
+            log_message.format(chunk_start, chunk_end, chunk_hours)
+            self.logger.info(log_message)
             # determine if the initial run is a restart:
             if i == 0:
-                restart = False #self.restart -- pass into the setup file TODO
+                restart = False
             else:
                 restart = True
-            
+
             # Create the wall time string -- no need to EVER ask for less than an hour of wall time. Only whole hours allowed
             wall_hours_format = "{}:00:00"
             wall_hours = ceil(chunk_hours*self.wrf_run_options['wall_time_per_hour']) # rounds up -- minumum is 1 hour
@@ -116,44 +125,47 @@ class RunWRF(SetMeUp):
         
         # Get the number of WRF domains 
         n = self.num_wrf_dom
-        
-        # Geogrid Check 
+
+        # Geogrid Check
         # -------------------------------------------------
-        required_geo_files = ['geo_em.d0{}.nc'.format(i+1) for i in range(n)]   
+        required_geo_files = ['geo_em.d0{}.nc'.format(i+1) for i in range(n)]
         geo_found, geo_message = acc.file_check(required_geo_files,
-                                  geo_dirc,
-                                  desc='GeoFiles')
-        # Metgrid Check 
-        #-------------------------------------------------
-        # create list of the required dates 
+                                                geo_dirc,
+                                                desc='GeoFiles')
+        # Metgrid Check
+        # Create list of the required dates
         date_range = pd.date_range(self.start_date, self.end_date, freq='3H')  
+
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         #            ALERT !!! 3 hours...(IS IT ALWAYS THIS???)
         # What controls the timestep for metgrid???? 
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         met_format = 'met_em.d0{}.{}-{}-{}_{}:00:00.nc'
         required_met_files = []
-        for i in range(n): # number of wrf_domains
+
+        # Number of wrf_domains# number of wrf_domains
+        for i in range(n):
             for date in date_range:
                 y = date.strftime('%Y')
                 m = date.strftime('%m')
                 d = date.strftime('%d')
                 h = date.strftime('%H')
-                required_met_files.append(met_format.format(i+1,y,m,d,h))
+                required_met_files.append(met_format.format(i+1, y, m, d, h))
 
         # Assign the 'required met files' to self
         # (why do this, but return the found status (and not assign to self?))
         # (can't exactly say why...)
-        
+
         # Check if the required metgrid files exist in the metgrid directory
-        met_found, met_message = acc.file_check(required_met_files, 
-                                 met_dirc, 
-                                 desc='MetgridFiles')
-        
-        # create status and return 
+        met_found, met_message = acc.file_check(required_met_files,
+                                                met_dirc,
+                                                desc='MetgridFiles')
+
+        # create status and return
         status = {'geo': [geo_found, geo_message, required_geo_files],
                   'met': [met_found, met_message, required_met_files]}
-        return status 
+        return status
 
     def SetupRunFiles(self, **kwargs):
         ''' kwargs:
