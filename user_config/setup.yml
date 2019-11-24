@@ -12,7 +12,7 @@
 # Run date (Dyanamic-- these are optional. Scripts can modify)
 run_date: 
         start_date : 1999-01-01
-        end_date : 1999-01-01
+        end_date : 1999-05-01
 lbc_type : cfsr              # <<< NOT IMPLEMENTED >>>> one of cfsr, cfsv2, ?????
 restart : None               # <<< NOT IMPLEMENTED >>>> Determine if the starting run is a 'restart' run. 
 geo_em_file : None           # <<< NOT IMPLEMENTED >>>> If None, geogrid.exe will be run

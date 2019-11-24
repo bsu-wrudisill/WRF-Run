@@ -21,11 +21,14 @@ class RunWRF(SetMeUp):
         # should say that WPS is good-to-go
         # The latest date information should
         # should also be present
-
+        print('here')
         if wps is not None:
             self.InheritWPS(wps)
-        # Divide up the run into sections
+        else:
+            print('here2')
+	# Divide up the run into sections
         self.RunDivide()
+        print('done')
 
     def InheritWPS(self, wps):
         # update current state
@@ -47,7 +50,6 @@ class RunWRF(SetMeUp):
                             end_date: (str)
                             chunk_size: (int)
         '''
-
         # Read in the kwargs and assign optional values
         start_date = acc.DateParser(kwargs.get('start_date', self.start_date))
         end_date = acc.DateParser(kwargs.get('end_date', self.end_date))
@@ -57,7 +59,6 @@ class RunWRF(SetMeUp):
         # Get the start/end dates
         zippedlist = list(acc.DateGenerator(start_date, end_date, chunk_size))
         chunk_tracker = []
-
         # Log things
         self.logger.info('WRF start date: %s', self.start_date)
         self.logger.info('WRF end date: %s', self.end_date)
@@ -76,7 +77,8 @@ class RunWRF(SetMeUp):
             chunk_hours = _cdays_to_hrs + _cdays_to_sec
 
             log_message_template = 'Chunk {}: {} -- {} ({} hours)'
-            log_message = log_message_template.format(chunk_start,
+            log_message = log_message_template.format(i,
+			                              chunk_start,
                                                       chunk_end,
                                                       chunk_hours)
             self.logger.info(log_message)
@@ -105,7 +107,7 @@ class RunWRF(SetMeUp):
             chunk_tracker.append(chunk)
         # assign chunk list to self
         self.chunk_tracker = chunk_tracker
-
+    
     def PreCheck(self, **kwargs):
         """
         Based on the start:end date and other parameters... check that the
@@ -222,22 +224,29 @@ class RunWRF(SetMeUp):
             self.logger.error('Required met/geo files not found.\nExiting')
             sys.exit()
 
-    def TearDown(self):
-
-        # Move files to appropriate directories, if successful
+    def CheckOut(self, **kwargs):
+	# Move files to appropriate directories, if successful
         wrf_file_list = []
         date_range = pd.date_range(self.start_date, self.end_date, freq='1D')
-        for d in self.num_wrf_dom:
+        date_range = date_range.strftime("%Y-%m-%d_%H:00:00")
+        for d in range(self.num_wrf_dom):
             for date in date_range:
-                wrf_name = self.output_format(d, date)
+                wrf_name = self.output_format.format(d+1, date)
                 wrf_file_list.append(wrf_name)
-        found_files, message = acc.filecheck(wrf_file_list, self.wrf_run_dirc)
+        print(self.wrf_run_dirc)
+        print(wrf_file_list)
+        found_files, message = acc.file_check(wrf_file_list, self.wrf_run_dirc)
         if found_files:
             self.logger.info(message)
         else:
             self.logger.error(message)
             self.logger.info('Exiting')
             sys.exit()
+    def CleanUp(self):
+        # move files to the corct location
+        
+
+
 
     def _real(self, **kwargs):
         """
@@ -392,6 +401,8 @@ class RunWRF(SetMeUp):
         :type       kwargs:  dictionary
         :param      kwargs:  The keywords arguments
         '''
+	# Create CSV file with all of the expected WRF files and restarsts
+	# TODO:
 
         open_message = '****Starting Real/WRF Chunk ({}/{})****'
         # Number of chunks
