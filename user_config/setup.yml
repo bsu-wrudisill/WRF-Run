@@ -9,24 +9,22 @@
 
 # Dynamic Parameters  
 # ------------------
-# Run date (this can be overwritten with a keyword argument)
+# Run date (Dyanamic-- these are optional. Scripts can modify)
 run_date: 
-        start_date : 2004-01-01-00:00
-        end_date : 2004-02-01-00:00
-
-restart : None               # <<< NOT IMPLEMENTED >>>> Determine if the starting run is a 'restart' run. If not none, specify location of restart file??? 
+        start_date : 1999-01-01
+        end_date : 1999-01-01
+lbc_type : cfsr              # <<< NOT IMPLEMENTED >>>> one of cfsr, cfsv2, ?????
+restart : None               # <<< NOT IMPLEMENTED >>>> Determine if the starting run is a 'restart' run. 
 geo_em_file : None           # <<< NOT IMPLEMENTED >>>> If None, geogrid.exe will be run
 metgrid_files : None         # <<< NOT IMPLEMENTED >>>> If None, metgrid.exe will be run
 lbc_files : None             # <<< NOT IMPLEMENTED >>>> If None, data will be downloaded based on specified LBC condition
-lbc_type : cfsr              # <<< NOT IMPLEMENTED >>>> one of cfsr, cfsv2, ?????
-run_name : TEST
-        
-         
-# Relatively Static Parameters
-# ----------------------------
-machine : R2_smalljob # Name must match an entry in config.yml
+run_name : Test
+
+
+# Static Parameters  (Not changed by scripts)
+user_email : williamrudisill@u.boisestate.edu
 user: wrudisill
-queue : leaf 
+jobtemplate : TestJob
 wrf_version : 4.0
 
 
@@ -35,13 +33,14 @@ wrf_exe_directory : /home/wrudisill/WRFV4/4.1.2/WRF-4.1.2/  # contains the 'run'
 wps_exe_directory : /home/wrudisill/WRFV4/4.1.2/WPS-4.1/
 geog_data_path : /home/wrudisill/leaf/WRF/WPS_GEOG 
 environment: envWRF_4.1.2_R2.sh
-wps_namelist_file : namelist.wps.template.SIMPLECASE
-input_namelist_file : namelist.input.template.SIMPLECASE
+scratch_space: /home/wrudisill/scratch/WRFtest      # this is the path where the run will be executed
+storage_space: /home/wrudisill/scratch/WRFtest      # this is the path where the output files will be moved.
+                                                    # in theory somewhere more permenant than scratch. If it 
+                                                    # is the same as the scratch space, nothing will be moved.
 
 
 # Write locations and user parameters 
 main_run_dirc: /home/wrudisill/scratch/WRFtest
-user_email : williamrudisill@u.boisestate.edu
 
 # WRF I/O and Run Control 
 wrf_run_options:

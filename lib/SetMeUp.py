@@ -3,17 +3,9 @@ import shutil
 import os
 import logging
 import yaml
-import pathlib as pl
+from pathlib import Path
 import pandas as pd
 import f90nml  # must be installed via pip
-
-
-def path(obj):
-    # turn object into a posix path if its not none
-    if not obj:
-        return pl.Path(obj)
-    else:
-        return None
 
 
 class SetMeUp:
@@ -30,8 +22,7 @@ class SetMeUp:
         :param      main:  full path to config.yml file.
         :type       main:  str or pathlib.Path
         """
-        self.logger = logging.getLogger(__name__)
-        self.logger.info('Initializing...')
+        logger = logging.getLogger(__name__)
 
         # Begin reading yml. Uses a somewhat 'hacky' way to
         # read in multiple files via the 'includes' list
@@ -49,34 +40,33 @@ class SetMeUp:
                                 Loader=yaml.FullLoader)
 
         # Now apply some logic to read in the correct config information based
-        # on setup parameters.
-        machine = yamlfile.get('machine')
-        # Check that the machine spec. in setup. is in the config file
-        if machine not in yamlfile.keys():
-            _message = 'machine specification <{}> not found in config.yml'
-            self.logger.error(_message.format(machine))
+        _template_request = yamlfile.get('jobtemplate')  # the requested template
+        _templates_config = yamlfile.get('JobTemplates')  # dic of avail templates
+
+        if _template_request not in _templates_config.keys():
+            _message = 'job specification <{}> not found in config.yml'
+            self.logger.error(_message.format(_template_request))
             sys.exit()
+        else:
+            self.jobtemplate = _templates_config.get(_template_request)
+
+        # read machine parameters
+        _machines = yamlfile.get('machines')
+        self.scheduler = _machines.get(self.jobtemplate['machine']).get('scheduler')
 
         # Get the queue submission information from the config.yml file
-        queue_params = yamlfile.get(machine)  # yuck this is kind of ugly.
-        if yamlfile.get('queue') not in queue_params.get('queue_list'):
-            self.logger.error()
-            sys.exit()
-        self.queue_params = queue_params  # assign queue params to self
+        self.queue_params = self.jobtemplate['submit_parameters']
+        self.queue = self.jobtemplate['queue']
 
         # Main Configuration -- machine related
-        self.geog_data_path = path(yamlfile['geog_data_path'])
+        self.geog_data_path = Path(yamlfile['geog_data_path'])
         self.setup = main  # name of the setup file
-        self.cwd = path(os.getcwd())
         self.user = yamlfile['user']
-        self.scheduler = yamlfile.get(machine).get('scheduler')
-
-        # Queue located in the 'setup.yml' file since it will freqently change
-        self.queue = yamlfile['queue']
         self.wrf_version = yamlfile['wrf_version']
 
         # Env. file should contain all appropriate module loads necessary
         # to run the wrf/real/geo... etc. executable files.
+        self.cwd = Path(os.getcwd())
         self.environment_file = self.cwd.joinpath(yamlfile['environment'])
 
         # Look for the restart file
@@ -85,26 +75,29 @@ class SetMeUp:
         # Find/Parse the namelist files using f90nml
         # !!!!! DANGER !!!!!
         # Assumes they live in cwd/namelists dir
-        _wps_name_path = yamlfile['wps_namelist_file']
-        _input_name_path = yamlfile['input_namelist_file']
-        self.wps_namelist_file_path = self.cwd.joinpath('namelists',
-                                                        _wps_name_path)
-        self.input_namelist_file_path = self.cwd.joinpath('namelists',
-                                                          _input_name_path)
+        _wps_name = self.jobtemplate['wps_namelist']
+        _input_name = self.jobtemplate['input_namelist']
+        self.wps_namelist_path = self.cwd.joinpath('user_config',
+                                                   'namelists',
+                                                   _wps_name)
+
+        self.input_namelist_path = self.cwd.joinpath('user_config',
+                                                     'namelists',
+                                                     _input_name)
 
         # Read the namelist filecontents
-        with open(self.wps_namelist_file_path) as nml_file:
+        with open(self.wps_namelist_path) as nml_file:
             self.wps_namelist_file = f90nml.read(nml_file)
 
-        with open(self.input_namelist_file_path) as nml_file:
+        with open(self.input_namelist_path) as nml_file:
             self.wps_namelist_file = f90nml.read(nml_file)
         # Extrack key parameters about the WRF configuration
         self.num_wrf_dom = self.wps_namelist_file['domains']['max_dom']
 
         # Directories to copy from the compiled WRF model
         # (or wherever they live on the system)
-        self.wrf_exe_dirc = path(yamlfile['wrf_exe_directory'])
-        self.wps_exe_dirc = path(yamlfile['wps_exe_directory'])
+        self.wrf_exe_dirc = Path(yamlfile['wrf_exe_directory'])
+        self.wps_exe_dirc = Path(yamlfile['wps_exe_directory'])
         self.geo_exe_dirc = self.wps_exe_dirc.joinpath('geogrid')
         self.met_exe_dirc = self.wps_exe_dirc.joinpath('metgrid')
         self.ungrib_exe_dirc = self.wps_exe_dirc.joinpath('ungrib')
@@ -118,7 +111,7 @@ class SetMeUp:
         self.run_geogrid_flag = True  # ! Not currently implemented
 
         # These get created
-        self.main_run_dirc = path(yamlfile['main_run_dirc'])
+        self.main_run_dirc = Path(yamlfile['main_run_dirc'])
         self.wrf_run_dirc = self.main_run_dirc.joinpath('wrf')
         self.wps_run_dirc = self.main_run_dirc.joinpath('wps')
         self.geo_run_dirc = self.wps_run_dirc.joinpath('geogrid')
