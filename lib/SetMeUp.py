@@ -150,10 +150,10 @@ class SetMeUp:
         self.data_dl_dirc.mkdir()
 
         # NAMELIST.INPUT
-        shutil.copy(self.input_namelist_path,
-                    self.main_run_dirc.joinpath('namelist.input.template'))
-        shutil.copy(self.wps_namelist_file_path,
-                    self.main_run_dirc.joinpath('namelist.wps.template'))
+        # shutil.copy(self.input_namelist_path,
+        #             self.main_run_dirc.joinpath('namelist.input.template'))
+        # shutil.copy(self.wps_namelist_file_path,
+        #             self.main_run_dirc.joinpath('namelist.wps.template'))
 
         # Copy METGRID
         shutil.copy(self.met_exe_dirc.joinpath('metgrid.exe'),
