@@ -225,7 +225,7 @@ class RunWRF(SetMeUp):
             sys.exit()
 
     def CheckOut(self, **kwargs):
-	# Move files to appropriate directories, if successful
+        # Move files to appropriate directories, if successful
         wrf_file_list = []
         date_range = pd.date_range(self.start_date, self.end_date, freq='1D')
         date_range = date_range.strftime("%Y-%m-%d_%H:00:00")
@@ -233,8 +233,7 @@ class RunWRF(SetMeUp):
             for date in date_range:
                 wrf_name = self.output_format.format(d+1, date)
                 wrf_file_list.append(wrf_name)
-        print(self.wrf_run_dirc)
-        print(wrf_file_list)
+
         found_files, message = acc.file_check(wrf_file_list, self.wrf_run_dirc)
         if found_files:
             self.logger.info(message)
@@ -242,11 +241,6 @@ class RunWRF(SetMeUp):
             self.logger.error(message)
             self.logger.info('Exiting')
             sys.exit()
-    def CleanUp(self):
-        # move files to the corct location
-        
-
-
 
     def _real(self, **kwargs):
         """
