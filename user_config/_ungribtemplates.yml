@@ -1,27 +1,28 @@
-CFSR:
-    wrf_version:
-      3.8:
-        num_vtables: 2
-        vtable: Vtable.CFSR    # the plevs and sflux are linked to with this name
-        plevs: Vtable.CFSR_press_pgbh06
-        sflux: Vtable.CFSR_sfc_flxf06
+ungribtemplates:
+  CFSR:
+      wrf_version:
+        3.8:
+          num_vtables: 2
+          vtable: Vtable.CFSR    # the plevs and sflux are linked to with this name
+          plevs: Vtable.CFSR_press_pgbh06
+          sflux: Vtable.CFSR_sfc_flxf06
 
-      4.0:
-        num_vtables: 2
-        vtable: Vtable.CFSR
-        plevs: Vtable.CFSR
-        sflux: None
+        4.0:
+          num_vtables: 2
+          vtable: Vtable.CFSR
+          plevs: Vtable.CFSR
+          sflux: None
 
-CFSRV2:
-    wrf_version:
-      3.8:
-        num_vtables: 2
-        vtable: Vtable.CFSR    # the plevs and sflux are linked to with this name
-        plevs: Vtable.CFSR_press_pgbh06
-        sflux: Vtable.CFSR_sfc_flxf06
+  CFSRV2:
+      wrf_version:
+        3.8:
+          num_vtables: 2
+          vtable: Vtable.CFSR    # the plevs and sflux are linked to with this name
+          plevs: Vtable.CFSR_press_pgbh06
+          sflux: Vtable.CFSR_sfc_flxf06
 
-      4.0:
-        num_vtables: 1
-        vtable: Vtable.CFSR
-        plevs: Vtable.CFSR
-        sflux: None
+        4.0:
+          num_vtables: 1
+          vtable: Vtable.CFSR
+          plevs: Vtable.CFSR
+          sflux: None

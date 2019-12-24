@@ -63,6 +63,19 @@ class SetMeUp:
         self.setup = main  # name of the setup file
         self.user = yamlfile['user']
         self.wrf_version = yamlfile['wrf_version']
+        self.lbc_type = yamlfile['lbc_type']
+
+        # get the appropriate ungrib template based on ...
+        # the wrf version and the LBC type 
+        _ungribtemplates = yamlfile.get('ungribtemplates')
+        try:
+            ungrib_template = _ungribtemplates.get(self.lbc_type.upper())
+            ungrib_template = ungrib_template.get('wrf_version')
+            self.ungrib_template = ungrib_template.get(self.wrf_version)
+
+        except KeyError as E:
+            logger.error(E)
+            logger.error('Check the user_config/_ungribtemplates')
 
         # Env. file should contain all appropriate module loads necessary
         # to run the wrf/real/geo... etc. executable files.
@@ -129,7 +142,6 @@ class SetMeUp:
         run_date = yamlfile['run_date']
         self.start_date = pd.to_datetime(run_date['start_date'])
         self.end_date = pd.to_datetime(run_date['end_date'])
-        self.lbc_type = yamlfile['lbc_type']
 
         # Get wrf_run_options
         self.wrf_run_options = yamlfile['wrf_run_options']
