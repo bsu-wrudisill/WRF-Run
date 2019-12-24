@@ -26,7 +26,7 @@ class RunWRF(SetMeUp):
             self.InheritWPS(wps)
         else:
             print('here2')
-	# Divide up the run into sections
+        # Divide up the run into sections
         self.RunDivide()
         print('done')
 

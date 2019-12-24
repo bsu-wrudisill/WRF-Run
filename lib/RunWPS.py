@@ -314,7 +314,7 @@ class RunWPS(SetMeUp):
         logger.info('Starting on SFLUX (2/2)')
 
         # We need to switch vtables if we are using 3.8.1
-        if self.wrf_version == '3.8.1':
+        if self.wrf_version == '3.8':
             os.unlink('unlink plevs vtable; link flx vtable')
             os.symlink(required_vtable_flx, vtable)
 
