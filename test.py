@@ -27,14 +27,14 @@ main = pathlib.Path('user_config/main.yml')
 setup = SetMeUp(main)
 
 # Perform some preliminary checks 
-checks = RunPreCheck(main)
-checks.run_all()
-setup.createRunDirectory()
+#checks = RunPreCheck(main)
+#checks.run_all()
+#setup.createRunDirectory()
 
 # Begin WPS
 wps = RunWPS(main)
-wps.geogrid()
-wps.dataDownload()
+#wps.geogrid()
+#wps.dataDownload()
 wps.ungrib()
 wps.metgrid()
 

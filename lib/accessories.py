@@ -219,7 +219,7 @@ def Submit(subname, scheduler):
         return jobid.decode("utf-8").rstrip(), err
 
     if scheduler not in ['PBS','SLURM']:
-        logger.error()
+        logger.error('error')
         raise Exception('unknown scheduler type {}'.format(scheduler))
 
 
@@ -257,7 +257,7 @@ def WaitForJob(jobid, user, scheduler):
         # Decode the error, and mange error output --- the qstat
         # command can sometimes time out!!!
         error = chiderr.decode("utf-8")
-
+        logger.info(error, chidout)
         if error != '':  # the error string is non-empty
             logger.error("error encountered in qstat:\n    {}".format(error))
             logger.error("wait additional 20s before retry")

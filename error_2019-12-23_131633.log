@@ -1,0 +1,14 @@
+Mon,23 Dec 2019 17:08:40          RunWRF wrapped_func ERROR    <function log_check at 0x7ff30dcb8b90>  Failed with the following Error: taskid: 0 hostname: r4i7n5
+ Traceback (most recent call last):
+  File "./lib/accessories.py", line 34, in wrapped_func
+    func(*args)
+  File "./lib/accessories.py", line 467, in log_check
+    assert message in string, string
+AssertionError: taskid: 0 hostname: r4i7n5
+,
+Mon,23 Dec 2019 17:08:40          RunWRF _real ERROR    Real.exe did not finish successfully.
+Exiting,
+Mon,23 Dec 2019 17:08:40          RunWRF _real ERROR    check {}/rsl.error* for details...,
+Mon,23 Dec 2019 17:08:40          RunWRF _real ERROR    /home/rudiwill/bsu_wrf/WillTestSims/wrf,
+Mon,23 Dec 2019 17:08:40          RunWRF WRF_TimePeriod ERROR    Real failed for chunk 0,
+Mon,23 Dec 2019 17:08:40          RunWRF WRF_TimePeriod ERROR    Check rsl* logs in /home/rudiwill/bsu_wrf/WillTestSims/wrf,

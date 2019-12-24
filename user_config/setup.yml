@@ -23,24 +23,24 @@ run_name : Test
 
 # Static Parameters  (Not changed by scripts)
 user_email : williamrudisill@u.boisestate.edu
-user: wrudisill
-jobtemplate : TestJob
-wrf_version : 4.0
+user: rudiwill 
+jobtemplate : CentralColorado
+wrf_version : 3.8
 
 
 # Existing paths-- executable directories, LBCs (if they exist), geogrid file (if it exists), etc:
-wrf_exe_directory : /home/wrudisill/WRFV4/4.1.2/WRF-4.1.2/  # contains the 'run' dir 
-wps_exe_directory : /home/wrudisill/WRFV4/4.1.2/WPS-4.1/
-geog_data_path : /home/wrudisill/leaf/WRF/WPS_GEOG 
-environment: envWRF_4.1.2_R2.sh
-scratch_space: /home/wrudisill/scratch/WRFtest      # this is the path where the run will be executed
-storage_space: /home/wrudisill/scratch/WRFtest      # this is the path where the output files will be moved.
-                                                    # in theory somewhere more permenant than scratch. If it 
-                                                    # is the same as the scratch space, nothing will be moved.
+wrf_exe_directory : /home/rudiwill/WRF/3.8.1/WRFV3/
+wps_exe_directory : /home/rudiwill/WRF/3.8.1/WPS/
+geog_data_path : /home/rudiwill/bsu_wrf/WPS_GEOG
+environment: envWRF_3.8.1_INL.sh 
+scratch_space: /home/rudiwill/bsu_wrf/WillTestSims     # this is the path where the run will be executed
+storage_space: /home/rudiwill/bsu_wrf/WillTestSims     # this is the path where the output files will be moved.
+                                                       # in theory somewhere more permenant than scratch. If it 
+                                                       # is the same as the scratch space, nothing will be moved.
 
 
 # Write locations and user parameters 
-main_run_dirc: /home/wrudisill/scratch/WRFtest
+main_run_dirc: /home/rudiwill/bsu_wrf/WillTestSims 
 
 # WRF I/O and Run Control 
 wrf_run_options:

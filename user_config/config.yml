@@ -35,11 +35,11 @@
 machines: 
     R2: 
       queue_list: ["leaf","defq","ipowerq","gpuq"]
-      scheduler: ["SLURM"]
+      scheduler: "SLURM"
 
     INL-FALCON:
       queue_list: ["iuc"]
-      scheduler: ["PBS"]
+      scheduler: "PBS"
 
 
 JobTemplates:
@@ -93,8 +93,8 @@ JobTemplates:
      CentralIdaho:
           machine: R2  
           queue: "leaf"
-          namelist_input: namelist.input.template.TEST
-          namelist_wps: namelist.wps.template.TEST
+          input_namelist: namelist.input.template.TEST
+          wps_namelist: namelist.wps.template.TEST
           wrf_run_options:
               chunk_size: 4               # (days). How long do we want the wrf run 'chunks' to be?
               wall_time_per_hour: .25     # (hours). wrftime/real world time 
@@ -137,8 +137,8 @@ JobTemplates:
      CentralColorado: 
           machine: INL-FALCON
           queue: iuc
-          namelist_input: namelist.input.template.TEST
-          namelist_wps: namelist.wps.template.TEST
+          input_namelist: namelist.input.COLORADO
+          wps_namelist: namelist.wps.COLORADO
           wrf_run_options:
               chunk_size: 4               # (days). How long do we want the wrf run 'chunks' to be?
               wall_time_per_hour: .25     # (hours). wrftime/real world time 
@@ -146,13 +146,10 @@ JobTemplates:
           submit_parameters:
               wrf: ["#PBS -P iuc",                     # idaho university queue   
                     "#PBS -q iuc",                     # same as P for some reason 
-                    "#PBS -l select=2",                # select 2 nodes for WRF 
-                    "#PBS -l ncpus=36",                # 36 cpus/node on INL-Falcon
-                    "#PBS -l mpiprocs=36",             # number of mpiprocesses per ... cpu 
-                    "#PBS -l cputype=broadwell",       # not sure what the other options are 
-                    "#PBS -l place=excl",              # exclusive memory usage
-                    "#PBS -l walltime=WALLTIME",     # runtime -- this is dynamic
-                    "#PBS -N JOBNAME",               # jobname, different than the ID assigned by PBS 
+                    "#PBS -l select=2:ncpus=36:mpiprocs=36:cputype=broadwell",                # select 2 nodes for WRF 
+                    "#PBS -l place=excl",                  # exclusive memory usage
+                    "#PBS -l walltime=WALLTIME",            # runtime -- this is dynamic
+                    "#PBS -N JOBNAME",                      # jobname, different than the ID assigned by PBS 
                     "#PBS -e RUNDIR/pbs_LOGNAME.err",       # standard err from scheduler 
                     "#PBS -o RUNDIR/pbs_LOGNAME.out"        # standard out from scheduler 
                     ]
@@ -160,12 +157,8 @@ JobTemplates:
               wps: ["#PBS -P iuc",                      
                     "#PBS -q iuc",
                     "#PBS -N JOBNAME",
-                    "#PBS -l walltime=WALLTIME",
-                    "#PBS -l select=1",                 
-                    "#PBS -l ncpus=36",                 
-                    "#PBS -l mpiprocs=0",              #WPS and REAL are run serially--i.e. not as an mpi job
-                    "#PBS -l walltime=WALLTIME",
-                    "#PBS -l cputype=broadwell",        
+                    "#PBS -l walltime=03:00:00",
+                    "#PBS -l select=1:ncpus=1:cputype=broadwell",                 
                     "#PBS -e RUNDIR/pbs_LOGNAME.err",
                     "#PBS -o RUNDIR/pbs_LOGNAME.out"
                     ]
@@ -173,12 +166,8 @@ JobTemplates:
               real: ["#PBS -P iuc",                      
                      "#PBS -q iuc",
                      "#PBS -N JOBNAME",
-                     "#PBS -l walltime=WALLTIME",
-                     "#PBS -l select=1",                 
-                     "#PBS -l ncpus=36",                 
-                     "#PBS -l mpiprocs=0",             
-                     "#PBS -l walltime=WALLTIME",
-                     "#PBS -l cputype=broadwell",         
+                     "#PBS -l walltime=03:00:00",
+                     "#PBS -l select=1:ncpus=1:cputype=broadwell",                 
                      "#PBS -e RUNDIR/pbs_LOGNAME.err",
                      "#PBS -o RUNDIR/pbs_LOGNAME.out"
                     ]

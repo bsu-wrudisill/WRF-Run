@@ -260,13 +260,13 @@ class RunWPS(SetMeUp):
             os.symlink(required_vtable, vtable)
 
         # WRF V 3.8.1
-        elif str(self.wrf_version) == '3.8.1':
+        elif str(self.wrf_version) == '3.8':
             required_vtable_plv = self.ungrib_run_dirc.joinpath('Variable_Tables/Vtable.CFSR_press_pgbh06')
-            required_vtable_flx = self.ungrib_run_dirc.joinpath('Variable_Tables/Vtable.CFSR_press_flxf06')
+            required_vtable_flx = self.ungrib_run_dirc.joinpath('Variable_Tables/Vtable.CFSR_sfc_flxf06')
             required_vtables = [required_vtable_plv.exists(), required_vtable_flx.exists()]
 
             if False in required_vtables:
-                logger.error('WRF {} variable table {} not found. exiting'.format(self.wrf_version, required_vtable))
+                logger.error('WRF {} variable table {} not found. exiting'.format(self.wrf_version, required_vtables))
                 sys.exit()
             os.symlink(required_vtable_plv, vtable)
         # Other WRF Version (Catch this error earlier!!)
