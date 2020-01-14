@@ -180,6 +180,15 @@ class RunWPS(SetMeUp):
             logger.error("check {}".format(self.geo_run_dirc))
             sys.exit()
 
+    # @acc.timer
+    # def new_ungrib(self):
+    #     logger = logging.getLogger(__name__)
+    #     logger.info('entering Ungrib process in directory')
+    #     logger.info('WRF Version {}'.format(self.wrf_version))
+
+    #     # read the ungrub config file
+    #     with open(self.)
+
     @acc.timer
     def ungrib(self, **kwargs):
         '''
@@ -466,7 +475,7 @@ class RunWPS(SetMeUp):
 
         sub6 = datetime.timedelta(hours=6)
         date_range = pd.date_range(self.start_date - sub6, self.end_date, freq='6H')
-        self.file_spec = '06.gdas'
+        file_spec = '06.gdas'
 
         if self.lbc_type == 'cfsr':
             nomads_url = "https://nomads.ncdc.noaa.gov/modeldata/cmd_{}/{}/{}{}/{}{}{}/"
