@@ -7,7 +7,7 @@ import accessories as acc
 from SetMeUp import SetMeUp
 import secrets
 import f90nml   # this must be installed via pip ... ugh
-
+from DataDownload import *
 
 class RunWPS(SetMeUp):
     """
@@ -461,6 +461,31 @@ class RunWPS(SetMeUp):
 
     @acc.timer
     def dataDownload(self):
+        "DESCRIPTION"
+
+        logger = logging.getLogger(__name__)
+        logger.info('beginning data download')
+
+        # get the current directory and move to the data dl dirc
+        cwd = os.getcwd()
+        os.chdir(self.data_dl_dirc)
+
+        if self.lbc_type == "cfsr":
+            logger.info('downloading cfsr data...')
+            dlist, filelist = CFSR(self.start_date, self.end_date)
+            acc.multiFileDownload(filelist)
+
+        if self.lbc_type == "cfsv2":
+            logger.info('downloading cfsv2 data..')
+            dlist, filelist, renamelist = CFSRV2(self.start_date, self.end_date)
+            acc.multiFileDownload(filelist, renamelist)
+
+        # Now do the downloading...
+        os.chdir(cwd)
+
+
+    @acc.timer
+    def dataDownloadOld(self):
         """
         { function_description }
 

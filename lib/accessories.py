@@ -330,6 +330,25 @@ def fetchFile(filepath):
     SystemCmd('wget --output-file=logfile {}'.format(filepath))  # CHANGE ME...
 
 
+def multiFileDownload(filepathlist, namelist=None):
+    """
+    :param      filepathlist:  list of strings to download
+    :type       filepathlist:  list containing strings
+    :param      namelist: list of filenames for renaming
+    :type       namelist: list of strings 
+    """
+    # wget a file and rename it, if the name is provided
+    if namelist:
+        for path, name in zip(filepathlist, namelist):
+            cmd = 'wget --output-file=logfile --output-document={} {}'.format(name, path)
+            SystemCmd(cmd)
+    # do not rename the filedownload
+    else:
+        for path in zip(filepathlist):
+            cmd = 'wget --output-file=logfile {}'.format(path)
+            SystemCmd(cmd)
+
+
 def WriteSubmit(queue_params,
                 replacedic,
                 filename):

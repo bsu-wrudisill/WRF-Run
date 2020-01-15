@@ -10,7 +10,6 @@ from multiprocessing import Pool
 
 def CFSRV2(start_date,
            end_date,
-           freq,
            data_dl_dirc='./',
            logger=False):
 
@@ -34,6 +33,7 @@ def CFSRV2(start_date,
     # Assert extension == 'pgbh' or extension == 'flxf', 'bad argument'
     dlist = []
     filelist = []
+    renamelist = []
     for date in date_range:
         for extension in ['pgbh', 'flxf']:
             if extension == 'pgbh':
@@ -49,22 +49,24 @@ def CFSRV2(start_date,
             base = nomads_url.format(extension, year, year, month, year, month, day)
             filename_complete = filename.format(hour, fname_extension)
             filepath = base + filename_complete
+            rename = "{}_{}{}{}{}_{}".format(extension, year, month, day, hour, filename_complete)
 
             # create lists of each
             dlist.append(filepath)
             filelist.append(filename_complete)
-    return dlist, filelist
+            renamelist.append(rename)
+            # append rename to list 
+
+    return dlist, filelist, renamelist
 
 
 def CFSR(start_date,
          end_date,
-         freq,
          data_dl_dirc='./'):
 
     # Notes:
     #
     #
-
     # HARDCODED
     nomads_url = "https://nomads.ncdc.noaa.gov/modeldata/cmd_{}/{}/{}{}/{}{}{}/"
     file_spec = '06.gdas'
