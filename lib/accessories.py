@@ -6,13 +6,19 @@ import traceback
 import logging
 import threading
 
-logger = logging.getLogger(__name__)
+
+#logger = logging.getLogger(__name__)
 
 
-# Function Decorators
+class test_class:
+    def __init__(self):
+        loggerx = logging.getLogger(__name__)
+        loggerx.info('initialized RunWPS instance')
+
+
 def passfail(func):
     """
-    Very ugly decoratot that does weird things. Be warned! This function will
+    Very ugly decorator that does weird things. Be warned! This function will
     catch any old exception in a try/except block and do the following:
               1) Return a Bool if the function executed successfully
               2) Return a message showing success or an error with traceback
@@ -60,17 +66,19 @@ def timer(function):
     :returns:   wrapped function. logs time to logger obj.
     :rtype:     function
     """
-
-    def wrapper(*args, **kwargs):
+    def wrapped_function(*args, **kwargs):
         t1 = datetime.datetime.now()
-        wrapped_function = function(*args, **kwargs)
+        function_output = function(*args, **kwargs)
         t2 = datetime.datetime.now()
         dt = (t2 - t1).total_seconds()/60   # time in minutes
         message_template = 'function {} took {} minutes complete'
         message = message_template.format(function.__name__, dt)
-        logging.info(message)
-        return wrapped_function
-    return wrapper
+        return function_output, message
+    return wrapped_function
+
+@timer
+def test_fx():
+    sys.wait(10)
 
 
 def DateGenerator(start_date, end_date, chunk_size):
@@ -322,6 +330,25 @@ def fetchFile(filepath):
     SystemCmd('wget --output-file=logfile {}'.format(filepath))  # CHANGE ME...
 
 
+def multiFileDownload(filepathlist, namelist=None):
+    """
+    :param      filepathlist:  list of strings to download
+    :type       filepathlist:  list containing strings
+    :param      namelist: list of filenames for renaming
+    :type       namelist: list of strings 
+    """
+    # wget a file and rename it, if the name is provided
+    if namelist:
+        for path, name in zip(filepathlist, namelist):
+            cmd = 'wget --output-file=logfile --output-document={} {}'.format(name, path)
+            SystemCmd(cmd)
+    # do not rename the filedownload
+    else:
+        for path in zip(filepathlist):
+            cmd = 'wget --output-file=logfile {}'.format(path)
+            SystemCmd(cmd)
+
+
 def WriteSubmit(queue_params,
                 replacedic,
                 filename):
@@ -385,6 +412,10 @@ def RemoveQuotes(filepathR, filepathW):
         with open(filepathW, 'w') as write_data:
             d = read_data.read()
             write_data.write(d.replace("'", ""))
+
+def test_logger():
+    print('printing')
+    logger.info('here i am')
 
 
 def tail(linenumber, filename):

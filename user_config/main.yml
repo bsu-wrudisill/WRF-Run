@@ -4,4 +4,4 @@
 #
 # --------------------------------------------------------------------------------------
  
-includes: [setup.yml, config.yml]
+includes: [setup.yml, config.yml, _ungribtemplates.yml]

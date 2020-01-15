@@ -7,7 +7,7 @@ import accessories as acc
 from SetMeUp import SetMeUp
 import secrets
 import f90nml   # this must be installed via pip ... ugh
-
+from DataDownload import *
 
 class RunWPS(SetMeUp):
     """
@@ -180,6 +180,15 @@ class RunWPS(SetMeUp):
             logger.error("check {}".format(self.geo_run_dirc))
             sys.exit()
 
+    # @acc.timer
+    # def new_ungrib(self):
+    #     logger = logging.getLogger(__name__)
+    #     logger.info('entering Ungrib process in directory')
+    #     logger.info('WRF Version {}'.format(self.wrf_version))
+
+    #     # read the ungrub config file
+    #     with open(self.)
+
     @acc.timer
     def ungrib(self, **kwargs):
         '''
@@ -314,7 +323,7 @@ class RunWPS(SetMeUp):
         logger.info('Starting on SFLUX (2/2)')
 
         # We need to switch vtables if we are using 3.8.1
-        if self.wrf_version == '3.8.1':
+        if self.wrf_version == '3.8':
             os.unlink('unlink plevs vtable; link flx vtable')
             os.symlink(required_vtable_flx, vtable)
 
@@ -452,6 +461,31 @@ class RunWPS(SetMeUp):
 
     @acc.timer
     def dataDownload(self):
+        "DESCRIPTION"
+
+        logger = logging.getLogger(__name__)
+        logger.info('beginning data download')
+
+        # get the current directory and move to the data dl dirc
+        cwd = os.getcwd()
+        os.chdir(self.data_dl_dirc)
+
+        if self.lbc_type == "cfsr":
+            logger.info('downloading cfsr data...')
+            dlist, filelist = CFSR(self.start_date, self.end_date)
+            acc.multiFileDownload(filelist)
+
+        if self.lbc_type == "cfsv2":
+            logger.info('downloading cfsv2 data..')
+            dlist, filelist, renamelist = CFSRV2(self.start_date, self.end_date)
+            acc.multiFileDownload(filelist, renamelist)
+
+        # Now do the downloading...
+        os.chdir(cwd)
+
+
+    @acc.timer
+    def dataDownloadOld(self):
         """
         { function_description }
 
@@ -466,7 +500,7 @@ class RunWPS(SetMeUp):
 
         sub6 = datetime.timedelta(hours=6)
         date_range = pd.date_range(self.start_date - sub6, self.end_date, freq='6H')
-        self.file_spec = '06.gdas'
+        file_spec = '06.gdas'
 
         if self.lbc_type == 'cfsr':
             nomads_url = "https://nomads.ncdc.noaa.gov/modeldata/cmd_{}/{}/{}{}/{}{}{}/"
