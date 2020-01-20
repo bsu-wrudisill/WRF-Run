@@ -28,23 +28,20 @@ main = pathlib.Path('user_config/main.yml')
 setup = SetMeUp(main)
 
 
-a, b = acc.test_fx()
-
-logger.warning('time')
 
 # Perform some preliminary checks
-#checks = RunPreCheck(main)
-#checks.run_all()
-#setup.createRunDirectory()
+checks = RunPreCheck(main)
+checks.run_all()
+setup.createRunDirectory()
 
 # Begin WPS
-#wps = RunWPS(main)
-#wps.geogrid()
-#wps.dataDownload()
-#wps.ungrib()
-#wps.metgrid()
+wps = RunWPS(main)
+wps.geogrid()
+wps.dataDownload()
+wps.ungrib()
+wps.metgrid()
 
 # Begin WRF
-#wrf = RunWRF(main, wps=wps)
-#wrf.SetupRunFiles()
-#wrf.WRF_TimePeriod()
+wrf = RunWRF(main, wps=wps)
+wrf.SetupRunFiles()
+wrf.WRF_TimePeriod()
