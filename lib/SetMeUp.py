@@ -13,7 +13,7 @@ class SetMeUp:
     This class describes a set me up.
     """
 
-    def __init__(self, main):
+    def __init__(self, main, location=None):
         """
         Constructs a new instance of SetMeUp. Reads options from the main yml
         file and converts into the appropirate instance attributes. This setup
@@ -123,14 +123,7 @@ class SetMeUp:
 
         # These get created
         self.run_name = yamlfile['run_name']
-        self.main_run_dirc = Path(yamlfile['scratch_space'])
-        self.wrf_run_dirc = self.main_run_dirc.joinpath('wrf')
-        self.wps_run_dirc = self.main_run_dirc.joinpath('wps')
-        self.geo_run_dirc = self.wps_run_dirc.joinpath('geogrid')
-        self.ungrib_run_dirc = self.wps_run_dirc.joinpath('ungrib')
-        self.met_run_dirc = self.wps_run_dirc.joinpath('metgrid')
-        self.data_dl_dirc = self.wps_run_dirc.joinpath('raw_lbcs')
-        self.storage_space = Path(yamlfile['storage_space']) 
+        self.main_run_dirc = kwargs.get('main_run_dirc', Path(yamlfile['scratch_space']))
 
         # Forcing files time format
         self.time_format = "%Y-%m-%d_%H:%M:%S"
@@ -147,12 +140,28 @@ class SetMeUp:
         # Look for the restart file
         self.restart = yamlfile['restart'] # should be true or false 
         self.restart_directory = Path(yamlfile['restart_directory'])
-        
+
+        #TODO: need option for more than 2 domains...
         self.rst_files = ['wrfrst_d02_{}'.format(self.start_date.strftime(self.time_format)),
                           'wrfrst_d01_{}'.format(self.start_date.strftime(self.time_format))]
+
+        self.storage_space = Path(yamlfile['storage_space']) 
+        if location:
+            self.__updatepaths(location)
+        else:
+            self.__updatepaths(location)
+    
+    def __updatepaths(self, main_run_dirc):
+        # update the the 
+        self.wrf_run_dirc = main_run_dirc.joinpath('wrf')
+        self.wps_run_dirc = main_run_dirc.joinpath('wps')
+        self.geo_run_dirc = wps_run_dirc.joinpath('geogrid')
+        self.ungrib_run_dirc = wps_run_dirc.joinpath('ungrib')
+        self.met_run_dirc = wps_run_dirc.joinpath('metgrid')
+        self.data_dl_dirc = wps_run_dirc.joinpath('raw_lbcs')
+
+
     def createRunDirectory(self):
-        #
-         
         # copy contents of the 'WRFVX/run' directory to the main run dir
         self.main_run_dirc.mkdir(parents=True)
 

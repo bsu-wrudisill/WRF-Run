@@ -32,14 +32,17 @@ class RunWPS(SetMeUp):
                                                     self.start_date))
         self.end_date = acc.DateParser(kwargs.get('end_date',
                                        self.end_date))
+        location = kwargs.get('location', self.main_run_dirc)
+        self.__updatepaths(location)
         # Create patch on iniitalization for the namelist
         self.patch()
-
+    
         # Internal flags
         # Process Completed
         self.WRFready = False
+                
 
-    def patch(self, **kwargs):
+    def patch(self, **kwargs): 
         '''
         Create the dictionary with the right terms for updating the wps
         namelist files.

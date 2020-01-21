@@ -20,7 +20,10 @@ class RunPreCheck(SetMeUp):
         # same as super(RunPreCheck, self).__init__(setup)
         super(self.__class__, self).__init__(setup)  
         self.logger = logging.getLogger(__name__)
+        location = kwargs.get('location', self.main_run_dirc)
+        self.__updatepaths(location)
 
+        
     @passfail
     def test_existenz(self):
         message = '{} already exists. Exiting'.format(self.main_run_dirc)

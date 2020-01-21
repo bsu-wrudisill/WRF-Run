@@ -11,7 +11,7 @@ from math import ceil
 
 class RunWRF(SetMeUp):
 
-    def __init__(self, setup, wps=None):
+    def __init__(self, setup, wps=None, location=None):
         super(self.__class__, self).__init__(setup)
         self.logger = logging.getLogger(__name__)
         self.logger.info('initialized RunWRF instance')
@@ -26,6 +26,11 @@ class RunWRF(SetMeUp):
             self.InheritWPS(wps)
         else:
             print('here2')
+        
+        # update the run directory if a 'location' is provided 
+        if location:
+            self.__updatepaths(location)
+        
         # Divide up the run into sections
         self.RunDivide()
         print('done')

@@ -25,21 +25,22 @@ logger.info('Starting...')
 # Begin Setup
 main = pathlib.Path('user_config/main.yml')
 
-setup = SetMeUp(main)
+setup = SetMeUp(main, location='/foo/bar')
+
 
 # Perform some preliminary checks
-checks = RunPreCheck(main)
-checks.run_all()
-setup.createRunDirectory()
+# checks = RunPreCheck(main)
+# checks.run_all()
+# setup.createRunDirectory()
 
 # Begin WPS
-wps = RunWPS(main)
-wps.geogrid()
-wps.dataDownload()
-wps.ungrib()
-wps.metgrid()
+wps = RunWPS(main, location='foo/bar')
+# wps.geogrid()
+# wps.dataDownload()
+# wps.ungrib()
+# wps.metgrid()
 
 # Begin WRF
 wrf = RunWRF(main, wps=wps)
-wrf.SetupRunFiles()
-wrf.WRF_TimePeriod()
+# wrf.SetupRunFiles()
+# wrf.WRF_TimePeriod()
