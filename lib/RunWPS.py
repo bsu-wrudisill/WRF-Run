@@ -291,6 +291,7 @@ class RunWPS(SetMeUp):
 
         # issue the link command
         os.chdir(self.ungrib_run_dirc)
+        logger.info('linking pgbh files')
         acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc, 
 		                      self.data_dl_dirc, 
 				      'pgbh06'))
@@ -332,7 +333,8 @@ class RunWPS(SetMeUp):
         logger.info('Starting on SFLUX (2/2)')
 
         # We need to switch vtables if we are using 3.8.1
-        if self.wrf_version == '3.8':
+        if str(self.wrf_version) == '3.8':
+            logger.info('removing plevs vtable link; linking sflux')
             os.unlink('unlink plevs vtable; link flx vtable')
             os.symlink(required_vtable_flx, vtable)
 
