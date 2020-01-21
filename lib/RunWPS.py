@@ -247,8 +247,9 @@ class RunWPS(SetMeUp):
 
         # (XXX/NNN)Symlink the vtables (check WRF-Version)
         # Different versions of WRF have differnt Vtables even for the same LBC
-
-        # WRF V 4.0++
+        
+	###### !!!! WRF VERSION RELATED OPTIONS HERE !!!!#####
+	# WRF V 4.0++
         if str(self.wrf_version) == '4.0':
             _message = 'Running WRF Version {} ungrib for {}'
             _message = _message.format(self.wrf_version, self.lbc_type)
@@ -282,6 +283,7 @@ class RunWPS(SetMeUp):
         else:
             logger.error('unknown wrf version {}'.format(self.wrf_version))
             sys.exit()
+        # END WRF VERSION RELATED OPTIONS LOGIC
 
         # (XXX/NNN) Begin Ungrib (2 parts--Plevs and SFLUX (FOR CFSR))
         # Ungrib the Pressure Files (PLEVS) first
@@ -289,7 +291,9 @@ class RunWPS(SetMeUp):
 
         # issue the link command
         os.chdir(self.ungrib_run_dirc)
-        acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc, self.data_dl_dirc, 'pgbh06'))
+        acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc, 
+		                      self.data_dl_dirc, 
+				      'pgbh06'))
         os.chdir(cwd)
 
         # Create the submit script, link grib files
@@ -298,10 +302,15 @@ class RunWPS(SetMeUp):
         # Pressure files job submission
         jobid, error = acc.Submit(submit_script,
                                   self.scheduler)
+        logger.info('submitted jobid: ', jobid)
         acc.WaitForJob(jobid,
                        self.user,
                        self.scheduler)
 
+        logger.info('Jobid {} has left the scheduler. Check once more.')
+        acc.WaitForJob(jobid,
+                       self.user,
+                       self.scheduler)
         # Verify the completion of .1
         success, status = acc.log_check(ungrib_log, success_message)
         if success:
@@ -350,6 +359,11 @@ class RunWPS(SetMeUp):
         # Submit the job
         jobid, error = acc.Submit(submit_script,
                                   self.scheduler)
+        acc.WaitForJob(jobid,
+                       self.user,
+                       self.scheduler)
+
+        logger.info('Jobid {} has left the scheduler. Check once more.')
         acc.WaitForJob(jobid,
                        self.user,
                        self.scheduler)
@@ -473,81 +487,19 @@ class RunWPS(SetMeUp):
         if self.lbc_type == "cfsr":
             logger.info('downloading cfsr data...')
             dlist, filelist = CFSR(self.start_date, self.end_date)
-            acc.multiFileDownload(filelist)
-
-        if self.lbc_type == "cfsv2":
+            acc.multiFileDownloadParallel(dlist)
+       
+        if self.lbc_type == "cfsrv2":
             logger.info('downloading cfsv2 data..')
             dlist, filelist, renamelist = CFSRV2(self.start_date, self.end_date)
-            acc.multiFileDownload(filelist, renamelist)
-
-        # Now do the downloading...
+            acc.multiFileDownloadParallel(dlist, renamelist)
+        
+        else: 
+            logger.error('lbc type not known', self.lbc_type)
+        
+	# !!!! TO ADD MORE LBC TYPES.... ADD TO THIS IF SEQUENC!!!
         os.chdir(cwd)
 
-
-    @acc.timer
-    def dataDownloadOld(self):
-        """
-        { function_description }
-
-        :returns:   { description_of_the_return_value }
-        :rtype:     { return_type_description }
-        """
-        logger = logging.getLogger(__name__)
-        logger.info('beginning data download')
-
-        # update state
-        self.ran_dl = True
-
-        sub6 = datetime.timedelta(hours=6)
-        date_range = pd.date_range(self.start_date - sub6, self.end_date, freq='6H')
-        file_spec = '06.gdas'
-
-        if self.lbc_type == 'cfsr':
-            nomads_url = "https://nomads.ncdc.noaa.gov/modeldata/cmd_{}/{}/{}{}/{}{}{}/"
-        else:
-            sys.exit()  # FOR NOW
-
-        # ---- Functions ----
-        def createDlist(date_range):
-            # Assert extension == 'pgbh' or extension == 'flxf', 'bad argument'
-            dlist = []
-            filelist = []
-            for date in date_range:
-                for extension in ['pgbh', 'flxf']:
-                    year = date.strftime('%Y')
-                    month = date.strftime('%m')
-                    day = date.strftime('%d')
-                    hour = date.strftime('%H')
-                    # get the pgbh files
-                    base = nomads_url.format(extension, year, year, month, year, month,day)
-                    filename = '{}{}.{}{}{}{}.grb2'.format(extension,self.file_spec, year, month, day, hour)
-                    filepath = base + filename
-                    # create lists of each
-                    dlist.append(filepath)
-                    filelist.append(filename)
-            return dlist, filelist
-        # fix the data destination argument
-        cwd = os.getcwd()
-        os.chdir(self.data_dl_dirc)
-
-        # create url list and filenames
-        urls, filenames = createDlist(date_range)
-        # acc.multi_thread(acc.fetchFile, urls) # BROKEN --- misses downloading some files
-        for url in urls:
-            acc.fetchFile(url)
-            self.logger.debug('downloading ....{}'.format(url))
-
-        os.chdir(cwd)
-        missing_files = 0
-        for f in filenames:
-            if self.data_dl_dirc.joinpath(f).exists():
-                pass
-            else:
-                print(self.data_dl_dirc.joinpath(f))
-                missing_files += 1
-        if missing_files != 0:
-            self.logger.error("{} missing files... ".format(missing_files))
-            sys.exit()
 
 if __name__ == '__main__':
     pass

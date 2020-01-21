@@ -38,8 +38,11 @@ def CFSRV2(start_date,
         for extension in ['pgbh', 'flxf']:
             if extension == 'pgbh':
                 fname_extension = 'pgrbh06'
+                rename_extension = 'pgbh06'  # this is to be consisten w/ cfsr .... confusing i know. 
             elif extension == 'flxf':
                 fname_extension = 'sfluxgrbf06'
+                rename_extension = 'flxf06'  # this is to be consisten w/ cfsr .... confusing i know. 
+            # get date info duh 
             year = date.strftime('%Y')
             month = date.strftime('%m')
             day = date.strftime('%d')
@@ -49,7 +52,7 @@ def CFSRV2(start_date,
             base = nomads_url.format(extension, year, year, month, year, month, day)
             filename_complete = filename.format(hour, fname_extension)
             filepath = base + filename_complete
-            rename = "{}_{}{}{}{}_{}".format(extension, year, month, day, hour, filename_complete)
+            rename = "{}_{}{}{}{}_{}".format(rename_extension, year, month, day, hour, filename_complete)
 
             # create lists of each
             dlist.append(filepath)
