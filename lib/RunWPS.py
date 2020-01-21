@@ -248,8 +248,11 @@ class RunWPS(SetMeUp):
         # (XXX/NNN)Symlink the vtables (check WRF-Version)
         # Different versions of WRF have differnt Vtables even for the same LBC
         
-	###### !!!! WRF VERSION RELATED OPTIONS HERE !!!!#####
-	# WRF V 4.0++
+    #################################################################
+    # --------- BEGIN WRF VERSION RELATED OPTIONS LOGIC ---------------
+    #################################################################
+
+	    # !!!   WRF V 4.0++  !!!
         if str(self.wrf_version) == '4.0':
             _message = 'Running WRF Version {} ungrib for {}'
             _message = _message.format(self.wrf_version, self.lbc_type)
@@ -269,7 +272,7 @@ class RunWPS(SetMeUp):
                 os.unlink(vtable)
             os.symlink(required_vtable, vtable)
 
-        # WRF V 3.8.1
+        # !!!  WRF V 3.8.1 !!!
         elif str(self.wrf_version) == '3.8':
             required_vtable_plv = self.ungrib_run_dirc.joinpath('Variable_Tables/Vtable.CFSR_press_pgbh06')
             required_vtable_flx = self.ungrib_run_dirc.joinpath('Variable_Tables/Vtable.CFSR_sfc_flxf06')
@@ -279,14 +282,21 @@ class RunWPS(SetMeUp):
                 logger.error('WRF {} variable table {} not found. exiting'.format(self.wrf_version, required_vtables))
                 sys.exit()
             os.symlink(required_vtable_plv, vtable)
-        # Other WRF Version (Catch this error earlier!!)
+
+        # !!! Other WRF Version (Catch this error earlier!!) !!!
         else:
             logger.error('unknown wrf version {}'.format(self.wrf_version))
             sys.exit()
-        # END WRF VERSION RELATED OPTIONS LOGIC
+        #################################################################
+        # --------- END WRF VERSION RELATED OPTIONS LOGIC ---------------
+        #################################################################
 
-        # (XXX/NNN) Begin Ungrib (2 parts--Plevs and SFLUX (FOR CFSR))
-        # Ungrib the Pressure Files (PLEVS) first
+
+        # Begin Ungrib (2 parts--Plevs and SFLUX (FOR CFSR))
+        # --------------------------------------------------
+        
+        # 1) PLEVS
+        # --------
         logger.info('Starting on PLEVS (1/2)')
 
         # issue the link command
@@ -329,14 +339,19 @@ class RunWPS(SetMeUp):
             logger.debug('unlinked {}'.format(str(globfile)))
             os.unlink(globfile)
 
-        # (XXX/NNN.2) Ungrib the Surface Flux files (SFLUX)
+        # 2) SFLUX
+        # --------
+        # Ungrib the Surface Flux files (SFLUX)
         logger.info('Starting on SFLUX (2/2)')
 
-        # We need to switch vtables if we are using 3.8.1
+        # Remove/Link the Corrct SFLUX VTABLE
         if str(self.wrf_version) == '3.8':
-            logger.info('removing plevs vtable link; linking sflux')
-            os.unlink('unlink plevs vtable; link flx vtable')
+            logger.info('Removing PLEVS vtable link; linking SFLUX')
+            os.unlink(vtable)
             os.symlink(required_vtable_flx, vtable)
+        else:
+            logger.info('Using WRF Version: {}. Vtable is the same for SFLUX and PLEVS'.format(self.wrf_version))
+
 
         # Update Dictionaries -- regardless of wrf versio we do this
         replacedata['LOGNAME'] = "ungrib-SFLUX"
@@ -358,7 +373,7 @@ class RunWPS(SetMeUp):
                       )
         os.chdir(cwd)
 
-        # Submit the job
+        # Submit the SFLUX job
         jobid, error = acc.Submit(submit_script,
                                   self.scheduler)
         acc.WaitForJob(jobid,
@@ -370,7 +385,7 @@ class RunWPS(SetMeUp):
                        self.user,
                        self.scheduler)
 
-        # (XXX/NNN) Verify completion
+        # Verify SFLUX completed correctly 
         success, status = acc.log_check(ungrib_log, success_message)
         if success:
             logger.info(status)
@@ -380,11 +395,13 @@ class RunWPS(SetMeUp):
             logger.error("check {}".format(self.ungrib_run_dirc))
             sys.exit()
 
-        # cleanup
+        # Cleanup SFLUX 
         globfiles = self.ungrib_run_dirc.glob('GRIBFILE*')
         for globfile in globfiles:
             logger.debug('unlinked {}'.format(str(globfile)))
             os.unlink(globfile)
+
+        # ---------- END Ungrib Process ---------------------
         # check that the script finished correctly
         os.chdir(cwd)
 
