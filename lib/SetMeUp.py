@@ -82,9 +82,7 @@ class SetMeUp:
         self.cwd = Path(os.getcwd())
         self.environment_file = self.cwd.joinpath(yamlfile['environment'])
 
-        # Look for the restart file
-        self.restart = yamlfile['restart']
-
+      
         # Find/Parse the namelist files using f90nml
         # !!!!! DANGER !!!!!
         # Assumes they live in cwd/namelists dir
@@ -146,9 +144,17 @@ class SetMeUp:
         # Get wrf_run_options
         self.wrf_run_options = yamlfile['wrf_run_options']
 
+        # Look for the restart file
+        self.restart = yamlfile['restart'] # should be true or false 
+        self.restart_directory = Path(yamlfile['restart_directory'])
+        
+        self.rst_files = ['wrfrst_d02_{}'.format(self.start_date.strftime(self.time_format)),
+                          'wrfrst_d01_{}'.format(self.start_date.strftime(self.time_format))]
     def createRunDirectory(self):
+        #
+         
         # copy contents of the 'WRFVX/run' directory to the main run dir
-        self.main_run_dirc.mkdir()
+        self.main_run_dirc.mkdir(parents=True)
 
         # Self.wrf_run_dirc.mkdir()
         shutil.copytree(self.wrf_exe_dirc.joinpath('run'),
@@ -196,6 +202,14 @@ class SetMeUp:
         # Copy the configure scripts  ### !!!! DANGER !!!! cwd #####
         shutil.copytree(self.cwd.joinpath('user_config'),
                         self.main_run_dirc.joinpath('user_config'))
+        # get the restart files
+        if self.restart:
+            for rst in self.rst_files:
+                shutil.copy(self.restart_directory.joinpath(rst), self.wrf_run_dirc)
+        else:
+            # nothing to copy 
+            pass
+
 
 
 if __name__ == '__main__':

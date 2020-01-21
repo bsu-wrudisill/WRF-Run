@@ -11,10 +11,10 @@
 # ------------------
 # Run date (Dyanamic-- these are optional. Scripts can modify)
 run_date: 
-        start_date : 1999-01-01
-        end_date : 1999-01-10
-lbc_type : cfsr              # <<< NOT IMPLEMENTED >>>> one of cfsr, cfsv2, ?????
-restart : None               # <<< NOT IMPLEMENTED >>>> Determine if the starting run is a 'restart' run. 
+        start_date : 2012-02-01
+        end_date : 2012-03-01
+lbc_type : cfsrv2              # one of cfsr, cfsv2
+restart : True               # TRUE OR FALSE 
 geo_em_file : None           # <<< NOT IMPLEMENTED >>>> If None, geogrid.exe will be run
 metgrid_files : None         # <<< NOT IMPLEMENTED >>>> If None, metgrid.exe will be run
 lbc_files : None             # <<< NOT IMPLEMENTED >>>> If None, data will be downloaded based on specified LBC condition
@@ -29,18 +29,20 @@ wrf_version : 3.8
 
 
 # Existing paths-- executable directories, LBCs (if they exist), geogrid file (if it exists), etc:
+restart_directory : /home/rudiwill/bsu_wrf/restarts
 wrf_exe_directory : /home/rudiwill/WRF/3.8.1/WRFV3/
 wps_exe_directory : /home/rudiwill/WRF/3.8.1/WPS/
 geog_data_path : /home/rudiwill/bsu_wrf/WPS_GEOG
 environment: envWRF_3.8.1_INL.sh 
-scratch_space: /home/rudiwill/bsu_wrf/WillTestSims     # this is the path where the run will be executed
-storage_space: /home/rudiwill/bsu_wrf/WillTestSims     # this is the path where the output files will be moved.
-                                                       # in theory somewhere more permenant than scratch. If it 
-                                                       # is the same as the scratch space, nothing will be moved.
+scratch_space: /home/rudiwill/rudiwill/WY2012/Month02
+storage_space: /home/rudiwill/bsu_wrf/WY2012/Month02
+# this is the path where the output files will be moved.
+# in theory somewhere more permenant than scratch. If it 
+# is the same as the scratch space, nothing will be moved.
 
 
 # Write locations and user parameters 
-main_run_dirc: /home/rudiwill/bsu_wrf/WillTestSims 
+#main_run_dirc: /home/rudiwill/bsu_wrf/WillTestSims 
 
 # WRF I/O and Run Control 
 wrf_run_options:

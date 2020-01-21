@@ -37,9 +37,13 @@ class RunPreCheck(SetMeUp):
     def test_restart(self):
         if (self.restart == 'None') or (self.restart is None):
             assert 1 == 1  # guarentee a sucess...
-        else:
-            message = "{} Not found".format(self.restart)
-            assert os.path.exists(self.restart), message
+        if self.restart == True:
+            for rst in self.rst_files:
+                amihere = self.restart_directory.joinpath(rst)
+                message = "{} Not found".format(amihere)
+                assert amihere.is_file(), message 
+            
+            
         # ASSERT THAT THE RESTART FILE IS FOUND !
 
     @passfail

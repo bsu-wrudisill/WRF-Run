@@ -84,7 +84,12 @@ class RunWRF(SetMeUp):
             self.logger.info(log_message)
             # determine if the initial run is a restart:
             if i == 0:
-                restart = False
+                # check if the 'restart' flag exists in the setup, and 
+                # verify that the restart file lives in the correct spot 
+                restart = self.restart  # should be true or false
+                
+                #check that the restart files exist in the run directory...
+                #TODO 
             else:
                 restart = True
 

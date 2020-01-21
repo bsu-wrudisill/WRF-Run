@@ -27,8 +27,6 @@ main = pathlib.Path('user_config/main.yml')
 
 setup = SetMeUp(main)
 
-
-
 # Perform some preliminary checks
 checks = RunPreCheck(main)
 checks.run_all()

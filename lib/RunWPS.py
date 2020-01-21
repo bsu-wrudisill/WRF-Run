@@ -494,7 +494,7 @@ class RunWPS(SetMeUp):
             dlist, filelist, renamelist = CFSRV2(self.start_date, self.end_date)
             acc.multiFileDownloadParallel(dlist, renamelist)
         
-        if self.lbc_type not in ['cfsr', 'cfsrv2']
+        if self.lbc_type not in ['cfsr', 'cfsrv2']:
             logger.error('lbc type not known', self.lbc_type)
         
 	# !!!! TO ADD MORE LBC TYPES.... ADD TO THIS IF SEQUENC!!!
