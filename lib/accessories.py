@@ -7,7 +7,7 @@ import logging
 import threading
 
 
-#logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class test_class:
@@ -255,42 +255,53 @@ def WaitForJob(jobid, user, scheduler):
     if scheduler == 'SLURM':
         chid = "squeue -u {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)
 
-    # Issue the parse command and check if the jobid exists
-    still_running = 1     # start with 1 for still running
-    while still_running == 1:
-        # run command and parse output
-        chidout, chiderr = SystemCmd(chid)
-        chidout = [i.decode("utf-8") for i in chidout]
-
-        # Decode the error, and mange error output --- the qstat
-        # command can sometimes time out!!!
-        error = chiderr.decode("utf-8")
-        logger.info(error, chidout)
-        if error != '':  # the error string is non-empty
-            logger.error("error encountered in qstat:\n    {}".format(error))
-            logger.error("wait additional 20s before retry")
-            time.sleep(60)
-
-            # !!!!!!!!!!!!!!!!! TODO !!!!!!!!!!!!!!!!!!!!
-            # HOW DO WE HANDLE THIS ERROR ?????
-            # Current solution is just to wait longer....
-            # unclear what the best option might be
-            # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-        # Filter the 'chidout' list for elements matching the jobid.
-        # If zero, a match was not found!
-        still_running_list = list(filter(lambda x: x == jobid, chidout))
-        still_running = len(still_running_list)
-        message_template = 'JobID {} is still running...Sleep({})'
-        message = message_template.format(still_running_list, 10)
-        logger.info(message)
-        time.sleep(10)
-
-    # TODO
     # !!!! THIS SHOULD BE CAUGHT WAY BEFORE THIS POINT!!!!
     if scheduler not in ['PBS', 'SLURM']:
         logger.error()
         raise Exception('unknown scheduler type {}'.format(scheduler))
+    
+    def wait(chid, jobid):
+        # Issue the parse command and check if the jobid exists
+        still_running = 1     # start with 1 for still running
+        while still_running == 1:
+            # run command and parse output
+            chidout, chiderr = SystemCmd(chid)
+            chidout = [i.decode("utf-8") for i in chidout]
+            print(chidout)
+            print('jobid',jobid)
+            # Decode the error, and mange error output --- the qstat
+            # command can sometimes time out!!!
+            error = chiderr.decode("utf-8")
+            logger.info(error, chidout)
+            if error != '':  # the error string is non-empty
+                logger.error("error encountered in qstat:\n    {}".format(error))
+                logger.error("wait additional 20s before retry")
+                time.sleep(60)
+
+                # !!!!!!!!!!!!!!!!! TODO !!!!!!!!!!!!!!!!!!!!
+                # HOW DO WE HANDLE THIS ERROR ?????
+                # Current solution is just to wait longer....
+                # unclear what the best option might be
+                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+            # Filter the 'chidout' list for elements matching the jobid.
+            # If zero, a match was not found!
+            still_running_list = list(filter(lambda x: x == jobid, chidout))
+            still_running = len(still_running_list)
+            message_template = 'JobID {} is still running...Sleep({})'
+            message = message_template.format(still_running_list, 10)
+            logger.info(message)
+            print(message)
+            time.sleep(10)
+        
+	# Exit While loop, no longer running... 
+        time.sleep(10)
+    
+    # issue the wait 3x. This is just b/c ... there is some lag in the queue/log writing step? qstat times out? unclear
+    wait(chid, jobid) 
+    
+    # done ...
+     
 
 
 def GenericWrite(readpath, replacedata, writepath):
@@ -329,6 +340,32 @@ def fetchFile(filepath):
     # wget a file
     SystemCmd('wget --output-file=logfile {}'.format(filepath))  # CHANGE ME...
 
+def multiFileDownloadParallel(filepathlist, namelist=None):
+    """
+    :param      filepathlist:  list of strings to download
+    :type       filepathlist:  list containing strings
+    :param      namelist: list of filenames for renaming
+    :type       namelist: list of strings 
+    """
+    # import stuff 
+    from multiprocessing import Pool, Lock
+    p = Pool(4)
+	 
+    cmdlist = []
+    # wget a file and rename it, if the name is provided
+    if namelist:
+        for path, name in zip(filepathlist, namelist):
+            cmd = 'wget --output-file=logfile --output-document={} {}'.format(name, path)
+            cmdlist.append(cmd)
+    # do not rename the filedownload
+    else:
+        for path in filepathlist:
+            cmd = 'wget --output-file=logfile {}'.format(path)
+            cmdlist.append(cmd)
+    
+    # do it in parrallel
+    p.map(SystemCmd, cmdlist)
+
 
 def multiFileDownload(filepathlist, namelist=None):
     """
@@ -341,10 +378,11 @@ def multiFileDownload(filepathlist, namelist=None):
     if namelist:
         for path, name in zip(filepathlist, namelist):
             cmd = 'wget --output-file=logfile --output-document={} {}'.format(name, path)
+            print(cmd)
             SystemCmd(cmd)
     # do not rename the filedownload
     else:
-        for path in zip(filepathlist):
+        for path in filepathlist:
             cmd = 'wget --output-file=logfile {}'.format(path)
             SystemCmd(cmd)
 
