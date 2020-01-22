@@ -14,7 +14,7 @@ run_date:
         start_date : 2012-02-01
         end_date : 2012-03-01
 lbc_type : cfsrv2              # one of cfsr, cfsv2
-restart : True               # TRUE OR FALSE 
+restart : False               # TRUE OR FALSE 
 geo_em_file : None           # <<< NOT IMPLEMENTED >>>> If None, geogrid.exe will be run
 metgrid_files : None         # <<< NOT IMPLEMENTED >>>> If None, metgrid.exe will be run
 lbc_files : None             # <<< NOT IMPLEMENTED >>>> If None, data will be downloaded based on specified LBC condition

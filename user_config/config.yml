@@ -167,7 +167,7 @@ JobTemplates:
                      "#PBS -q iuc",
                      "#PBS -N JOBNAME",
                      "#PBS -l walltime=03:00:00",
-                     "#PBS -l select=1:ncpus=1:cputype=broadwell",                 
+                     "#PBS -l select=1:ncpus=4:cputype=broadwell",                 
                      "#PBS -e RUNDIR/pbs_LOGNAME.err",
                      "#PBS -o RUNDIR/pbs_LOGNAME.out"
                     ]

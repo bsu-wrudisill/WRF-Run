@@ -18,14 +18,16 @@ from dateutil.relativedelta import relativedelta
 
 
 # Parse the input 
-wateryear = sys.argv[1]   # WATER YEAR.... not year 
-month = sys.argv[2]
+wateryear = int(sys.argv[1])  # WATER YEAR.... not year 
+month = int(sys.argv[2])
 
 
 # Parse dates 
 if month in [9,10,11, 12]:
     year = wateryear - 1
 else:
+    print(month)
+    print(type(month))
     year = wateryear
 
 start_date = pd.to_datetime('{}-{}-01'.format(year,month))
@@ -34,12 +36,13 @@ month_double_pad = start_date.strftime("%m")
 
 # Logger stuff
 suffix = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
-logging.config.fileConfig('./user_config/logger.ini', defaults={'date': suffix})
+logname = 'WY{}_MO{}_{}'.format(wateryear, month, suffix)
+logging.config.fileConfig('./user_config/logger.ini', defaults={'LogName': logname})
 logger = logging.getLogger(__name__)
 logger.info('Starting...')
 
 # Find the correct folder to run WRF in 
-folder = pathlib.Path('/home/rudiwill/rudiwill/').joinpath('WY'+wateryear).joinpath('Month'+month_double_pad)
+folder = pathlib.Path('/home/rudiwill/rudiwill/').joinpath('WY'+str(wateryear)).joinpath('Month'+month_double_pad)
 
 # If the month is greater than 9... then there should be a restart 
 if month != 9:
@@ -47,17 +50,23 @@ if month != 9:
 else:
     restart = True
 
+logger.info('Begin Main Program WRF Run')
+logger.info('Water Year: {}'.format(wateryear))
+logger.info('month: {}'.format(month))
+logger.info('i.e. {}->{}'.format(start_date, end_date))
+
+
 # Begin the WRF setup
+update = {'main_run_dirc':folder, 
+          'restart':False,
+          'start_date': start_date,
+          'end_date': end_date}
+
+
 main = pathlib.Path('user_config/main.yml')
-setup = SetMeUp(main, location=folder, restart=restart) #restart=restart)
+setup = SetMeUp(main, update=update) 
 logger.info('main run directory: {}'.format(setup.main_run_dirc))
 
-
-update = {'main_run_dirc':folder, 'restart':False}
-
-logger.info('Begin Main Program WRF Run')
-logger.info('Water Year: {}'.format(wateryear)
-logger.info('Month: {}'.format(month)
 
 # Perform some preliminary checks
 checks = RunPreCheck(main, update=update) 

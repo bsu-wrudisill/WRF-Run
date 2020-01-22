@@ -13,7 +13,7 @@ class SetMeUp:
     This class describes a set me up.
     """
     
-    def __init__(self, main, location=None, restart=False):
+    def __init__(self, main, update=None):
         """
         Constructs a new instance of SetMeUp. Reads options from the main yml
         file and converts into the appropirate instance attributes. This setup
@@ -123,7 +123,7 @@ class SetMeUp:
 
         ########################################################
         ####   DYNAMIC LOGIC STUFF --- WEIRDNESS, DANGER   #####
-        self.main_run_dirc = Path(yamlfile['scratch_space']).joinpath('test')
+        self.main_run_dirc = Path(yamlfile['scratch_space'])
         self.restart = yamlfile['restart'] # should be true or false 
         ########################################################
 
@@ -147,7 +147,8 @@ class SetMeUp:
                           'wrfrst_d01_{}'.format(self.start_date.strftime(self.time_format))]
 
         self.storage_space = Path(yamlfile['storage_space']) 
-        update = {'main_run_dirc':self.main_run_dirc, 'restart':restart}
+        if not update:
+            update = {'main_run_dirc':self.main_run_dirc, 'restart':self.restart}
         
         # NOTE: The two asterix mean that the function will take * number of arguments
         #... so like all of the key:value pairs of a dictionary
@@ -156,6 +157,8 @@ class SetMeUp:
     def __update(self, **kwargs):  #main_run_dirc, restart):
         main_run_dirc = kwargs.get('main_run_dirc', None)
         restart = kwargs.get('restart', None)
+        start_date = kwargs.get('start_date', None)
+        end_date = kwargs.get('end_date', None)
         
         if main_run_dirc:
             # update the paths -- this is a bit yucky 
@@ -167,7 +170,11 @@ class SetMeUp:
             self.met_run_dirc = self.wps_run_dirc.joinpath('metgrid')
             self.data_dl_dirc = self.wps_run_dirc.joinpath('raw_lbcs')
         if restart:
-            self.restart = restart 
+            self.restart = restart
+        if start_date:
+            self.start_date = start_date
+        if end_date:
+            self.end_date = end_date
         # update whether or not the run is a restart
         
     def createRunDirectory(self):
