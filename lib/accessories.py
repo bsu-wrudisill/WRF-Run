@@ -532,8 +532,24 @@ def log_check(logfile, message):
     assert logfile.exists(), "{} not found".format(logfile)
 
     # Check the last line of the log file.
-    string = tail(1, logfile)
-    assert message in string, string
+    stringlist = [tail(1, logfile), 
+                  tail(2, logfile), 
+                  tail(3, logfile),
+                  tail(4, logfile),
+                  tail(5, logfile),
+                  tail(6, logfile)]
+    
+    # make one single string for printing
+    last_six_lines = "\n".join(string for string in stringlist)
+    
+    # check the log file for the success message 
+    truthlist = [message in string for string in stringlist]
+    
+    # bad message:
+    returnmessage = "Not successful? Here are the last six lines of {}:\n{}".format(logfile, last_six_lines) 
+    
+    # do the verification here
+    assert truth in truthlist, returnmessage
 
 
 @timer
