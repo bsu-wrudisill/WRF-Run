@@ -12,8 +12,8 @@ class SetMeUp:
     """
     This class describes a set me up.
     """
-
-    def __init__(self, main, location=None):
+    
+    def __init__(self, main, location=None, restart=False):
         """
         Constructs a new instance of SetMeUp. Reads options from the main yml
         file and converts into the appropirate instance attributes. This setup
@@ -22,7 +22,7 @@ class SetMeUp:
         :param      main:  full path to config.yml file.
         :type       main:  str or pathlib.Path
         """
-        logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
 
         # Begin reading yml. Uses a somewhat 'hacky' way to
         # read in multiple files via the 'includes' list
@@ -121,9 +121,11 @@ class SetMeUp:
         self.run_metgrid_flag = True  # ! Not currently implemented
         self.run_geogrid_flag = True  # ! Not currently implemented
 
-        # These get created
-        self.run_name = yamlfile['run_name']
-        self.main_run_dirc = kwargs.get('main_run_dirc', Path(yamlfile['scratch_space']))
+        ########################################################
+        ####   DYNAMIC LOGIC STUFF --- WEIRDNESS, DANGER   #####
+        self.main_run_dirc = Path(yamlfile['scratch_space']).joinpath('test')
+        self.restart = yamlfile['restart'] # should be true or false 
+        ########################################################
 
         # Forcing files time format
         self.time_format = "%Y-%m-%d_%H:%M:%S"
@@ -138,7 +140,6 @@ class SetMeUp:
         self.wrf_run_options = yamlfile['wrf_run_options']
 
         # Look for the restart file
-        self.restart = yamlfile['restart'] # should be true or false 
         self.restart_directory = Path(yamlfile['restart_directory'])
 
         #TODO: need option for more than 2 domains...
@@ -146,21 +147,29 @@ class SetMeUp:
                           'wrfrst_d01_{}'.format(self.start_date.strftime(self.time_format))]
 
         self.storage_space = Path(yamlfile['storage_space']) 
-        if location:
-            self.__updatepaths(location)
-        else:
-            self.__updatepaths(location)
-    
-    def __updatepaths(self, main_run_dirc):
-        # update the the 
-        self.wrf_run_dirc = main_run_dirc.joinpath('wrf')
-        self.wps_run_dirc = main_run_dirc.joinpath('wps')
-        self.geo_run_dirc = wps_run_dirc.joinpath('geogrid')
-        self.ungrib_run_dirc = wps_run_dirc.joinpath('ungrib')
-        self.met_run_dirc = wps_run_dirc.joinpath('metgrid')
-        self.data_dl_dirc = wps_run_dirc.joinpath('raw_lbcs')
+        update = {'main_run_dirc':self.main_run_dirc, 'restart':restart}
+        
+        # NOTE: The two asterix mean that the function will take * number of arguments
+        #... so like all of the key:value pairs of a dictionary
+        self.__update(**update)
 
-
+    def __update(self, **kwargs):  #main_run_dirc, restart):
+        main_run_dirc = kwargs.get('main_run_dirc', None)
+        restart = kwargs.get('restart', None)
+        
+        if main_run_dirc:
+            # update the paths -- this is a bit yucky 
+            self.main_run_dirc = main_run_dirc
+            self.wrf_run_dirc = main_run_dirc.joinpath('wrf')
+            self.wps_run_dirc = main_run_dirc.joinpath('wps')
+            self.geo_run_dirc = self.wps_run_dirc.joinpath('geogrid')
+            self.ungrib_run_dirc = self.wps_run_dirc.joinpath('ungrib')
+            self.met_run_dirc = self.wps_run_dirc.joinpath('metgrid')
+            self.data_dl_dirc = self.wps_run_dirc.joinpath('raw_lbcs')
+        if restart:
+            self.restart = restart 
+        # update whether or not the run is a restart
+        
     def createRunDirectory(self):
         # copy contents of the 'WRFVX/run' directory to the main run dir
         self.main_run_dirc.mkdir(parents=True)

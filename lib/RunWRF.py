@@ -11,35 +11,37 @@ from math import ceil
 
 class RunWRF(SetMeUp):
 
-    def __init__(self, setup, wps=None, location=None):
+    def __init__(self, setup, wps=None, update=None):
         super(self.__class__, self).__init__(setup)
         self.logger = logging.getLogger(__name__)
-        self.logger.info('initialized RunWRF instance')
+        self.logger.info('Entering RunWRF')
         # OPTIONAL: Pass in a WPS instance
         # and read stuff from it. Get latest
         # WPS state. The internal WPS checks
         # should say that WPS is good-to-go
         # The latest date information should
         # should also be present
-        print('here')
         if wps is not None:
             self.InheritWPS(wps)
         else:
-            print('here2')
+            self.logger.info('No WPS instance inherited')
         
         # update the run directory if a 'location' is provided 
-        if location:
-            self.__updatepaths(location)
         
+        if update: 
+            self._SetMeUp__update(**update)
         # Divide up the run into sections
         self.RunDivide()
-        print('done')
+        self.logger.info('Main Run Directory: {}'.format(self.wrf_run_dirc)) 
 
-    def InheritWPS(self, wps):
+    def InheritWPS(self, wps, ):
+        # !!!!!!!! THIS SEEMS A BIT ODD !!!!!!!!!!!!
         # update current state
         self.start_date = wps.start_date
         self.end_date = wps.end_date
-
+        self.main_run_dirc = wps.main_run_dirc
+        #self._SetMeUp__update(self.main_run_dirc)
+        
         # new state
         self.WRFready = wps.WRFready
         self.wps = wps
@@ -81,12 +83,6 @@ class RunWRF(SetMeUp):
             _cdays_to_sec = (chunk_end - chunk_start).seconds/3600
             chunk_hours = _cdays_to_hrs + _cdays_to_sec
 
-            log_message_template = 'Chunk {}: {} -- {} ({} hours)'
-            log_message = log_message_template.format(i,
-			                              chunk_start,
-                                                      chunk_end,
-                                                      chunk_hours)
-            self.logger.info(log_message)
             # determine if the initial run is a restart:
             if i == 0:
                 # check if the 'restart' flag exists in the setup, and 
@@ -97,7 +93,16 @@ class RunWRF(SetMeUp):
                 #TODO 
             else:
                 restart = True
-
+            
+            # write out some useful information
+            log_message_template = 'Chunk {}:{}->{}({}hrs). Restart:{}'
+            log_message = log_message_template.format(i,
+			                              chunk_start,
+                                                      chunk_end,
+                                                      chunk_hours,
+                                                      restart)
+            self.logger.info(log_message)
+            
             # Create the wall time string -- no need to EVER ask for less than
             # an hour of wall time. Only whole hours allowed.
             # Get the rate value from the setup parameters

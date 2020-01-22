@@ -14,7 +14,7 @@ class RunWPS(SetMeUp):
     This class describes run wps.
     """
 
-    def __init__(self, setup, **kwargs):
+    def __init__(self, setup, update=None):
         '''
         Inherit methods/stuff from SetMeUp (read from main.yml)
         :type       setup:   { type_description }
@@ -28,20 +28,23 @@ class RunWPS(SetMeUp):
         self.logger.info('initialized RunWPS instance')
 
         # Read in OPTIONAL kwargs
-        self.start_date = acc.DateParser(kwargs.get('start_date',
-                                                    self.start_date))
-        self.end_date = acc.DateParser(kwargs.get('end_date',
-                                       self.end_date))
-        location = kwargs.get('location', self.main_run_dirc)
-        self.__updatepaths(location)
+        #self.start_date = acc.DateParser(kwargs.get('start_date',
+        #                                            self.start_date))
+        #self.end_date = acc.DateParser(kwargs.get('end_date',
+        #                              self.end_date))
+        
+        # check if there is an 'update' to pass into runwps
+        if update: 
+            self._SetMeUp__update(**update)
+        
         # Create patch on iniitalization for the namelist
         self.patch()
     
         # Internal flags
         # Process Completed
         self.WRFready = False
-                
-
+        self.logger.info('Main Run Directory: {}'.format(self.wrf_run_dirc)) 
+    
     def patch(self, **kwargs): 
         '''
         Create the dictionary with the right terms for updating the wps

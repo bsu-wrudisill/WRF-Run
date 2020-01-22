@@ -13,17 +13,17 @@ The goal is to check for common or likely mistakes
 class RunPreCheck(SetMeUp):
     # checks that the config.yaml file is sensible (paths exist, etc)
 
-    def __init__(self, setup):
+    def __init__(self, setup, update=None):
         # This is an incredibly handy function all of the self.X attrs.
         # from SetMeUP
         # instance get put into the "self" of this object
         # same as super(RunPreCheck, self).__init__(setup)
         super(self.__class__, self).__init__(setup)  
         self.logger = logging.getLogger(__name__)
-        location = kwargs.get('location', self.main_run_dirc)
-        self.__updatepaths(location)
+        if update:
+            self._SetMeUp__update(**update)
+#self.setup.__updatepaths(location)
 
-        
     @passfail
     def test_existenz(self):
         message = '{} already exists. Exiting'.format(self.main_run_dirc)
@@ -67,7 +67,7 @@ class RunPreCheck(SetMeUp):
         numPassedTests = 0
 
         # Beginning of test message
-        message = "======================  {}  ========================"
+        message = "====================== Start {}  ========================"
         message = message.format(self.__class__.__name__)
         self.logger.info(message)
 
@@ -85,6 +85,12 @@ class RunPreCheck(SetMeUp):
         checkStatus = "{} out of {} tests passed".format(
                                 numPassedTests, numTests)
         self.logger.info(checkStatus)
+        
+        # Leave the script
+        message = "====================== End {}  ========================"
+        message = message.format(self.__class__.__name__)
+        self.logger.info(message)
+
         # return status of test passing
         if numPassedTests != numTests:
             return False
