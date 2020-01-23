@@ -549,7 +549,7 @@ def log_check(logfile, message):
     returnmessage = "Not successful? Here are the last six lines of {}:\n{}".format(logfile, last_six_lines) 
     
     # do the verification here
-    assert truth in truthlist, returnmessage
+    assert True in truthlist, returnmessage
 
 
 @timer
