@@ -45,10 +45,12 @@ logger.info('Starting...')
 folder = pathlib.Path('/home/rudiwill/rudiwill/').joinpath('WY'+str(wateryear)).joinpath('Month'+month_double_pad)
 
 # If the month is greater than 9... then there should be a restart 
-if month != 9:
+if month == 9:
     restart = False
+    logger.info('Starting Month. No Restart requestd')
 else:
     restart = True
+    logger.info('Starting Month. Restart requestd')
 
 logger.info('Begin Main Program WRF Run')
 logger.info('Water Year: {}'.format(wateryear))
