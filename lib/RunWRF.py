@@ -420,9 +420,14 @@ class RunWRF(SetMeUp):
             self.logger.info(open_message.format(num, num_chunks))
             self.logger.info(self.wrf_run_dirc)
             # TODO
-            framesperout = str(24)
+            framesperout = str(24)  # THIS NEEDS TO CHANGE
+            if chunk['run_hours'] < 24:
+                framesperout = chunk['run_hours']
+                restartinterval = str(chunk['run_hours']*60)
+            else chunk['run_hours']:
+                framesperout = 24 
+            
             framesperaux = str(24)
-            restartinterval = str(chunk['run_hours']*60)
             walltime_request = str(chunk['walltime_request'])
             n = self.num_wrf_dom
             # TODO: create a chunk class where the strings formatting
@@ -439,10 +444,10 @@ class RunWRF(SetMeUp):
                             "end_month": acc.RepN(chunk['end_date'].strftime('%m'), n),
                             "end_day":  acc.RepN(chunk['end_date'].strftime('%d'), n),
                             "end_hour": acc.RepN(chunk['end_date'].strftime('%H'), n),
-                            "frames_per_outfile": framesperout,
+                            "frames_per_outfile": acc.RepN(framesperout, n),
                             "restart": chunk['restart'],
-                            "restart_interval": restartinterval,
-                            "frames_per_auxhist3": framesperaux}
+                            "restart_interval": acc.RepN(restartinterval, n),
+                            "frames_per_auxhist3": acc.RepN(framesperaux, n)}
                            }
 
             # Write the namelists.input...
