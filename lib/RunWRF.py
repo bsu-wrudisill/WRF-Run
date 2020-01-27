@@ -179,10 +179,14 @@ class RunWRF(SetMeUp):
         met_found, met_message = acc.file_check(required_met_files,
                                                 met_dirc,
                                                 desc='MetgridFiles')
-
         # create status and return
         status = {'geo': [geo_found, geo_message, required_geo_files],
                   'met': [met_found, met_message, required_met_files]}
+        
+        # look for the RESTART FILES, if they exist 
+        #  TODO 
+
+
         return status
 
     def SetupRunFiles(self, **kwargs):
@@ -238,7 +242,12 @@ class RunWRF(SetMeUp):
                 self.logger.error(met_message)
             self.logger.error('Required met/geo files not found.\nExiting')
             sys.exit()
-
+        
+        if self.restart:
+            logger.info('Restart run... search for appropriate restart files:')
+            rest_found, rest_message = acc.file_check(self.rst_files,
+                                                      self.wrf_run_dirc)
+                                                     
     def CheckOut(self, **kwargs):
         # Move files to appropriate directories, if successful
         wrf_file_list = []
@@ -419,15 +428,17 @@ class RunWRF(SetMeUp):
         for num, chunk in enumerate(self.chunk_tracker):
             self.logger.info(open_message.format(num, num_chunks))
             self.logger.info(self.wrf_run_dirc)
-            # TODO
-            framesperout = str(24)  # THIS NEEDS TO CHANGE
+            self.logger.info('restart={}'.format(chunk['restart']))
+            # restart interval is always the chunk length 
+            restartinterval = str(chunk['run_hours']*60)
             if chunk['run_hours'] < 24:
                 framesperout = chunk['run_hours']
-                restartinterval = str(chunk['run_hours']*60)
-            else chunk['run_hours']:
-                framesperout = 24 
+                framesperaux = str(24)
+            # is this sufficient logic? I think so...
+            else:
+                framesperout = str(24)
+                framesperaux = str(24)
             
-            framesperaux = str(24)
             walltime_request = str(chunk['walltime_request'])
             n = self.num_wrf_dom
             # TODO: create a chunk class where the strings formatting
@@ -484,3 +495,5 @@ class RunWRF(SetMeUp):
                 sys.exit()
             else:
                 self.logger.info("WRF Success for chunk {}".format(num))
+
+    

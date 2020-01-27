@@ -170,11 +170,15 @@ class SetMeUp:
             self.met_run_dirc = self.wps_run_dirc.joinpath('metgrid')
             self.data_dl_dirc = self.wps_run_dirc.joinpath('raw_lbcs')
         if restart:
-            self.restart = restart
+           logger.info('the following restarts are required: {}'.format(restart))
+           self.restart = restart
         if start_date:
-            self.start_date = start_date
+           self.start_date = start_date
         if end_date:
-            self.end_date = end_date
+           self.end_date = end_date
+        if start_date or end_date:
+           self.rst_files = ['wrfrst_d02_{}'.format(self.start_date.strftime(self.time_format)),
+                             'wrfrst_d01_{}'.format(self.start_date.strftime(self.time_format))]
         # update whether or not the run is a restart
         
     def createRunDirectory(self):
@@ -229,12 +233,14 @@ class SetMeUp:
                         self.main_run_dirc.joinpath('user_config'))
         # get the restart files
         if self.restart:
+            logger.info('copying the following restart files...')
+            logger.info('{} --> {}'.format(self.restart_dirctory, self.wrf_run_dirc))
             for rst in self.rst_files:
+                logger.info(rst)    
                 shutil.copy(self.restart_directory.joinpath(rst), self.wrf_run_dirc)
         else:
             # nothing to copy 
             pass
-
 
 
 if __name__ == '__main__':
