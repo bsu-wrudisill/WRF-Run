@@ -13,64 +13,127 @@ from RunWPS import RunWPS
 from RunWRF import RunWRF
 from checks import RunPreCheck
 import accessories as acc
+import pandas as pd 
+from dateutil.relativedelta import relativedelta
+import shutil
+import os
+
+# Parse the input 
+wateryear = int(sys.argv[1])  # WATER YEAR.... not year 
+month = int(sys.argv[2])
 
 
-
-
-month = sys.argv[1]
-wateryear = sys.argv[2]   # WATER YEAR.... not year 
-
+# Parse dates 
 if month in [9,10,11, 12]:
     year = wateryear - 1
 else:
+    print(month)
+    print(type(month))
     year = wateryear
 
-# parse dates 
 start_date = pd.to_datetime('{}-{}-01'.format(year,month))
 end_date = start_date + relativedelta(months=1)
+month_double_pad = start_date.strftime("%m")
 
-
-# logger stuff
+# Logger stuff
 suffix = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
-logging.config.fileConfig('./user_config/logger.ini', defaults={'date': suffix})
+logname = 'WY{}_MO{}_{}'.format(wateryear, month, suffix)
+logging.config.fileConfig('./user_config/logger.ini', defaults={'LogName': logname})
 logger = logging.getLogger(__name__)
 logger.info('Starting...')
 
-# Begin Setup
+# Find the correct folder to run WRF in 
+folder = pathlib.Path('/home/rudiwill/rudiwill/').joinpath('WY'+str(wateryear)).joinpath('Month'+month_double_pad)
+
+# Create a directory for all of the wrfout and restart links
+output_restart = folder.joinpath('restart', exist_ok=True)
+output_restart.mkdir()
+output_wrfout = folder.joinpath('wrfout', exist_ok=True)
+output_wrfout.mkdir()
+
+# Create the directory to store the outputs in ...
+final_output_path = pathlib.Path('/home/rudiwill/bsu_wrf/INL_SIMS')
+final_output_folder = final_output_path.joinpath('WY'+str(wateryear)).joinpath('Month'+month_double_pad)
+final_output_folder = folder.joinpath('wrfout', exist_ok=True, parents=True)
+final_restart_folder = pathlib.Path('/home/rudiwill/bsu_wrf/restarts')
+
+# If the month is greater than 9... then there should be a restart 
+if month == 9:
+    restart = False
+    logger.info('Starting Month. No Restart requestd')
+else:
+    restart = True
+    logger.info('Starting Month. Restart requestd')
+
+logger.info('Begin Main Program WRF Run')
+logger.info('Water Year: {}'.format(wateryear))
+logger.info('month: {}'.format(month))
+logger.info('i.e. {}->{}'.format(start_date, end_date))
+
+
+# Begin the WRF setup
+update = {'main_run_dirc':folder, 
+          'restart':restart
+          'start_date': start_date,
+          'end_date': end_date}
+
+
 main = pathlib.Path('user_config/main.yml')
-setup = SetMeUp(main)
+setup = SetMeUp(main, update=update) 
+logger.info('main run directory: {}'.format(setup.main_run_dirc))
 
-# modify stuff here
-logger.info('updating start/end dates....')
-setup.start_date = start_date
-setup.end_date = end_date
-
-
-# logger stuff
-suffix = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
-logging.config.fileConfig('./user_config/logger.ini', defaults={'date': suffix})
-logger = logging.getLogger(__name__)
-logger.info('Starting...')
-
-
-# Begin Setup
-main = pathlib.Path('user_config/main.yml')
-
-setup = SetMeUp(main)
 
 # Perform some preliminary checks
-checks = RunPreCheck(main)
+checks = RunPreCheck(main, update=update) 
 checks.run_all()
+
+# Create hte direcory.... duh 
 setup.createRunDirectory()
 
 # Begin WPS
-wps = RunWPS(main, start_date=)
+wps = RunWPS(main, update=update) 
 wps.geogrid()
 wps.dataDownload()
 wps.ungrib()
 wps.metgrid()
 
 # Begin WRF
-wrf = RunWRF(main, wps=wps)
+wrf = RunWRF(main, wps=wps, update=update) 
 wrf.SetupRunFiles()
 wrf.WRF_TimePeriod()
+
+# WRF should have completed 
+success = wrf.CheckOut()
+if success:
+    # create the storage space if it does not already exist 
+   
+    if month==9:
+    # do not move any wrf files...
+        logger.info('On Spinup month. NOT moving wrfout files.') 
+    else:
+        logger.info('Moving wrfoutput files to storage space...')
+        for wrf_file in wrf.wrf_file_list:
+            src = self.wrf_run_dir.joinpath(wrf_file)
+            dst = final_output_folder
+            shutil.move(src, dst)
+            # now create links back to the originanl ...
+            os.symlink(dst.joinpath(wrf_file), src)
+       for rst in self.final_rst_files:
+            src = self.wrf_run_dir.joinpath(rst)
+            dst = final_restart_folder 
+            # move the restart 
+            shutil.move(src, dst)
+            # create a link for the 
+            os.symlink(dst.joinpath(rst), src)
+
+
+self.final_rst_files 
+    
+
+
+
+
+
+
+
+
