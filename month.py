@@ -18,10 +18,11 @@ from dateutil.relativedelta import relativedelta
 import shutil
 import os
 
+
+# ----------------- Run Configuration ---------------# 
 # Parse the input 
 wateryear = int(sys.argv[1])  # WATER YEAR.... not year 
 month = int(sys.argv[2])
-
 
 # Parse dates 
 if month in [9,10,11, 12]:
@@ -47,17 +48,7 @@ basename = 'WY{}/Month{}'.format(str(wateryear), month_double_pad)
 # Find the correct folder to run WRF in 
 run_folder = pathlib.Path('/home/rudiwill/rudiwill/')
 run_folder = run_folder.joinpath(basename)
-run_folder.mkdir(exist_ok=True, parents=True)
-run_restart = run_folder.joinpath('restart').mkdir(exist_ok=True)
-run_wrfout = run_folder.joinpath('wrfout').mkdir(exist_ok=True)
 
-
-# Create the directory to store the outputs in ...
-final_output_path = pathlib.Path('/home/rudiwill/bsu_wrf/INL_SIMS')
-final_output_folder = final_output_path.joinpath(basename)
-
-final_output_folder = final_output_path.joinpath('wrfout').mkdir(exist_ok=True, parents=True)
-final_restart_folder = pathlib.Path('/home/rudiwill/bsu_wrf/restarts')
 
 # Create a directory for all of the wrfout and restart links
 
@@ -75,21 +66,27 @@ logger.info('month: {}'.format(month))
 logger.info('i.e. {}->{}'.format(start_date, end_date))
 
 
-# Begin the WRF setup
+# This is a 'patch' dictionary that modifies the static .yaml file
+# somwehat confusing... 
 update = {'main_run_dirc':run_folder, 
           'restart':restart,
           'start_date': start_date,
           'end_date': end_date}
 
 
+# ----------------- Being Main WPS/WRF Run ---------------# 
 main = pathlib.Path('user_config/main.yml')
 setup = SetMeUp(main, update=update) 
 logger.info('main run directory: {}'.format(setup.main_run_dirc))
 
 
 # Perform some preliminary checks
+# WHAT DO WE DO WITH THE CHECKS?? RIGHT NOW THEY ARE NOT CAUGHT
 checks = RunPreCheck(main, update=update) 
-checks.run_all()
+passed = checks.run_all()
+
+
+
 
 # Create hte direcory.... duh 
 setup.createRunDirectory()
@@ -108,8 +105,18 @@ wrf = RunWRF(main, wps=wps, update=update)
 wrf.SetupRunFiles()
 wrf.WRF_TimePeriod()
 
-# WRF should have completed 
+
+#--------------------- WRF Post Processing (move files, etc) -------------------------# 
+# Verify the success of the WRF run
 success = wrf.CheckOut()
+
+# Create the directory to store the outputs in ...
+final_output_path = pathlib.Path('/home/rudiwill/bsu_wrf/INL_SIMS')
+final_output_folder = final_output_path.joinpath(basename)
+
+final_output_folder = final_output_path.joinpath('wrfout').mkdir(exist_ok=True, parents=True)
+final_restart_folder = pathlib.Path('/home/rudiwill/bsu_wrf/restarts')
+
 if success:
     # create the storage space if it does not already exist 
     if month==9:

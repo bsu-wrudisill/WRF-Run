@@ -204,8 +204,15 @@ class RunWRF(SetMeUp):
                   'met': [met_found, met_message, required_met_files]}
         
         # look for the RESTART FILES, if they exist 
-        #  TODO 
-
+        # get the restart files
+        if self.restart:
+            self.logger.info('Copying the following restart files...')
+            self.logger.info('{} --> {}'.format(self.restart_directory, self.wrf_run_dirc))
+            for rst in self.rst_files:
+                self.logger.info(rst)    
+                shutil.copy(self.restart_directory.joinpath(rst), self.wrf_run_dirc)
+        else:
+            self.logger.info('No restart files are requested')    
 
         return status
 
@@ -262,7 +269,8 @@ class RunWRF(SetMeUp):
                 self.logger.error(met_message)
             self.logger.error('Required met/geo files not found.\nExiting')
             sys.exit()
-        
+
+        # FIND THE CORRECT RESTART FILES HERE
         if self.restart:
             self.logger.info('Restart run... search for appropriate restart files:')
             rest_found, rest_message = acc.file_check(self.rst_files,

@@ -170,8 +170,10 @@ class SetMeUp:
             self.ungrib_run_dirc = self.wps_run_dirc.joinpath('ungrib')
             self.met_run_dirc = self.wps_run_dirc.joinpath('metgrid')
             self.data_dl_dirc = self.wps_run_dirc.joinpath('raw_lbcs')
+            self.wrf_output_folder = self.main_run_dirc.joinpath('wrfouts')
+            self.restart_output_folder = self.main_run_dirc.joinpath('restarts')
+        
         if restart:
-           self.logger.info('the restarts are required: {}'.format(restart))
            self.restart = restart
         
         if start_date:
@@ -181,19 +183,12 @@ class SetMeUp:
            self.end_date = end_date
         
         if start_date or end_date:
-           self.logger.info('adjusting restart file request...')
            self.rst_files = ['wrfrst_d02_{}'.format(self.start_date.strftime(self.time_format)),
                              'wrfrst_d01_{}'.format(self.start_date.strftime(self.time_format))]
-           self.logger.info(self.rst_files) 
 
-        # update whether or not the run is a restart
         if restart and not (start_date or end_date):
-           self.logger.info('restart flag has been turned on, but dates not adjusted. warning') 
-           self.logger.info('the following restarts are requested:')
            self.rst_files = ['wrfrst_d02_{}'.format(self.start_date.strftime(self.time_format)),
                              'wrfrst_d01_{}'.format(self.start_date.strftime(self.time_format))]
-           self.logger.info(self.rst_files)
-
 
     def __update_yaml(self):
         # update the yaml file and write it out somewhere
@@ -209,7 +204,7 @@ class SetMeUp:
             # write out 
             outputfile = self.main_run_dirc.joinpath('user_config', 'setup.yml')
             with open(outputfile, 'w',  encoding='utf8') as f:
-                yaml.dump(yamlfile, f,default_flow_style=False)
+                yaml.dump(yamlfile, f, default_flow_style=False)
 
 
 
@@ -227,7 +222,7 @@ class SetMeUp:
         self.met_run_dirc.mkdir()
         self.ungrib_run_dirc.mkdir()
         self.data_dl_dirc.mkdir()
-
+        
         # NAMELIST.INPUT
         shutil.copy(self.input_namelist_path,
                     self.main_run_dirc.joinpath('namelist.input.template'))
@@ -263,17 +258,7 @@ class SetMeUp:
         # Copy the configure scripts  ### !!!! DANGER !!!! cwd #####
         shutil.copytree(self.cwd.joinpath('user_config'),
                         self.main_run_dirc.joinpath('user_config'))
-        # get the restart files
-        if self.restart:
-            self.logger.info('copying the following restart files...')
-            self.logger.info('{} --> {}'.format(self.restart_directory, self.wrf_run_dirc))
-            for rst in self.rst_files:
-                self.logger.info(rst)    
-                shutil.copy(self.restart_directory.joinpath(rst), self.wrf_run_dirc)
-        else:
-            # nothing to copy 
-            pass
-    
+
 
 if __name__ == '__main__':
     setup = SetMeUp('main.yml')

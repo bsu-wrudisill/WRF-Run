@@ -43,10 +43,8 @@ class RunPreCheck(SetMeUp):
         if self.restart == True:
             for rst in self.rst_files:
                 amihere = self.restart_directory.joinpath(rst)
-                message = "{} Not found".format(amihere)
+                message = "Required restart is not found:\n{} ".format(amihere)
                 assert amihere.is_file(), message 
-            
-            
         # ASSERT THAT THE RESTART FILE IS FOUND !
 
     @passfail
@@ -55,6 +53,12 @@ class RunPreCheck(SetMeUp):
         # message = '{} not one of {}'.format(self.queue, queue_list)
         # assert self.queue in queue_list, message
         assert 1 == 1
+
+    @passfail
+    def test_lbcdates(self):
+        # verify that the LBC dates requested are available
+        pass     
+
 
     def run_all(self):
         # Emulate behavior of the unittesting module
