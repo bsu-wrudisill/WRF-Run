@@ -17,52 +17,59 @@ import pandas as pd
 from dateutil.relativedelta import relativedelta
 import shutil
 import os
+import argparse
 
+# usage:       
+# python <YYYY> <DD>               (defaults to existing=False)
+# python <YYYY> <DD> --existing     (becomes to existing=True)
+parser = argparse.ArgumentParser()
+parser.add_argument("wateryear", type=int, help="WaterYear (YYYY)")
+parser.add_argument("month", type=int, help="Requested month (MM)")
+parser.add_argument("--overwrite", action="store_false", help="Overwrite exixting directory")   
+
+args = parser.parse_args()
+#print(args)
+#print(args.wateryear)
+#print(args.month)
+#print(args.overwrite)
 
 # ----------------- Run Configuration ---------------# 
-# Parse the input 
-wateryear = int(sys.argv[1])  # WATER YEAR.... not year 
-month = int(sys.argv[2])
-
 # Parse dates 
-if month in [9,10,11, 12]:
-    year = wateryear - 1
+if args.month in [9,10,11, 12]:
+    year = args.wateryear - 1
 else:
-    print(month)
-    print(type(month))
-    year = wateryear
+    year = args.wateryear
 
-start_date = pd.to_datetime('{}-{}-01'.format(year,month))
+start_date = pd.to_datetime('{}-{}-01'.format(year,args.month))
 end_date = start_date + relativedelta(months=1)
 month_double_pad = start_date.strftime("%m")
 
 # Logger stuff
 suffix = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
-logname = 'WY{}_MO{}_{}'.format(wateryear, month, suffix)
+logname = 'WY{}_MO{}_{}'.format(args.wateryear, args.month, suffix)
 logging.config.fileConfig('./user_config/logger.ini', defaults={'LogName': logname})
 logger = logging.getLogger(__name__)
 logger.info('Starting...')
 
 # basename 
-basename = 'WY{}/Month{}'.format(str(wateryear), month_double_pad)
+basename = 'WY{}/Month{}'.format(args.wateryear, month_double_pad)
 # Find the correct folder to run WRF in 
 run_folder = pathlib.Path('/home/rudiwill/rudiwill/')
 run_folder = run_folder.joinpath(basename)
 
-
 # Create a directory for all of the wrfout and restart links
 
 # If the month is greater than 9... then there should be a restart 
-if month == 9:
+if args.month == 9:
     restart = False
-    logger.info('Starting Month. No Restart requestd')
+    logger.info('Spinup period. No restart requestd')
 else:
     restart = True
-    logger.info('Starting Month. Restart requestd')
+    logger.info('Restart required')
 
 logger.info('Begin Main Program WRF Run')
-logger.info('Water Year: {}'.format(wateryear))
-logger.info('month: {}'.format(month))
+logger.info('Water Year: {}'.format(args.wateryear))
+logger.info('month: {}'.format(args.month))
 logger.info('i.e. {}->{}'.format(start_date, end_date))
 
 
@@ -95,47 +102,47 @@ setup._SetMeUp__update_yaml()
 
 # Begin WPS
 wps = RunWPS(main, update=update) 
-wps.geogrid()
-wps.dataDownload()
-wps.ungrib()
-wps.metgrid()
-
-# Begin WRF
+#wps.geogrid()
+#wps.dataDownload()
+#wps.ungrib()
+#wps.metgrid()
+#
+## Begin WRF
 wrf = RunWRF(main, wps=wps, update=update) 
 wrf.SetupRunFiles()
-wrf.WRF_TimePeriod()
-
-
-#--------------------- WRF Post Processing (move files, etc) -------------------------# 
-# Verify the success of the WRF run
-success = wrf.CheckOut()
-
-# Create the directory to store the outputs in ...
-final_output_path = pathlib.Path('/home/rudiwill/bsu_wrf/INL_SIMS')
-final_output_folder = final_output_path.joinpath(basename)
-
-final_output_folder = final_output_path.joinpath('wrfout').mkdir(exist_ok=True, parents=True)
-final_restart_folder = pathlib.Path('/home/rudiwill/bsu_wrf/restarts')
-
-if success:
-    # create the storage space if it does not already exist 
-    if month==9:
-    # do not move any wrf files...
-        logger.info('On Spinup month. NOT moving wrfout files.') 
-    else:
-        logger.info('Moving wrfoutput files to storage space...')
-        for wrf_file in wrf.wrf_file_list:
-            src = self.wrf_run_dir.joinpath(wrf_file)
-            dst = final_output_folder
-            shutil.move(src, dst)
-            # now create links back to the originanl ...
-            os.symlink(dst.joinpath(wrf_file), run_wrfout)
-        for rst in self.final_rst_files:
-            src = self.wrf_run_dir.joinpath(rst)
-            dst = final_restart_folder 
-            # move the restart 
-            shutil.move(src, dst)
-            # create a link for the 
-            os.symlink(dst.joinpath(rst), run_restart)
-
-
+#wrf.WRF_TimePeriod()
+#
+#
+##--------------------- WRF Post Processing (move files, etc) -------------------------# 
+## Verify the success of the WRF run
+#success = wrf.CheckOut()
+#
+## Create the directory to store the outputs in ...
+#final_output_path = pathlib.Path('/home/rudiwill/bsu_wrf/INL_SIMS')
+#final_output_folder = final_output_path.joinpath(basename)
+#
+#final_output_folder = final_output_path.joinpath('wrfout').mkdir(exist_ok=True, parents=True)
+#final_restart_folder = pathlib.Path('/home/rudiwill/bsu_wrf/restarts')
+#
+#if success:
+#    # create the storage space if it does not already exist 
+#    if month==9:
+#    # do not move any wrf files...
+#        logger.info('On Spinup month. NOT moving wrfout files.') 
+#    else:
+#        logger.info('Moving wrfoutput files to storage space...')
+#        for wrf_file in wrf.wrf_file_list:
+#            src = self.wrf_run_dir.joinpath(wrf_file)
+#            dst = final_output_folder
+#            shutil.move(src, dst)
+#            # now create links back to the originanl ...
+#            os.symlink(dst.joinpath(wrf_file), run_wrfout)
+#        for rst in self.final_rst_files:
+#            src = self.wrf_run_dir.joinpath(rst)
+#            dst = final_restart_folder 
+#            # move the restart 
+#            shutil.move(src, dst)
+#            # create a link for the 
+#            os.symlink(dst.joinpath(rst), run_restart)
+#
+#
