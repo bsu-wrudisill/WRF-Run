@@ -500,11 +500,12 @@ def file_check(required_files,
             missing_files.append(required)
     num_req = len(required_files)
     num_mis = len(missing_files)
-
     # ugh this is dumb TODO: make less dumb
     if value == 'E':
         # assert that ALL of the required files have been found in directory
-        message = 'missing {} of {} required files'.format(num_req, num_mis)
+        message = 'missing {} of {} required files:\n{}'.format(num_mis, 
+                                                                num_req,
+                                                                missing_files)
         assert num_mis == 0, message
     if value == 'DnE':
         # assert that NONE of the files have been found in the directory

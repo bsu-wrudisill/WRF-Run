@@ -33,6 +33,26 @@ class RunWRF(SetMeUp):
         # Divide up the run into sections
         self.RunDivide()
         self.logger.info('Main Run Directory: {}'.format(self.wrf_run_dirc)) 
+        
+        # these are the restart files that should be created by this wrf process
+        self.final_rst_files = ['wrfrst_d02_{}'.format(self.end_date.strftime(self.time_format)),
+                                'wrfrst_d01_{}'.format(self.end_date.strftime(self.time_format))]
+        
+
+        # list the WRF files that will be created  
+        wrf_file_list = []
+        
+        # TODO: !!!!!!!THIS DOES NOT WORK FOR ALL OUTPUT TIMESTEPS!!!!!!
+        date_range = pd.date_range(self.start_date, self.end_date, freq='1D')
+        date_range = date_range.strftime("%Y-%m-%d_%H:00:00")
+        for d in range(self.num_wrf_dom):
+            for date in date_range:
+                wrf_name = self.output_format.format(d+1, date)
+                wrf_file_list.append(wrf_name)
+        
+        # make wrf file list available elsewhere
+        self.wrf_file_list = wrf_file_list 
+   
 
     def InheritWPS(self, wps, ):
         # !!!!!!!! THIS SEEMS A BIT ODD !!!!!!!!!!!!
@@ -247,24 +267,46 @@ class RunWRF(SetMeUp):
             logger.info('Restart run... search for appropriate restart files:')
             rest_found, rest_message = acc.file_check(self.rst_files,
                                                       self.wrf_run_dirc)
+            if rest_found:
+                self.logger.info('Found appropriate restart files')
+            else:
+                self.logger.error(rest_message)
+                sys.exit()            
                                                      
-    def CheckOut(self, **kwargs):
-        # Move files to appropriate directories, if successful
-        wrf_file_list = []
-        date_range = pd.date_range(self.start_date, self.end_date, freq='1D')
-        date_range = date_range.strftime("%Y-%m-%d_%H:00:00")
-        for d in range(self.num_wrf_dom):
-            for date in date_range:
-                wrf_name = self.output_format.format(d+1, date)
-                wrf_file_list.append(wrf_name)
+    def CheckOut(self):
+        # Verify that the WRF run finished correctly. 
+        # DO NOT MOVE FILES ANYWHERE. 
+        # This should be done outside of the main 'wrf run' 
+        # script, I would argue. 
+        
 
-        found_files, message = acc.file_check(wrf_file_list, self.wrf_run_dirc)
+        # flags for success/failure... 
+        wrfout_success = False 
+        restart_success = False 
+        
+        # --- look for WRFOUT FILES ---
+        self.logger.info('Looking for wrfout files...')
+        found_files, message = acc.file_check(self.wrf_file_list, self.wrf_run_dirc)
         if found_files:
             self.logger.info(message)
+            wrfout_success = True
         else:
             self.logger.error(message)
-            self.logger.info('Exiting')
-            sys.exit()
+        
+        # --- look for the final RESTART FILES---
+        self.logger.info('Looking for final restart files:\n{}'.format(self.final_rst_files)) 
+        found_files, message = acc.file_check(self.final_rst_files, self.wrf_run_dirc)
+        if found_files:
+            self.logger.info(message)
+            restart_success = True
+        else:
+            self.logger.error(message)
+        
+        # Continue doing stuff if all of the files have been found  
+        if wrfout_success and restart_success:
+            return True
+        else:
+            return False 
 
     def _real(self, **kwargs):
         """
@@ -457,7 +499,7 @@ class RunWRF(SetMeUp):
                             "end_hour": acc.RepN(chunk['end_date'].strftime('%H'), n),
                             "frames_per_outfile": acc.RepN(framesperout, n),
                             "restart": chunk['restart'],
-                            "restart_interval": acc.RepN(restartinterval, n),
+                            "restart_interval": acc.RepN(restartinterval, 1),
                             "frames_per_auxhist3": acc.RepN(framesperaux, n)}
                            }
 
@@ -496,4 +538,12 @@ class RunWRF(SetMeUp):
             else:
                 self.logger.info("WRF Success for chunk {}".format(num))
 
-    
+    def move_files():
+        # Move the files to the final location... wherever that may be 
+        #
+        pass
+
+
+
+
+

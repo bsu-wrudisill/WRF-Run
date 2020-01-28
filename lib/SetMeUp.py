@@ -26,6 +26,7 @@ class SetMeUp:
 
         # Begin reading yml. Uses a somewhat 'hacky' way to
         # read in multiple files via the 'includes' list
+        self.main = main
         with open(main) as m:
             config_location = main.parent
             yamlfile = yaml.load(m, Loader=yaml.FullLoader)
@@ -170,20 +171,51 @@ class SetMeUp:
             self.met_run_dirc = self.wps_run_dirc.joinpath('metgrid')
             self.data_dl_dirc = self.wps_run_dirc.joinpath('raw_lbcs')
         if restart:
-           logger.info('the following restarts are required: {}'.format(restart))
+           self.logger.info('the restarts are required: {}'.format(restart))
            self.restart = restart
+        
         if start_date:
            self.start_date = start_date
+        
         if end_date:
            self.end_date = end_date
+        
         if start_date or end_date:
+           self.logger.info('adjusting restart file request...')
            self.rst_files = ['wrfrst_d02_{}'.format(self.start_date.strftime(self.time_format)),
                              'wrfrst_d01_{}'.format(self.start_date.strftime(self.time_format))]
+           self.logger.info(self.rst_files) 
+
         # update whether or not the run is a restart
+        if restart and not (start_date or end_date):
+           self.logger.info('restart flag has been turned on, but dates not adjusted. warning') 
+           self.logger.info('the following restarts are requested:')
+           self.rst_files = ['wrfrst_d02_{}'.format(self.start_date.strftime(self.time_format)),
+                             'wrfrst_d01_{}'.format(self.start_date.strftime(self.time_format))]
+           self.logger.info(self.rst_files)
+
+
+    def __update_yaml(self):
+        # update the yaml file and write it out somewhere
+        setup = self.main.parent.joinpath('setup.yml') 
+        with open(setup) as m:
+            config_location = self.main.parent
+            yamlfile = yaml.load(m, Loader=yaml.FullLoader)
+            yamlfile['run_date'] = {'start_date':str(self.start_date),
+                                    'end_date':str(self.end_date)}
+            yamlfile['restart'] = str(self.restart)
+            yamlfile['scratch_space'] = str(self.main_run_dirc)
         
+            # write out 
+            outputfile = self.main_run_dirc.joinpath('user_config', 'setup.yml')
+            with open(outputfile, 'w',  encoding='utf8') as f:
+                yaml.dump(yamlfile, f,default_flow_style=False)
+
+
+
     def createRunDirectory(self):
         # copy contents of the 'WRFVX/run' directory to the main run dir
-        self.main_run_dirc.mkdir(parents=True)
+        self.main_run_dirc.mkdir(parents=True, exist_ok=True)
 
         # Self.wrf_run_dirc.mkdir()
         shutil.copytree(self.wrf_exe_dirc.joinpath('run'),
@@ -233,15 +265,15 @@ class SetMeUp:
                         self.main_run_dirc.joinpath('user_config'))
         # get the restart files
         if self.restart:
-            logger.info('copying the following restart files...')
-            logger.info('{} --> {}'.format(self.restart_dirctory, self.wrf_run_dirc))
+            self.logger.info('copying the following restart files...')
+            self.logger.info('{} --> {}'.format(self.restart_directory, self.wrf_run_dirc))
             for rst in self.rst_files:
-                logger.info(rst)    
+                self.logger.info(rst)    
                 shutil.copy(self.restart_directory.joinpath(rst), self.wrf_run_dirc)
         else:
             # nothing to copy 
             pass
-
+    
 
 if __name__ == '__main__':
     setup = SetMeUp('main.yml')

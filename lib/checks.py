@@ -26,7 +26,7 @@ class RunPreCheck(SetMeUp):
 
     @passfail
     def test_existenz(self):
-        message = '{} already exists. Exiting'.format(self.main_run_dirc)
+        message = 'warning, {} already exists'.format(self.main_run_dirc)
         assert not os.path.exists(self.main_run_dirc), message
 
     @passfail

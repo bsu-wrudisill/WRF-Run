@@ -42,20 +42,24 @@ logging.config.fileConfig('./user_config/logger.ini', defaults={'LogName': logna
 logger = logging.getLogger(__name__)
 logger.info('Starting...')
 
+# basename 
+basename = 'WY{}/Month{}'.format(str(wateryear), month_double_pad)
 # Find the correct folder to run WRF in 
-folder = pathlib.Path('/home/rudiwill/rudiwill/').joinpath('WY'+str(wateryear)).joinpath('Month'+month_double_pad)
+run_folder = pathlib.Path('/home/rudiwill/rudiwill/')
+run_folder = run_folder.joinpath(basename)
+run_folder.mkdir(exist_ok=True, parents=True)
+run_restart = run_folder.joinpath('restart').mkdir(exist_ok=True)
+run_wrfout = run_folder.joinpath('wrfout').mkdir(exist_ok=True)
 
-# Create a directory for all of the wrfout and restart links
-output_restart = folder.joinpath('restart', exist_ok=True)
-output_restart.mkdir()
-output_wrfout = folder.joinpath('wrfout', exist_ok=True)
-output_wrfout.mkdir()
 
 # Create the directory to store the outputs in ...
 final_output_path = pathlib.Path('/home/rudiwill/bsu_wrf/INL_SIMS')
-final_output_folder = final_output_path.joinpath('WY'+str(wateryear)).joinpath('Month'+month_double_pad)
-final_output_folder = folder.joinpath('wrfout', exist_ok=True, parents=True)
+final_output_folder = final_output_path.joinpath(basename)
+
+final_output_folder = final_output_path.joinpath('wrfout').mkdir(exist_ok=True, parents=True)
 final_restart_folder = pathlib.Path('/home/rudiwill/bsu_wrf/restarts')
+
+# Create a directory for all of the wrfout and restart links
 
 # If the month is greater than 9... then there should be a restart 
 if month == 9:
@@ -72,8 +76,8 @@ logger.info('i.e. {}->{}'.format(start_date, end_date))
 
 
 # Begin the WRF setup
-update = {'main_run_dirc':folder, 
-          'restart':restart
+update = {'main_run_dirc':run_folder, 
+          'restart':restart,
           'start_date': start_date,
           'end_date': end_date}
 
@@ -89,6 +93,8 @@ checks.run_all()
 
 # Create hte direcory.... duh 
 setup.createRunDirectory()
+# update the setup files
+setup._SetMeUp__update_yaml()
 
 # Begin WPS
 wps = RunWPS(main, update=update) 
@@ -106,7 +112,6 @@ wrf.WRF_TimePeriod()
 success = wrf.CheckOut()
 if success:
     # create the storage space if it does not already exist 
-   
     if month==9:
     # do not move any wrf files...
         logger.info('On Spinup month. NOT moving wrfout files.') 
@@ -117,23 +122,13 @@ if success:
             dst = final_output_folder
             shutil.move(src, dst)
             # now create links back to the originanl ...
-            os.symlink(dst.joinpath(wrf_file), src)
-       for rst in self.final_rst_files:
+            os.symlink(dst.joinpath(wrf_file), run_wrfout)
+        for rst in self.final_rst_files:
             src = self.wrf_run_dir.joinpath(rst)
             dst = final_restart_folder 
             # move the restart 
             shutil.move(src, dst)
             # create a link for the 
-            os.symlink(dst.joinpath(rst), src)
-
-
-self.final_rst_files 
-    
-
-
-
-
-
-
+            os.symlink(dst.joinpath(rst), run_restart)
 
 
