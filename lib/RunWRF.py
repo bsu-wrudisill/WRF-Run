@@ -7,7 +7,7 @@ from SetMeUp import SetMeUp
 import secrets
 import f90nml
 from math import ceil
-
+import shutil
 
 class RunWRF(SetMeUp):
 
@@ -203,16 +203,6 @@ class RunWRF(SetMeUp):
         status = {'geo': [geo_found, geo_message, required_geo_files],
                   'met': [met_found, met_message, required_met_files]}
         
-        # look for the RESTART FILES, if they exist 
-        # get the restart files
-        if self.restart:
-            self.logger.info('Copying the following restart files...')
-            self.logger.info('{} --> {}'.format(self.restart_directory, self.wrf_run_dirc))
-            for rst in self.rst_files:
-                self.logger.info(rst)    
-                shutil.copy(self.restart_directory.joinpath(rst), self.wrf_run_dirc)
-        else:
-            self.logger.info('No restart files are requested')    
 
         return status
 
@@ -270,17 +260,38 @@ class RunWRF(SetMeUp):
             self.logger.error('Required met/geo files not found.\nExiting')
             sys.exit()
 
+
+        
         # FIND THE CORRECT RESTART FILES HERE
         if self.restart:
+            # 1. Look for restart files in the wrf directory 
             self.logger.info('Restart run... search for appropriate restart files:')
             rest_found, rest_message = acc.file_check(self.rst_files,
                                                       self.wrf_run_dirc)
             if rest_found:
-                self.logger.info('Found appropriate restart files')
+                self.logger.info('Found restart files in wrf run directory')
+            
             else:
-                self.logger.error(rest_message)
-                sys.exit()            
+                # 2. look for restart files in the parent restart directory.  
+                rest_found, rest_message = acc.file_check(self.rst_files,
+                                                      self.restart_directory)
+                
+                # copy them over if they have been found 
+                if rest_found:
+                    for rst in self.rst_files:    
+                        self.logger.info('Copying the following restart files...')
+                        self.logger.info(rst)    
+                        self.logger.info('{} --> {}'.format(self.restart_directory, self.wrf_run_dirc))
+                        shutil.copy(self.restart_directory.joinpath(rst), self.wrf_run_dirc)
+                else:
+                        self.logger.error('Did not location restart files in {}'.format(self.restart_directory))
+                        self.logger.error(rest_message)
+                        sys.exit()            
+        
+        else:
+            self.logger.info('No restart files are requested')    
                                                      
+
     def CheckOut(self):
         # Verify that the WRF run finished correctly. 
         # DO NOT MOVE FILES ANYWHERE. 
