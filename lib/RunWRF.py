@@ -264,7 +264,7 @@ class RunWRF(SetMeUp):
             sys.exit()
         
         if self.restart:
-            logger.info('Restart run... search for appropriate restart files:')
+            self.logger.info('Restart run... search for appropriate restart files:')
             rest_found, rest_message = acc.file_check(self.rst_files,
                                                       self.wrf_run_dirc)
             if rest_found:
