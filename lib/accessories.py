@@ -500,11 +500,12 @@ def file_check(required_files,
             missing_files.append(required)
     num_req = len(required_files)
     num_mis = len(missing_files)
-
     # ugh this is dumb TODO: make less dumb
     if value == 'E':
         # assert that ALL of the required files have been found in directory
-        message = 'missing {} of {} required files'.format(num_req, num_mis)
+        message = 'missing {} of {} required files:\n{}'.format(num_mis, 
+                                                                num_req,
+                                                                missing_files)
         assert num_mis == 0, message
     if value == 'DnE':
         # assert that NONE of the files have been found in the directory
@@ -532,8 +533,24 @@ def log_check(logfile, message):
     assert logfile.exists(), "{} not found".format(logfile)
 
     # Check the last line of the log file.
-    string = tail(1, logfile)
-    assert message in string, string
+    stringlist = [tail(1, logfile), 
+                  tail(2, logfile), 
+                  tail(3, logfile),
+                  tail(4, logfile),
+                  tail(5, logfile),
+                  tail(6, logfile)]
+    
+    # make one single string for printing
+    last_six_lines = "\n".join(string for string in stringlist)
+    
+    # check the log file for the success message 
+    truthlist = [message in string for string in stringlist]
+    
+    # bad message:
+    returnmessage = "Not successful? Here are the last six lines of {}:\n{}".format(logfile, last_six_lines) 
+    
+    # do the verification here
+    assert True in truthlist, returnmessage
 
 
 @timer

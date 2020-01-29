@@ -13,17 +13,20 @@ The goal is to check for common or likely mistakes
 class RunPreCheck(SetMeUp):
     # checks that the config.yaml file is sensible (paths exist, etc)
 
-    def __init__(self, setup):
+    def __init__(self, setup, update=None):
         # This is an incredibly handy function all of the self.X attrs.
         # from SetMeUP
         # instance get put into the "self" of this object
         # same as super(RunPreCheck, self).__init__(setup)
         super(self.__class__, self).__init__(setup)  
         self.logger = logging.getLogger(__name__)
+        if update:
+            self._SetMeUp__update(**update)
+#self.setup.__updatepaths(location)
 
     @passfail
     def test_existenz(self):
-        message = '{} already exists. Exiting'.format(self.main_run_dirc)
+        message = 'warning, {} already exists'.format(self.main_run_dirc)
         assert not os.path.exists(self.main_run_dirc), message
 
     @passfail
@@ -40,10 +43,8 @@ class RunPreCheck(SetMeUp):
         if self.restart == True:
             for rst in self.rst_files:
                 amihere = self.restart_directory.joinpath(rst)
-                message = "{} Not found".format(amihere)
+                message = "Required restart is not found:\n{} ".format(amihere)
                 assert amihere.is_file(), message 
-            
-            
         # ASSERT THAT THE RESTART FILE IS FOUND !
 
     @passfail
@@ -52,6 +53,12 @@ class RunPreCheck(SetMeUp):
         # message = '{} not one of {}'.format(self.queue, queue_list)
         # assert self.queue in queue_list, message
         assert 1 == 1
+
+    @passfail
+    def test_lbcdates(self):
+        # verify that the LBC dates requested are available
+        pass     
+
 
     def run_all(self):
         # Emulate behavior of the unittesting module
@@ -64,7 +71,7 @@ class RunPreCheck(SetMeUp):
         numPassedTests = 0
 
         # Beginning of test message
-        message = "======================  {}  ========================"
+        message = "====================== Start {}  ========================"
         message = message.format(self.__class__.__name__)
         self.logger.info(message)
 
@@ -82,6 +89,12 @@ class RunPreCheck(SetMeUp):
         checkStatus = "{} out of {} tests passed".format(
                                 numPassedTests, numTests)
         self.logger.info(checkStatus)
+        
+        # Leave the script
+        message = "====================== End {}  ========================"
+        message = message.format(self.__class__.__name__)
+        self.logger.info(message)
+
         # return status of test passing
         if numPassedTests != numTests:
             return False
