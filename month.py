@@ -18,6 +18,8 @@ from dateutil.relativedelta import relativedelta
 import shutil
 import os
 import argparse
+import time 
+
 
 # usage:       
 # python <YYYY> <DD>               (defaults to existing=False)
@@ -92,7 +94,7 @@ logger.info('main run directory: {}'.format(setup.main_run_dirc))
 checks = RunPreCheck(main, update=update) 
 passed = checks.run_all()
 
-
+time.sleep(3)
 
 
 # Create hte direcory.... duh 
@@ -102,20 +104,23 @@ setup._SetMeUp__update_yaml()
 
 # Begin WPS
 wps = RunWPS(main, update=update) 
-#wps.geogrid()
-#wps.dataDownload()
-#wps.ungrib()
-#wps.metgrid()
+wps.geogrid()
+wps.dataDownload()
+wps.ungrib()
+wps.metgrid()
 #
 ## Begin WRF
 wrf = RunWRF(main, wps=wps, update=update) 
 wrf.SetupRunFiles()
-#wrf.WRF_TimePeriod()
-#
-#
+wrf.WRF_TimePeriod()
+
+
+
 ##--------------------- WRF Post Processing (move files, etc) -------------------------# 
 ## Verify the success of the WRF run
-#success = wrf.CheckOut()
+success = wrf.CheckOut()
+
+
 #
 ## Create the directory to store the outputs in ...
 #final_output_path = pathlib.Path('/home/rudiwill/bsu_wrf/INL_SIMS')
