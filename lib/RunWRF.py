@@ -33,12 +33,14 @@ class RunWRF(SetMeUp):
         # Divide up the run into sections
         self.RunDivide()
         self.logger.info('Main Run Directory: {}'.format(self.wrf_run_dirc)) 
-        
+        self.required_files() 
+
+    def required_files(self):
         # these are the restart files that should be created by this wrf process
         self.final_rst_files = ['wrfrst_d02_{}'.format(self.end_date.strftime(self.time_format)),
                                 'wrfrst_d01_{}'.format(self.end_date.strftime(self.time_format))]
         
-
+    
         # list the WRF files that will be created  
         wrf_file_list = []
         
@@ -82,6 +84,7 @@ class RunWRF(SetMeUp):
         end_date = acc.DateParser(kwargs.get('end_date', self.end_date))
         temporary_chunk_size = self.wrf_run_options['chunk_size']
         chunk_size = kwargs.get('chunk_size', temporary_chunk_size)
+        restart = kwargs.get('restart', self.restart)        
 
         # Get the start/end dates
         zippedlist = list(acc.DateGenerator(start_date, end_date, chunk_size))
@@ -107,10 +110,10 @@ class RunWRF(SetMeUp):
             if i == 0:
                 # check if the 'restart' flag exists in the setup, and 
                 # verify that the restart file lives in the correct spot 
-                restart = self.restart  # should be true or false
+                restart = restart  # should be true or false
                 
                 #check that the restart files exist in the run directory...
-                #TODO 
+                #TODO
             else:
                 restart = True
             
@@ -142,6 +145,7 @@ class RunWRF(SetMeUp):
             chunk_tracker.append(chunk)
         # assign chunk list to self
         self.chunk_tracker = chunk_tracker
+
     
     def PreCheck(self, **kwargs):
         """
@@ -321,7 +325,18 @@ class RunWRF(SetMeUp):
         else:
             self.logger.error(message)
         
-        # Continue doing stuff if all of the files have been found  
+        # Move all of the files to the output, regardless if they aren't the correct ones...
+        for wrfout in self.wrf_run_dirc.glob('wrfout*'):
+            src = wrfout 
+            dst = self.wrf_output_folder.joinpath(wrfout.name)
+            os.symlink(src, dst)
+
+        for restart in self.wrf_run_dirc.glob('wrfrst*'):
+            src = restart 
+            dst = self.restart_output_folder.joinpath(restart.name)
+            os.symlink(src, dst)
+
+        # Return TRUE if the files have been found  
         if wrfout_success and restart_success:
             return True
         else:

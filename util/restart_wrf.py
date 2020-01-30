@@ -1,0 +1,70 @@
+import logging
+import logging.config
+import datetime
+import pathlib
+import argparse
+import sys
+libPathList = ['/home/rudiwill/WRF-Run/lib/']
+for libPath in libPathList:
+    sys.path.insert(0,libPath)
+# import moduels from ./lib
+from SetMeUp import SetMeUp
+from RunWPS import RunWPS
+from RunWRF import RunWRF
+from checks import RunPreCheck
+import accessories as acc
+import pandas as pd 
+from dateutil.relativedelta import relativedelta
+import shutil
+import os
+
+# Parse the input 
+suffix = datetime.datetime.now().strftime("%m-%d_%H%M%S")
+logfile= 'restart_{}.log'.format(suffix)
+file_handler = logging.FileHandler(filename=logfile)
+stdout_handler = logging.StreamHandler(sys.stdout)
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s %(name)15s %(levelname)-8s %(message)s',
+                    datefmt='%a, %d %b %Y %H:%M:%S',
+                    handlers=[file_handler, stdout_handler]
+                    )
+
+
+update = {'restart':True}
+
+# Perform some preliminary checks
+main = pathlib.Path('user_config/main.yml')
+setup = SetMeUp(main, update=update)
+
+# Begin WPS
+wps = RunWPS(main, update)
+
+# Begin WRF
+wrf = RunWRF(main, wps=wps)
+
+# look for WRF restart files in the directory ...
+found_rst = list(wrf.wrf_run_dirc.glob('wrfrst*'))
+
+#last_restart = found_rst[-1]
+timelist = []
+
+# Get the timesamp from the last restart file
+for rstp in found_rst:
+    rst = rstp.name
+    timelist.append(pd.to_datetime(rst[11:], format=setup.time_format))
+
+
+logging.info('\n\n\n------------- Restart Run Called. Finding latest restart point -------------------\n\n\n')
+
+# get the latest wrf restart 
+last_restart = max(timelist)
+logging.info('last restart point: {}'.format(last_restart))
+
+wrf.RunDivide(start_date=last_restart, end_date= setup.end_date, restart=True) 
+# clean up old files 
+
+
+logging.info('------------- Begin WRF Run -------------------')
+wrf.WRF_TimePeriod()
+
+logger.info('complete')
