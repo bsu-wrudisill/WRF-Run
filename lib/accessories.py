@@ -267,12 +267,10 @@ def WaitForJob(jobid, user, scheduler):
             # run command and parse output
             chidout, chiderr = SystemCmd(chid)
             chidout = [i.decode("utf-8") for i in chidout]
-            print(chidout)
-            print('jobid',jobid)
             # Decode the error, and mange error output --- the qstat
             # command can sometimes time out!!!
             error = chiderr.decode("utf-8")
-            logger.info(error, chidout)
+            logger.info(error)
             if error != '':  # the error string is non-empty
                 logger.error("error encountered in qstat:\n    {}".format(error))
                 logger.error("wait additional 20s before retry")
@@ -291,7 +289,6 @@ def WaitForJob(jobid, user, scheduler):
             message_template = 'JobID {} is still running...Sleep({})'
             message = message_template.format(still_running_list, 10)
             logger.info(message)
-            print(message)
             time.sleep(10)
         
 	# Exit While loop, no longer running... 
