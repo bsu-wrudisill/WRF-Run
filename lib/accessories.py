@@ -247,58 +247,90 @@ def WaitForJob(jobid, user, scheduler):
 
     :raises     Exception:  ValueError if scheduler is not 'PBS' or 'SLURM'
     """
+    start_time = datetime.datetime.now() 
+    _wait_counter = 0 
 
     if scheduler == 'PBS':
-        chid = "qstat | grep {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)
+        qcmd = "qstat | grep {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)
         # the qstat -u option parses the jobname oddly 
 
     if scheduler == 'SLURM':
-        chid = "squeue -u {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)
+        qcmd = "squeue -u {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)
 
     # !!!! THIS SHOULD BE CAUGHT WAY BEFORE THIS POINT!!!!
     if scheduler not in ['PBS', 'SLURM']:
         logger.error()
         raise Exception('unknown scheduler type {}'.format(scheduler))
     
-    def wait(chid, jobid):
-        # Issue the parse command and check if the jobid exists
-        still_running = 1     # start with 1 for still running
-        while still_running == 1:
-            # run command and parse output
-            chidout, chiderr = SystemCmd(chid)
-            chidout = [i.decode("utf-8") for i in chidout]
-            # Decode the error, and mange error output --- the qstat
-            # command can sometimes time out!!!
-            error = chiderr.decode("utf-8")
-            logger.info(error)
-            if error != '':  # the error string is non-empty
-                logger.error("error encountered in qstat:\n    {}".format(error))
-                logger.error("wait additional 20s before retry")
-                time.sleep(60)
-
-                # !!!!!!!!!!!!!!!!! TODO !!!!!!!!!!!!!!!!!!!!
-                # HOW DO WE HANDLE THIS ERROR ?????
-                # Current solution is just to wait longer....
-                # unclear what the best option might be
-                # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-            # Filter the 'chidout' list for elements matching the jobid.
-            # If zero, a match was not found!
-            still_running_list = list(filter(lambda x: x == jobid, chidout))
-            still_running = len(still_running_list)
-            message_template = 'JobID {} is still running...Sleep({})'
-            message = message_template.format(still_running_list, 10)
-            logger.info(message)
-            time.sleep(10)
+    def _wait(qcmd, jobid):
+        # run command and parse output
+        qout_raw, qerr = SystemCmd(qcmd)
         
-	# Exit While loop, no longer running... 
-        time.sleep(10)
+        qout = [i.decode("utf-8") for i in qout_raw]
+        error = qerr.decode("utf-8")
+        
+        # Check QSTAT Error  
+        if error != '':  # the error string is non-empty
+            qstat_error = True
+            logger.error("Error encountered in qstat:\n    {}".format(error))
+            # set the qstat error to true; we cant exit if it is
+        else: 
+            qstat_error = False 
+        
+        # Check if the job is still running 
+        if jobid in qout:
+            still_running = True
+        else:
+            still_running = False 
+        
+        # RETURN 
+        return still_running, qstat_error
     
-    # issue the wait 3x. This is just b/c ... there is some lag in the queue/log writing step? qstat times out? unclear
-    wait(chid, jobid) 
+    def _timelylog(message):
+        # only log every ... 10 min since the start of the 
+        # main function 
+        current_time = datetime.datetime.now()
+        dt = (current_time - start_time).total_seconds()/60   # time in minutes
+        #listing of log frequencies.... this is unnecessary
+        if (dt % 60. < .1) and (dt > 60.):
+            logger.info(message)
+            _wait_counter += 1
+    # Set to true initially.Gets updated based on _wait return
+    keep_going = True
     
-    # done ...
+    # start of loop 
+    while keep_going:
+        # do the search ...
+        still_running, qstat_error = _wait(qcmd, jobid) 
+        ctime = datetime.datetime.now()
+        dt = (ctime - start_time).total_seconds()/60
+        # A job is running and qstat didn't return an error 
+        if still_running and (not qstat_error):
+           keep_going = True 
+           if dt < 1.0:  # more than 1 minutes of logging..
+               logger.info('Found jobid {}. Continuing...'.format(jobid))   
+           else:
+               _timelylog('Found jobid {}. Continuing...'.format(jobid)) # Only log every hour
+        
+        # !!!! KEEP GOING UNTIL QSTAT STARTS WORKING AGAIN !!!
+        if qstat_error:
+           keep_going = True  
+           logger.info('Qstat encountered error. Continuing...')
+        
+        # The only acceptable exit point. No jobs found, and qstat didn't return an error 
+        if (not still_running) and (not qstat_error):
+           keep_going = False  
+           logger.info('jobid {} is no longer in the queue'.format(jobid))
+	
+        # sleep for thirty seconds         
+        time.sleep(30)
+
+    # Get the time in minutes
+    final_time = datetime.datetime.now()
+    dt = (final_time - start_time).total_seconds()/60
      
+    # Now log the time 
+    logger.info('completion time: {} min'.format(dt))
 
 
 def GenericWrite(readpath, replacedata, writepath):
