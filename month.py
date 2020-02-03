@@ -33,9 +33,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument("wateryear", type=int, help="WaterYear (YYYY)")
 parser.add_argument("month", type=int, help="Requested month (MM)")
 parser.add_argument("--overwrite", action="store_true", help="Overwrite exixting directory")   
+parser.add_argument("--start_date", default=None)
+parser.add_argument("--end_date", default=None)
 
+#parser.add_argument("-ed", action='store_const') 
+ 
 args = parser.parse_args()
-
 
 
 # 2) ----------------- Run Configuration ---------------# 
@@ -45,9 +48,21 @@ if args.month in [9,10,11, 12]:
 else:
     year = args.wateryear
 
-start_date = pd.to_datetime('{}-{}-01'.format(year,args.month))
-end_date = start_date + relativedelta(months=1)
+# read dates ...
+if args.start_date:
+    start_date = pd.to_datetime(args.start_date)
+else:
+    start_date = pd.to_datetime('{}-{}-01'.format(year,args.month))
+
+if args.end_date:
+    end_date = pd.to_datetime(args.end_date)
+else:
+    end_date = start_date + relativedelta(months=1)
+
 month_double_pad = start_date.strftime("%m")
+
+
+
 
 # Configure the logger 
 #suffix = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
@@ -115,7 +130,7 @@ else:
 if args.overwrite == True:
     if run_folder.exists():
         logger.info('!!!Found existing run directory. Overwriting!!!') 
-        os.rmdir(run_folder)        
+        shutil.rmtree(run_folder)        
 
 # remove any old logfiles for this month...
 current_logfiles = list(pathlib.Path('./').glob('{}{}log_*'.format(args.wateryear, month_double_pad)))
