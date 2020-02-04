@@ -63,7 +63,9 @@ month_double_pad = start_date.strftime("%m")
 
 
 
+# Get the working directory 
 
+cwd = pathlib.Path(os.getcwd())
 # Configure the logger 
 #suffix = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
 #logname = 'WY{}_MO{}_{}'.format(args.wateryear, args.month, suffix)
@@ -175,7 +177,7 @@ setup.createRunDirectory()
 # update the setup files
 setup._SetMeUp__update_yaml()
 # link the log file
-os.symlink(logfile, setup.main_run_dirc.joinpath(logfile))
+os.symlink(cwd.joinpath(logfile), setup.main_run_dirc.joinpath(logfile))
 
 # Begin WPS
 wps = RunWPS(main, update=update) 
