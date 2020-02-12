@@ -296,13 +296,19 @@ class RunWRF(SetMeUp):
             self.logger.info('No restart files are requested')    
                                                      
 
-    def CheckOut(self):
+    def CheckOut(self, **kwargs):
         # Verify that the WRF run finished correctly. 
         # DO NOT MOVE FILES ANYWHERE. 
         # This should be done outside of the main 'wrf run' 
         # script, I would argue. 
         
-
+        # where do the files get moved to..
+        wrfdst = kwargs.get('wrfdst', self.storage_space.joinpath('wrfouts'))
+        rstdst = kwargs.get('rstdst', self.restart_directory)
+         
+        #this may not exist 
+        wrfdst.mkdir(exist_ok=True, parents=True)
+ 
         # flags for success/failure... 
         wrfout_success = False 
         restart_success = False 
@@ -327,15 +333,26 @@ class RunWRF(SetMeUp):
         
         # Move all of the files to the output, regardless if they aren't the correct ones...
         for wrfout in self.wrf_run_dirc.glob('wrfout*'):
-            src = wrfout 
-            dst = self.wrf_output_folder.joinpath(wrfout.name)
-            os.symlink(src, dst)
+            src = wrfout
+            dst = wrfdst
+            self.logger.info('Move {} ---> {}'.format(src, dst))
+            # move files to the destination dir
+            src.rename(dst.joinpath(src.name))
+            
+            # link them back to the src ...
+            self.logger.info('Link {} ---> {}'.format(dst.joinpath(src.name), src))
+            os.symlink(dst.joinpath(wrfout.name), src)
 
         for restart in self.wrf_run_dirc.glob('wrfrst*'):
-            src = restart 
-            dst = self.restart_output_folder.joinpath(restart.name)
-            os.symlink(src, dst)
-
+            src = restart
+            dst = rstdst
+            # copy files over to the dst....
+            self.logger.info('Move {} ---> {}'.format(src, dst))
+            src.rename(dst.joinpath(src.name))  
+            # now link them back...
+            self.logger.info('Link {} ---> {}'.format(dst.joinpath(src.name), src))
+            os.symlink(dst.joinpath(src.name), src)
+ 
         # Return TRUE if the files have been found  
         if wrfout_success and restart_success:
             return True
@@ -572,7 +589,7 @@ class RunWRF(SetMeUp):
             else:
                 self.logger.info("WRF Success for chunk {}".format(num))
 
-    def move_files():
+    def move_files(self):
         # Move the files to the final location... wherever that may be 
         #
         pass

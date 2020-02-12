@@ -38,33 +38,45 @@ setup = SetMeUp(main, update=update)
 
 # Begin WPS
 wps = RunWPS(main, update)
+#wps.metgrid()
 
 # Begin WRF
 wrf = RunWRF(main, wps=wps)
+#wrf.SetupRunFiles()
 
 # look for WRF restart files in the directory ...
-found_rst = list(wrf.wrf_run_dirc.glob('wrfrst*'))
+#found_rst = list(wrf.wrf_run_dirc.glob('wrfrst*'))
 
 #last_restart = found_rst[-1]
-timelist = []
+#timelist = []
 
 # Get the timesamp from the last restart file
-for rstp in found_rst:
-    rst = rstp.name
-    timelist.append(pd.to_datetime(rst[11:], format=setup.time_format))
+#for rstp in found_rst:
+#    rst = rstp.name
+#    timelist.append(pd.to_datetime(rst[11:], format=setup.time_format))
 
 
-logging.info('\n\n\n------------- Restart Run Called. Finding latest restart point -------------------\n\n\n')
+#logging.info('\n\n\n------------- Restart Run Called. Finding latest restart point -------------------\n\n\n')
 
 # get the latest wrf restart 
-last_restart = max(timelist)
-logging.info('last restart point: {}'.format(last_restart))
+#last_restart = max(timelist)
+#logging.info('last restart point: {}'.format(last_restart))
 
-wrf.RunDivide(start_date=last_restart, end_date= setup.end_date, restart=True) 
+#wrf.RunDivide(start_date=last_restart, end_date= setup.end_date, restart=True) 
 # clean up old files 
 
 
-logging.info('------------- Begin WRF Run -------------------')
-wrf.WRF_TimePeriod()
+#logging.info('------------- Begin WRF Run -------------------')
+#wrf.WRF_TimePeriod()
 
-logger.info('complete')
+#logging.info('-------------- Complete -----------------------')
+#loggin.info('Moving files...')
+
+# since this is a restart... go back to the orig start/end times 
+
+wrfdst = pathlib.Path("/home/rudiwill/bsu_wrf/INL_SIMS").joinpath('WY2012','Month03')
+
+wps = RunWPS(main)
+wrf = RunWRF(main, wps=wps)
+wrf.CheckOut(wrfdst=wrfdst)
+

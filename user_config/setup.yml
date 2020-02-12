@@ -13,7 +13,7 @@
 run_date: 
         start_date : 2000-01-01
         end_date : 2000-01-02
-lbc_type : cfsr              # one of cfsr, cfsv2
+lbc_type : cfsrv2              # one of cfsr, cfsrv2
 restart : True               # TRUE OR FALSE 
 geo_em_file : None           # <<< NOT IMPLEMENTED >>>> If None, geogrid.exe will be run
 metgrid_files : None         # <<< NOT IMPLEMENTED >>>> If None, metgrid.exe will be run

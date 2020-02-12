@@ -189,6 +189,8 @@ class SetMeUp:
         if restart and not (start_date or end_date):
            self.rst_files = ['wrfrst_d02_{}'.format(self.start_date.strftime(self.time_format)),
                              'wrfrst_d01_{}'.format(self.start_date.strftime(self.time_format))]
+        if not restart:
+           self.rst_files = []
 
     def __update_yaml(self):
         # update the yaml file and write it out somewhere

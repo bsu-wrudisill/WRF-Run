@@ -63,19 +63,11 @@ month_double_pad = start_date.strftime("%m")
 
 
 
-# Get the working directory 
-
-cwd = pathlib.Path(os.getcwd())
-# Configure the logger 
-#suffix = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
-#logname = 'WY{}_MO{}_{}'.format(args.wateryear, args.month, suffix)
-#logging.config.fileConfig('./user_config/logger.ini', defaults={'LogName': logname})
-#logger = logging.getLogger(__name__)
-#logger.info('Starting...')
-
-
 
 # 2) ------------- Configure the logger   ---------------------
+
+# Get the working directory 
+cwd = pathlib.Path(os.getcwd())
 
 suffix = datetime.datetime.now().strftime("%m-%d_%H%M%S")
 logfile= '{}{}log_{}.log'.format(args.wateryear, month_double_pad, suffix)
@@ -93,14 +85,7 @@ logger.info('Water Year: {}'.format(args.wateryear))
 logger.info('month: {}'.format(args.month))
 logger.info('i.e. {}->{}'.format(start_date, end_date))
 
-## unlink logfile to the parent directory....
-#current_logfiles = path('./').glob('{}{}log_*'.format(args.wateryear, month_double_pad)) 
-#if current_logfiles:
-#    for cl in current_logfiles:
-#        os.unlink(cl)
-#
 ## create a link in the parent directory 
-#os.symlink(logfile, '.')
 #
 
 # 3) -------------- Manage the Run Directory and Output Directories ----------# 
@@ -112,11 +97,6 @@ basemonth= "Month{}".format(month_double_pad)
 run_folder = pathlib.Path('/home/rudiwill/rudiwill/')
 run_folder = run_folder.joinpath(baseyear, basemonth)
 
-# Final output destinations  
-# wrfouts 
-final_output_path = pathlib.Path('/home/rudiwill/bsu_wrf/INL_SIMS')
-final_output_folder = final_output_path.joinpath(basemonth, baseyear)
-final_output_folder.mkdir(exist_ok=True, parents=True)
 # restarts 
 final_restart_folder = pathlib.Path('/home/rudiwill/bsu_wrf/restarts')
 
@@ -134,16 +114,6 @@ if args.overwrite == True:
         logger.info('!!!Found existing run directory. Overwriting!!!') 
         shutil.rmtree(run_folder)        
 
-# remove any old logfiles for this month...
-current_logfiles = list(pathlib.Path('./').glob('{}{}log_*'.format(args.wateryear, month_double_pad)))
-#print(current_logfiles)
-current_logfiles.remove(pathlib.Path(logfile))
-
-if current_logfiles:
-    for cl in current_logfiles: 
-        # make sure we don't remove the current logfile...
-        logger.info('removing previous logfiles...')
-        os.remove(cl)
 
 
 # 5) ----------------- Being Main WPS/WRF Run ---------------# 
@@ -164,7 +134,7 @@ logger.info('Main run directory: {}'.format(setup.main_run_dirc))
 # Perform some preliminary checks
 checks = RunPreCheck(main, update=update) 
 passed = checks.run_all()
-#time.sleep(3)
+time.sleep(3)
 
 # Run prelimnary checks. Fail if they do not pass 
 if not passed:
@@ -173,9 +143,14 @@ if not passed:
     sys.exit()
 
 
+#6) Create Run Directorys and start run
+#--------------------------------------
+#
 setup.createRunDirectory()
+
 # update the setup files
 setup._SetMeUp__update_yaml()
+
 # link the log file
 os.symlink(cwd.joinpath(logfile), setup.main_run_dirc.joinpath(logfile))
 
@@ -192,30 +167,40 @@ wrf.SetupRunFiles()
 wrf.WRF_TimePeriod()
 
 
+#7) Parse WRF output
+#-------------------
+
+logger.info('************DONE WITH WRF-TIME PERIOD*********')
+logger.info('Move Files')
+
 ## Verify that hte WRF run completed, link files to folders w/in the directory 
-success = wrf.CheckOut()
+# Final output destinations  
+# wrfouts 
+final_output_path = pathlib.Path('/home/rudiwill/bsu_wrf/INL_SIMS')
+wrfdst = final_output_path.joinpath(baseyear, basemonth)
+success = wrf.CheckOut(wrfdst=wrfdst)
 
 
 ## 6) --------------------- WRF Post Processing (move files, etc) -------------------------# 
-if success:
-    # create the storage space if it does not already exist 
-   if month==9:
-    # do not move any wrf files...
-        logger.info('On Spinup month. NOT moving wrfout files.') 
-   else:
-        logger.info('Moving wrfoutput files to storage space...')
-        for wrf_file in wrf.wrf_file_list:
-            src = wrf.wrf_run_dir.joinpath(wrf_file)
-            dst = final_output_folder
-            shutil.move(src, dst, follow_symlinks=True)
-            # now create links back to the originanl ...
-            os.symlink(dst.joinpath(wrf_file), run_wrfout)
-        for rst in wrf.final_rst_files:
-            src = wrf.wrf_run_dir.joinpath(rst)
-            dst = final_restart_folder 
-            # move the restart 
-            shutil.move(src, dst, follow_symlinks=True)
-            # create a link for the 
-            os.symlink(dst.joinpath(rst), run_restart)
-
-
+#if success:
+#    # create the storage space if it does not already exist 
+#   if month==9:
+#    # do not move any wrf files...
+#        logger.info('On Spinup month. NOT moving wrfout files.') 
+#   else:
+#        logger.info('Moving wrfoutput files to storage space...')
+#        for wrf_file in wrf.wrf_file_list:
+#            src = wrf.wrf_run_dir.joinpath(wrf_file)
+#            dst = final_output_folder
+#            shutil.move(src, dst, follow_symlinks=True)
+#            # now create links back to the originanl ...
+#            os.symlink(dst.joinpath(wrf_file), run_wrfout)
+#        for rst in wrf.final_rst_files:
+#            src = wrf.wrf_run_dir.joinpath(rst)
+#            dst = final_restart_folder 
+#            # move the restart 
+#            shutil.move(src, dst, follow_symlinks=True)
+#            # create a link for the 
+#            os.symlink(dst.joinpath(rst), run_restart)
+#
+#

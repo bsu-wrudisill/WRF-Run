@@ -248,7 +248,6 @@ def WaitForJob(jobid, user, scheduler):
     :raises     Exception:  ValueError if scheduler is not 'PBS' or 'SLURM'
     """
     start_time = datetime.datetime.now() 
-    _wait_counter = 0 
 
     if scheduler == 'PBS':
         qcmd = "qstat | grep {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)
@@ -294,7 +293,7 @@ def WaitForJob(jobid, user, scheduler):
         #listing of log frequencies.... this is unnecessary
         if (dt % 60. < .1) and (dt > 60.):
             logger.info(message)
-            _wait_counter += 1
+    
     # Set to true initially.Gets updated based on _wait return
     keep_going = True
     

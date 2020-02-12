@@ -38,7 +38,7 @@ class RunPreCheck(SetMeUp):
 
     @passfail
     def test_restart(self):
-        if (self.restart == 'None') or (self.restart is None):
+        if (self.restart == 'None') or (self.restart is None) or (self.restart == False):
             assert 1 == 1  # guarentee a sucess...
         if self.restart == True:
             for rst in self.rst_files:
