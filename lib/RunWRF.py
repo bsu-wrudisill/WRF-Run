@@ -588,6 +588,19 @@ class RunWRF(SetMeUp):
                 sys.exit()
             else:
                 self.logger.info("WRF Success for chunk {}".format(num))
+                # now clean up the WRF files .... 
+                self.clean_wrf_directory()
+
+    def clean_wrf_directory(self):
+        # remove files.... 
+        remove_me = ['rsl.error.*', 'rsl.out*'] 
+        string = ','.join(remove_me)       
+        self.logger.info('Removing files .... {}'.format(string))
+        
+        # loop through and remove all of the files... 
+        for rm_type in remove_me:
+            for rm in self.wrf_run_dirc.glob(rm_type):
+                os.remove(rm)
 
     def move_files(self):
         # Move the files to the final location... wherever that may be 
