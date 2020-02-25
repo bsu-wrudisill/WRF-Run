@@ -160,6 +160,7 @@ class SetMeUp:
         restart = kwargs.get('restart', None)
         start_date = kwargs.get('start_date', None)
         end_date = kwargs.get('end_date', None)
+        lbc_type = kwargs.get('lbc_type', None)
         
         if main_run_dirc:
             # update the paths -- this is a bit yucky 
@@ -185,13 +186,17 @@ class SetMeUp:
         if start_date or end_date:
            self.rst_files = ['wrfrst_d02_{}'.format(self.start_date.strftime(self.time_format)),
                              'wrfrst_d01_{}'.format(self.start_date.strftime(self.time_format))]
-
+        
+        # Please decribe what's going on here....
         if restart and not (start_date or end_date):
            self.rst_files = ['wrfrst_d02_{}'.format(self.start_date.strftime(self.time_format)),
                              'wrfrst_d01_{}'.format(self.start_date.strftime(self.time_format))]
         if not restart:
            self.rst_files = []
-
+        # update hte lbc type 
+        if lbc_type:
+           self.lbc_type = lbc_type
+         
     def __update_yaml(self):
         # update the yaml file and write it out somewhere
         setup = self.main.parent.joinpath('setup.yml') 
@@ -202,7 +207,8 @@ class SetMeUp:
                                     'end_date':str(self.end_date)}
             yamlfile['restart'] = str(self.restart)
             yamlfile['scratch_space'] = str(self.main_run_dirc)
-        
+            yamlfile['lbc_type'] = str(self.lbc_type)
+
             # write out 
             outputfile = self.main_run_dirc.joinpath('user_config', 'setup.yml')
             with open(outputfile, 'w',  encoding='utf8') as f:
