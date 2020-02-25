@@ -35,6 +35,7 @@ parser.add_argument("month", type=int, help="Requested month (MM)")
 parser.add_argument("--overwrite", action="store_true", help="Overwrite exixting directory")   
 parser.add_argument("--start_date", default=None)
 parser.add_argument("--end_date", default=None)
+parser.add_argument("--lbc", default=None)
 
 #parser.add_argument("-ed", action='store_const') 
  
@@ -61,7 +62,11 @@ else:
 
 month_double_pad = start_date.strftime("%m")
 
-
+# figure out the lbc type
+if year >= 2011:
+    lbc = 'cfsrv2'
+if year < 2011:
+    lbc = 'cfsr'
 
 
 # 2) ------------- Configure the logger   ---------------------
@@ -87,6 +92,7 @@ logger.info('i.e. {}->{}'.format(start_date, end_date))
 
 ## create a link in the parent directory 
 #
+logger.info('LBC type: {}'.format(lbc))
 
 # 3) -------------- Manage the Run Directory and Output Directories ----------# 
 
@@ -125,7 +131,9 @@ main = pathlib.Path('user_config/main.yml')
 update = {'main_run_dirc':run_folder, 
           'restart':restart,
           'start_date': start_date,
-          'end_date': end_date}
+          'end_date': end_date,
+          'lbc_type': lbc
+}
 
 setup = SetMeUp(main, update=update) 
 logger.info('Main run directory: {}'.format(setup.main_run_dirc))
