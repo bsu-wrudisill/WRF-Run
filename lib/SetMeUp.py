@@ -174,7 +174,9 @@ class SetMeUp:
             self.wrf_output_folder = self.main_run_dirc.joinpath('wrfouts')
             self.restart_output_folder = self.main_run_dirc.joinpath('restarts')
         
-        if restart:
+        # If the restart is in the update, then reassign the sefl.restart 
+        # False =! None in python.... very confusing
+        if restart != None:
            self.restart = restart
         
         if start_date:
@@ -183,17 +185,22 @@ class SetMeUp:
         if end_date:
            self.end_date = end_date
         
+        # update the restart files if new dates are passed in 
         if start_date or end_date:
            self.rst_files = ['wrfrst_d02_{}'.format(self.start_date.strftime(self.time_format)),
                              'wrfrst_d01_{}'.format(self.start_date.strftime(self.time_format))]
         
-        # Please decribe what's going on here....
-        if restart and not (start_date or end_date):
+        # if restart changes to True, then assign wrfrst files  
+        if restart: 
            self.rst_files = ['wrfrst_d02_{}'.format(self.start_date.strftime(self.time_format)),
                              'wrfrst_d01_{}'.format(self.start_date.strftime(self.time_format))]
-        if not restart:
+        
+        # This is tricky! iF nothing gets passed in, then restart==None. That doesn't mean that 
+        # we want to change the self.restart list though. False =! None in python... ugh
+        if restart == False:
            self.rst_files = []
-        # update hte lbc type 
+        
+	# update hte lbc type 
         if lbc_type:
            self.lbc_type = lbc_type
          
