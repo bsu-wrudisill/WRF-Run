@@ -44,7 +44,7 @@ args = parser.parse_args()
 
 # 2) ----------------- Run Configuration ---------------# 
 
-if args.month in [9,10,11, 12]:
+if args.month in [9999,10,11, 12]:
     year = args.wateryear - 1
 else:
     year = args.wateryear
