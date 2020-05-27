@@ -107,7 +107,7 @@ run_folder = run_folder.joinpath(baseyear, basemonth)
 final_restart_folder = pathlib.Path('/home/rudiwill/bsu_wrf/restarts')
 
 # If the month is greater than 9... then there should be a restart 
-if args.month == 9:
+if args.month == 9999:
     restart = False
     logger.info('Spinup period. No restart requestd')
 else:
