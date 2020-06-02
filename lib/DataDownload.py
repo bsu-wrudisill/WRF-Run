@@ -71,7 +71,14 @@ def CFSR(start_date,
     #
     #
     # HARDCODED
-    nomads_url = "https://nomads.ncdc.noaa.gov/modeldata/cmd_{}/{}/{}{}/{}{}{}/"
+    #OLD --- nomads_url = "https://nomads.ncdc.noaa.gov/modeldata/cmd_{}/{}/{}{}/{}{}{}/"
+
+    nomads_url_pres  = "https://www.ncei.noaa.gov/thredds/catalog/model-cfs_reanl_6h_pgb/{}/{}/{}/catalog. \
+                        html?dataset=cfs_reanl_6h_pgb/{}/{}/{}/"
+    
+    nomads_url_sfc = "https://www.ncei.noaa.gov/thredds/catalog/model-cfs_reanl_6h_flxf/{}/{}/{}/catalog. \
+                       html?dataset=cfs_reanl_6h_flxf/{}/{}/{}/"
+    
     file_spec = '06.gdas'
 
     if type(start_date) == str:
@@ -94,7 +101,12 @@ def CFSR(start_date,
             day = date.strftime('%d')
             hour = date.strftime('%H')
             # get the pgbh files
-            base = nomads_url.format(extension, year, year, month, year, month,day)
+            if extension == 'pgbh':
+                    base = nomads_url_pres.format(year, year, month, year, month, day)
+
+            if extension == 'flxf':
+                    base = nomads_url_flxf.format(year, year, month, year, month, day)
+            
             filename = '{}{}.{}{}{}{}.grb2'.format(extension, file_spec, year, month, day, hour)
             filepath = base + filename
             # create lists of each
