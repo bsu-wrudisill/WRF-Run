@@ -259,7 +259,7 @@ class RunWPS(SetMeUp):
     #################################################################
 
 	    # !!!   WRF V 4.0++  !!!
-        if str(self.wrf_version) == '4.0':
+        if float(self.wrf_version[0:3]) > '4.0':
             _message = 'Running WRF Version {} ungrib for {}'
             _message = _message.format(self.wrf_version, self.lbc_type)
             logger.info(_message)

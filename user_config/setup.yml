@@ -13,8 +13,8 @@
 run_date: 
         start_date : 2000-01-01
         end_date : 2000-01-02
-lbc_type : cfsrv2              # one of cfsr, cfsrv2
-restart : True               # TRUE OR FALSE 
+lbc_type : cfsr              # one of cfsr, cfsrv2
+restart : False               # TRUE OR FALSE 
 geo_em_file : None           # <<< NOT IMPLEMENTED >>>> If None, geogrid.exe will be run
 metgrid_files : None         # <<< NOT IMPLEMENTED >>>> If None, metgrid.exe will be run
 lbc_files : None             # <<< NOT IMPLEMENTED >>>> If None, data will be downloaded based on specified LBC condition
@@ -23,19 +23,19 @@ run_name : Test
 
 # Static Parameters  (Not changed by scripts)
 user_email : williamrudisill@u.boisestate.edu
-user: rudiwill 
-jobtemplate : CentralColorado
-wrf_version : 3.8
+user: wrudisill
+jobtemplate : TestJob 
+wrf_version : 4.1.2
 
 
 # Existing paths-- executable directories, LBCs (if they exist), geogrid file (if it exists), etc:
 restart_directory : /home/rudiwill/bsu_wrf/restarts
-wrf_exe_directory : /home/rudiwill/WRF/3.8.1/WRFV3/
-wps_exe_directory : /home/rudiwill/WRF/3.8.1/WPS/
-geog_data_path : /home/rudiwill/bsu_wrf/WPS_GEOG
-environment: envWRF_3.8.1_INL.sh 
-scratch_space: /home/rudiwill/rudiwill/test
-storage_space: /home/rudiwill/bsu_wrf/test
+wrf_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WRF-4.1.2/ 
+wps_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WPS-4.1/
+geog_data_path : /home/wrudisill/leaf/WRF/WPS_GEOG 
+environment: envWRF_4.1.2_R2.sh
+scratch_space: /home/wrudisill/scratch/test
+storage_space: /home/wrudisill/scratch/test
 # this is the path where the output files will be moved.
 # in theory somewhere more permenant than scratch. If it 
 # is the same as the scratch space, nothing will be moved.
