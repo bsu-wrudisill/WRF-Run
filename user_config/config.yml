@@ -47,7 +47,7 @@ JobTemplates:
      # --------------------------------------------------------------------------------------------------------------------
      TestJob:
           machine: R2  
-          queue: "leaf"
+          queue: "shortq"
           input_namelist: namelist.input.template.TEST
           wps_namelist: namelist.wps.template.TEST
           # WRF I/O and Run Control 

@@ -64,12 +64,12 @@ if not passed:
 setup.createRunDirectory()
 
 # link the log file
-#os.symlink(cwd.joinpath(logfile), setup.main_run_dirc.joinpath(logfile))
+os.symlink(cwd.joinpath(logfile), setup.main_run_dirc.joinpath(logfile))
 
 # Begin WPS
-#wps = RunWPS(main)
-#wps.geogrid()
+wps = RunWPS(main)
 wps.dataDownload()
+wps.geogrid()
 wps.ungrib()
 wps.metgrid()
 
