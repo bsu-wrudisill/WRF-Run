@@ -24,8 +24,10 @@ def CFSRV2(start_date,
         start_date = pd.to_datetime(start_date)
     if type(end_date) == str:
         end_date = pd.to_datetime(end_date)
-
-    nomads_url = "https://nomads.ncdc.noaa.gov/modeldata/cfsv2_analysis_{}/{}/{}{}/{}{}{}/"
+                  
+    #nomads_url = "https://www.ncei.noaa.gov/thredds/fileServer/model-cfs_v2_anl_6h_pgb/2020/202004/20200429/"
+    nomads_url = "https://www.ncei.noaa.gov/thredds/fileServer/model-cfs_v2_anl_6h_{}/{}/{}/{}/"
+    # OLD nomads_url = "https://nomads.ncdc.noaa.gov/modeldata/cfsv2_analysis_{}/{}/{}{}/{}{}{}/"
     filename = "cdas1.t{}z.{}.grib2"
     sub6 = datetime.timedelta(hours=6)
     date_range = pd.date_range(start_date - sub6, end_date, freq='6H')
@@ -35,8 +37,8 @@ def CFSRV2(start_date,
     filelist = []
     renamelist = []
     for date in date_range:
-        for extension in ['pgbh', 'flxf']:
-            if extension == 'pgbh':
+        for extension in ['pgb', 'flxf']:
+            if extension == 'pgb':
                 fname_extension = 'pgrbh06'
                 rename_extension = 'pgbh06'  # this is to be consisten w/ cfsr .... confusing i know. 
             elif extension == 'flxf':
@@ -49,7 +51,7 @@ def CFSRV2(start_date,
             hour = date.strftime('%H')
 
             # get the pgbh files
-            base = nomads_url.format(extension, year, year, month, year, month, day)
+            base = nomads_url.format(extension, year, year+ month, year+month+day)
             filename_complete = filename.format(hour, fname_extension)
             filepath = base + filename_complete
             rename = "{}_{}{}{}{}_{}".format(rename_extension, year, month, day, hour, filename_complete)
@@ -59,7 +61,7 @@ def CFSRV2(start_date,
             filelist.append(filename_complete)
             renamelist.append(rename)
             # append rename to list 
-
+    print(dlist)
     return dlist, filelist, renamelist
 
 
