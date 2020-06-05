@@ -107,7 +107,7 @@ def CFSR(start_date,
                     base = nomads_url_pres.format(year, year, month, year, month, day)
 
             if extension == 'flxf':
-                    base = nomads_url_flxf.format(year, year, month, year, month, day)
+                    base = nomads_url_sfc.format(year, year, month, year, month, day)
             
             filename = '{}{}.{}{}{}{}.grb2'.format(extension, file_spec, year, month, day, hour)
             filepath = base + filename
