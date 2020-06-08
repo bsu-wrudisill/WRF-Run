@@ -376,9 +376,6 @@ def multiFileDownloadParallel(filepathlist, namelist=None):
     :type       namelist: list of strings 
     """
     # import stuff 
-    from multiprocessing import Pool, Lock
-    p = Pool(4)
-	 
     cmdlist = []
     # wget a file and rename it, if the name is provided
     if namelist:
@@ -392,8 +389,10 @@ def multiFileDownloadParallel(filepathlist, namelist=None):
             cmdlist.append(cmd)
     
     # do it in parrallel
-    p.map(SystemCmd, cmdlist)
-
+    #p.map(SystemCmd, cmdlist)
+    
+    # use the multithreading function that is defined below
+    multi_thread(SystemCmd, cmdlist)
 
 def multiFileDownload(filepathlist, namelist=None):
     """
@@ -608,7 +607,7 @@ def multi_thread(function, mappable):
     # loop thru the chunked list. max of <thread_chunk_size> threads get opened
     for chunk in chunked_list:
         threads = [threading.Thread(target=function, args=(item,))
-                   for item in mappable]
+                   for item in chunk]
         for thread in threads:
             thread.start()
         for thread in threads:
