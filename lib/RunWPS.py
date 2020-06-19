@@ -319,7 +319,7 @@ class RunWPS(SetMeUp):
         # Pressure files job submission
         jobid, error = acc.Submit(submit_script,
                                   self.scheduler)
-        logger.info('submitted jobid: ', jobid)
+        logger.info('submitted jobid: {}'.format(jobid))
         acc.WaitForJob(jobid,
                        self.user,
                        self.scheduler)
