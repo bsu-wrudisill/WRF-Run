@@ -23,7 +23,7 @@
 
 ##########################   USER: CHANGE ME   ################################
 # Base directory for WRF install              
-export WRF_BASE_DIR=/home/wrudisill/WRFV4
+export WRF_BASE_DIR=/home/wrudisill/WRF-R2/
 
 # WRF version                                 
 export WRF_VERSION=4.1.2
@@ -61,9 +61,9 @@ module purge
 module load shared
 module load git/64/2.12.2
 module load slurm/17.11.12
-module load intel/compiler/64/2018/18.0.5
-module load intel/mpi/64/2018/4.274
-module load intel/mkl/64/2018/4.274
+module load intel/compiler/64/2020/2020.3
+module load intel/mpi/64/2020/2020.3
+module load intel/mkl/64/2020/2020.3
 module load hdf5_18/intel/1.8.18-mpi
 module load netcdf/intel/64/4.4.1
 module load udunits/intel/64/2.2.24
