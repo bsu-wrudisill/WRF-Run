@@ -75,12 +75,16 @@ def CFSR(start_date,
     # HARDCODED
     #OLD --- nomads_url = "https://nomads.ncdc.noaa.gov/modeldata/cmd_{}/{}/{}{}/{}{}{}/"
 
-    nomads_url_pres  = "https://www.ncei.noaa.gov/thredds/catalog/model-cfs_reanl_6h_pgb/{}/{}/{}/catalog. \
-                        html?dataset=cfs_reanl_6h_pgb/{}/{}/{}/"
+# EXAMPLE   
     
-    nomads_url_sfc = "https://www.ncei.noaa.gov/thredds/catalog/model-cfs_reanl_6h_flxf/{}/{}/{}/catalog. \
-                       html?dataset=cfs_reanl_6h_flxf/{}/{}/{}/"
+    #nomads_url_pres  = "https://www.ncei.noaa.gov/thredds/catalog/model-cfs_reanl_6h_pgb/{}/{}/{}/catalog.html?dataset=cfs_reanl_6h_pgb/{}/{}/{}/"
+    #nomads_url_sfc = "https://www.ncei.noaa.gov/thredds/catalog/model-cfs_reanl_6h_flxf/{}/{}/{}/catalog.html?dataset=cfs_reanl_6h_flxf/{}/{}/{}/"
     
+    nomads_url = "https://www.ncei.noaa.gov/thredds/fileServer/model-cfs_reanl_6h_{}/{}/{}/{}/"
+
+
+
+ 
     file_spec = '06.gdas'
 
     if type(start_date) == str:
@@ -102,12 +106,15 @@ def CFSR(start_date,
             month = date.strftime('%m')
             day = date.strftime('%d')
             hour = date.strftime('%H')
+            
             # get the pgbh files
             if extension == 'pgbh':
-                    base = nomads_url_pres.format(year, year, month, year, month, day)
+                    front='pgb'
+                    base = nomads_url.format(front, year, year+month, year+month+day)
 
             if extension == 'flxf':
-                    base = nomads_url_sfc.format(year, year, month, year, month, day)
+                    front='flxf' 
+                    base = nomads_url.format(front, year, year+month, year+month+day)
             
             filename = '{}{}.{}{}{}{}.grb2'.format(extension, file_spec, year, month, day, hour)
             filepath = base + filename
