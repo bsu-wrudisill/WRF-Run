@@ -141,7 +141,7 @@ JobTemplates:
           wps_namelist: namelist.wps.COLORADO
           wrf_run_options:
               chunk_size: 4               # (days). How long do we want the wrf run 'chunks' to be?
-              wall_time_per_hour: .25     # (hours). wrftime/real world time 
+              wall_time_per_hour: .15     # (hours). wrftime/real world time 
           
           submit_parameters:
               wrf: ["#PBS -P iuc",                     # idaho university queue   
