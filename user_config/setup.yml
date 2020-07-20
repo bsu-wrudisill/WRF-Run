@@ -12,13 +12,13 @@
 # Run date (Dyanamic-- these are optional. Scripts can modify)
 run_date: 
         start_date : 2018-03-19
-        end_date : 2018-03-20
+        end_date : 2018-04-20
 lbc_type : cfsrv2              # one of cfsr, cfsrv2
 restart : False               # TRUE OR FALSE 
 geo_em_file : None           # <<< NOT IMPLEMENTED >>>> If None, geogrid.exe will be run
 metgrid_files : None         # <<< NOT IMPLEMENTED >>>> If None, metgrid.exe will be run
 lbc_files : None             # <<< NOT IMPLEMENTED >>>> If None, data will be downloaded based on specified LBC condition
-run_name : ndown_test 
+run_name : ndown_test
 
 
 # Static Parameters  (Not changed by scripts)
@@ -51,3 +51,10 @@ wrf_run_options:
         #frames per auxhist?
         #restart interval?
         #etc etc
+        #
+        #
+        #
+        #
+
+ndown_options:
+        parent_grid_wrf_dirc: /home/wrudisill/scratch/spring_season_18/wrf 

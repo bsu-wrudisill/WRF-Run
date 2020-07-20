@@ -1,4 +1,16 @@
-class RunNDown(SetMeUp):
+import sys
+import os
+import datetime
+import logging
+import pandas as pd
+import accessories as acc
+#from SetMeUp import SetMeUp
+from RunWPS import RunWPS
+import secrets
+import f90nml   # this must be installed via pip ... ugh
+
+
+class RunNDown(RunWPS):
     """
     This class describes run wps.
     """
@@ -26,17 +38,14 @@ class RunNDown(SetMeUp):
         if update:
             self._SetMeUp__update(**update)
 
-        # Create patch on iniitalization for the namelist
-        self.patch()
-
         # Internal flags
         # Process Completed
         self.logger.info('Main Run Directory: {}'.format(self.wrf_run_dirc))
 
         # Check that the wrfout files specified in the setup file
         # match the outer grid dimensions in the namelist file...
-        self.ndown_run_dirc_wps = main_run_dirc.joinpath('ndown_wps')
-        self.ndown_run_dirc_wrf = main_run_dirc.joinpath('ndown_wrf')
+        self.ndown_run_dirc_wps = self.main_run_dirc.joinpath('ndown_wps')
+        self.ndown_run_dirc_wrf = self.main_run_dirc.joinpath('ndown_wrf')
 
 
     def CreateDirectory(self, **kwargs):
