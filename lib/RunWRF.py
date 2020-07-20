@@ -56,7 +56,7 @@ class RunWRF(SetMeUp):
         self.wrf_file_list = wrf_file_list 
    
 
-    def InheritWPS(self, wps, ):
+    def InheritWPS(self, wps):
         # !!!!!!!! THIS SEEMS A BIT ODD !!!!!!!!!!!!
         # update current state
         self.start_date = wps.start_date
