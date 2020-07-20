@@ -10,7 +10,7 @@ import secrets
 import f90nml   # this must be installed via pip ... ugh
 
 
-class RunNDown(RunWPS):
+class RunNDown(SetMeUp):
     """
     This class describes run wps.
     """
@@ -47,61 +47,31 @@ class RunNDown(RunWPS):
         self.ndown_run_dirc_wps = self.main_run_dirc.joinpath('ndown_wps')
         self.ndown_run_dirc_wrf = self.main_run_dirc.joinpath('ndown_wrf')
 
+        # get the wrf parent grid...
+        self.parent_grid_wrf = Path(self.yamlfile['parent_grid_wrf'])
 
-    def CreateDirectory(self, **kwargs):
-        """Summary
+        # do some tests ...
 
-        Args:
-            **kwargs: Description
+    def _ndown_pre_checks(self):
+        assert self.parent_grid_wrf.is_directory(), 'Parent wrf directory not found. Exit'
+
+        # find the wrf files...
+        #wrf_files = self.parent_grid_wrf.joinpath('wrf')
+        #for wf in wrf_files.glob('wrfout_d01*'):
+            # make sure they are all there...
+
+
+    def LinkFiles(self, **kwargs):
+        """
+        Link the appropriate files from the parent wrf directory
         """
 
-        # STEP 1: Look for the corrrect met and geo files
-        status = self.PreCheck(geo_dirc=self.geo_run_dirc,
-                               met_dirc=self.met_run_dirc)
 
-        met_found, met_message, required_met_files = status['met']
-        geo_found, geo_message, required_geo_files = status['geo']
-
-        if met_found and geo_found:
-            self.logger.info("Found metgrid and geogrid files***")
-
-        else:
-            raise FileNotFoundError
-            sys.exit()
-
-        # STEP 2: Create the directories...
-        self.ndown_run_dirc_wps.mkdir()
-        self.ndown_run_dirc_wrf.mkdir()
-
-        # STEP 3: Symlik files
-        self.logger.info('Symlinking geo and metfiles to {}'.format(
-                         self.wrf_run_dirc))
-
-        # move metgrid files to the run directory
-        for metfile in required_met_files:
-            src = self.met_run_dirc.joinpath(metfile)
-            dst = self.wrf_run_dirc.joinpath(metfile)
-            # remove destination link if it exists
-            if dst.is_symlink():
-                dst.unlink()
-            os.symlink(src, dst)
-
-        for geofile in required_geo_files:
-            src = self.geo_run_dirc.joinpath(geofile)
-            dst = self.wrf_run_dirc.joinpath(geofile)
-            # remove destination link if it exists
-            if dst.is_symlink():
-                dst.unlink()
-            os.symlink(src, dst)
-        # done if
-        self.logger.info('****Success********')
-
-
-
-    def RunNDown(self):
+    def CreateWRFBdyFiles(self):
         """Summary
         1) Run real.exe to create wrfinput files
         2) Run ndown.exe to create LBC conditions (wrfbdy files)
+           Do this in 'one fell swoop' for all LBC files...
         """
 
 
