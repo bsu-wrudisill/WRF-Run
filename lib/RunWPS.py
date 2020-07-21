@@ -9,43 +9,23 @@ import secrets
 import f90nml   # this must be installed via pip ... ugh
 from DataDownload import *
 
+
+
 class RunWPS(SetMeUp):
     """
     This class describes run wps.
     """
+    logger = logging.getLogger(__name__)
 
-    def __init__(self, setup, update=None):
-        '''
-        Inherit methods/stuff from SetMeUp (read from main.yml)
-        :type       setup:   { type_description }
-        :param      setup:   The setup
-        :type       kwargs:  dictionary
-        :param      kwargs:  The keywords arguments
-        '''
-        # Get stuff from the SetMeUp __init__
-        super(self.__class__, self).__init__(setup)
-        self.logger = logging.getLogger(__name__)
-        self.logger.info('initialized RunWPS instance')
+    def start(self):
+        # Log where we are ...
+        self.logger.info('Main Run Directory: {}'.format(self.wrf_run_dirc))
 
-        # Read in OPTIONAL kwargs
-        #self.start_date = acc.DateParser(kwargs.get('start_date',
-        #                                            self.start_date))
-        #self.end_date = acc.DateParser(kwargs.get('end_date',
-        #                              self.end_date))
-        
-        # check if there is an 'update' to pass into runwps
-        if update: 
-            self._SetMeUp__update(**update)
-        
-        # Create patch on iniitalization for the namelist
+        # Run the 'patch' commant
         self.patch()
-    
-        # Internal flags
-        # Process Completed
-        self.WRFready = False
-        self.logger.info('Main Run Directory: {}'.format(self.wrf_run_dirc)) 
-    
-    def patch(self, **kwargs): 
+
+
+    def patch(self, **kwargs):
         '''
         Create the dictionary with the right terms for updating the wps
         namelist files.
@@ -58,12 +38,9 @@ class RunWPS(SetMeUp):
         wps_start_date = self.start_date.strftime(self.time_format)
         wps_end_date = self.end_date.strftime(self.time_format)
 
-        # Get number of domains
-        n = self.num_wrf_dom
-
         # Create a repeated list of start/end dates for namelists
-        start_date_rep = acc.RepN(wps_start_date, n)
-        end_date_rep = acc.RepN(wps_end_date, n)
+        start_date_rep = acc.RepN(wps_start_date, self.num_wrf_dom)
+        end_date_rep = acc.RepN(wps_end_date, self.num_wrf_dom)
 
         # WPS patch object
         self.wps_patch = {
@@ -149,7 +126,7 @@ class RunWPS(SetMeUp):
 
         # () Write the submission script
 
-        # form the command 
+        # form the command
         lines = ["source %s" % self.environment_file,
                  "cd %s" % self.geo_run_dirc,
                  "./geogrid.exe &> geogrid.catch"]
@@ -221,8 +198,8 @@ class RunWPS(SetMeUp):
                         self.queue_params.get('wps'))
 
         submit_script = kwargs.get('submit_script',
-                                   self.ungrib_run_dirc.joinpath(
-                                              'submit_ungrib.sh'))
+                                    self.ungrib_run_dirc.joinpath(
+                                                 'submit_ungrib.sh'))
 
         # Fixed paths -- these should get created
         cwd = os.getcwd()
@@ -253,7 +230,7 @@ class RunWPS(SetMeUp):
 
         # (XXX/NNN)Symlink the vtables (check WRF-Version)
         # Different versions of WRF have differnt Vtables even for the same LBC
-        
+
     #################################################################
     # --------- BEGIN WRF VERSION RELATED OPTIONS LOGIC ---------------
     #################################################################
@@ -300,7 +277,7 @@ class RunWPS(SetMeUp):
 
         # Begin Ungrib (2 parts--Plevs and SFLUX (FOR CFSR))
         # --------------------------------------------------
-        
+
         # 1) PLEVS
         # --------
         logger.info('Starting on PLEVS (1/2)')
@@ -308,8 +285,8 @@ class RunWPS(SetMeUp):
         # issue the link command
         os.chdir(self.ungrib_run_dirc)
         logger.info('linking pgbh files')
-        acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc, 
-		                      self.data_dl_dirc, 
+        acc.SystemCmd(linkGrib.format(self.ungrib_run_dirc,
+		                      self.data_dl_dirc,
 				      'pgbh06'))
         os.chdir(cwd)
 
@@ -368,7 +345,7 @@ class RunWPS(SetMeUp):
         # Switch the ungrib prefix--PLEVS --> SFLUX
         self.wps_patch['ungrib']['prefix'] = "SFLUX"
 
-        # Patch the file, rewriting the old one 
+        # Patch the file, rewriting the old one
         self.writeNamelist(self.ungrib_run_dirc)
 
         # Link SFLXF files
@@ -391,7 +368,7 @@ class RunWPS(SetMeUp):
                        self.user,
                        self.scheduler)
 
-        # Verify SFLUX completed correctly 
+        # Verify SFLUX completed correctly
         success, status = acc.log_check(ungrib_log, success_message)
         if success:
             logger.info(status)
@@ -401,7 +378,7 @@ class RunWPS(SetMeUp):
             logger.error("check {}".format(self.ungrib_run_dirc))
             sys.exit()
 
-        # Cleanup SFLUX 
+        # Cleanup SFLUX
         globfiles = self.ungrib_run_dirc.glob('GRIBFILE*')
         for globfile in globfiles:
             logger.debug('unlinked {}'.format(str(globfile)))
@@ -410,6 +387,9 @@ class RunWPS(SetMeUp):
         # ---------- END Ungrib Process ---------------------
         # check that the script finished correctly
         os.chdir(cwd)
+
+
+
 
     @acc.timer
     def metgrid(self, **kwargs):
@@ -424,8 +404,6 @@ class RunWPS(SetMeUp):
         logger.info('entering metgrib process in directory')
         logger.info('WRF Version {}'.format(self.wrf_version))
 
-        # Update state
-        self.ran_metgrid = True
 
         # What do I do w/ old met files?
         # Whether or not to 'clean' the dir before running
@@ -513,17 +491,64 @@ class RunWPS(SetMeUp):
             logger.info('downloading cfsr data...')
             dlist, filelist = CFSR(self.start_date, self.end_date)
             acc.multiFileDownloadParallel(dlist)
-       
+
         if self.lbc_type == "cfsrv2":
             logger.info('downloading cfsv2 data..')
             dlist, filelist, renamelist = CFSRV2(self.start_date, self.end_date)
             acc.multiFileDownloadParallel(dlist, renamelist)
-        
+
         if self.lbc_type not in ['cfsr', 'cfsrv2']:
             logger.error('lbc type not known', self.lbc_type)
-        
+
 	# !!!! TO ADD MORE LBC TYPES.... ADD TO THIS IF SEQUENC!!!
         os.chdir(cwd)
+
+
+    '''
+     STATIC METHODS
+     -------------
+
+     These can be used without instantiationg a WPS instance
+     i.e., they can be called with wps._prepare_metgrid or whatever
+    '''
+
+
+    @staticmethod
+    def _prepare_metgrid(logger,
+                         met_run_dirc,
+                         ungrib_run_dirc,
+                         geo_run_dirc):
+        """Summary
+        Put the files in the correct location in order to run metgrid.
+        That's all it does...
+
+        Args:
+            met_run_dirc (TYPE): Description
+            ungrib_run_dirc (TYPE): Description
+            geo_run_dirc (TYPE): Description
+        """        # link ungrib files
+        logger.info('Creating symlink for SFLUX')
+        for sflux in self.ungrib_run_dirc.glob('SFLUX*'):
+            dst = self.met_run_dirc.joinpath(sflux.name)
+            if dst.is_symlink():
+                dst.unlink()
+            os.symlink(sflux, dst)
+
+        logger.info('Creating symlink for PLEVS')
+        for plevs in self.ungrib_run_dirc.glob('PLEVS*'):
+            dst = self.met_run_dirc.joinpath(plevs.name)
+            if dst.is_symlink():
+                dst.unlink()
+            os.symlink(plevs, dst)
+
+        # link geogrid files TODO: how many geogrid are needed???
+        for geo_em in self.geo_run_dirc.glob('geo_em.d0?.nc'):
+            dst = self.met_run_dirc.joinpath(geo_em.name)
+            if dst.is_symlink():
+                dst.unlink()
+            os.symlink(geo_em, dst)
+
+
 
 
 if __name__ == '__main__':
