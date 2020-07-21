@@ -1,14 +1,14 @@
 # ----------------------------------------------------------------------------------------------------------
 # !!!!!!!!!!!!!!!!!!     WRF-RUN Job Submission Configuration  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # ----------------------------------------------------------------------------------------------------------
-# Description: Each computer cluster is unique, so the job submission parameters might change from machine to 
+# Description: Each computer cluster is unique, so the job submission parameters might change from machine to
 #              machine. Some are static and will not get updated by the run script. Any paramter in the "globals"
-#              category will get inserted somewhere in the run scripts. Other anything hard-coded is 
+#              category will get inserted somewhere in the run scripts. Other anything hard-coded is
 #              up to the user to decide
 #
 # ! GLOBALS !!!!
-# ! These names get dynamically update in the python process 
-#           QUEUE (name of the queue; leaf, defq, etc.), 
+# ! These names get dynamically update in the python process
+#           QUEUE (name of the queue; leaf, defq, etc.),
 #           WRFNODES
 #           WALLTIME
 #           JOBNAME
@@ -17,23 +17,23 @@
 
 # ------------------------------------------------------------
 # To create a new job template....
-# Ensure that the 'machine' matches one of 'machines'. 
+# Ensure that the 'machine' matches one of 'machines'.
 # It is probably easiest to copy the submit parameters
 # from another test, and paste it inside of the JobTemplates
 # section. Make sure that the corresponding 'namelist_*' live
-# inside the /user_config/namelists/ folder. Do not wory about 
+# inside the /user_config/namelists/ folder. Do not wory about
 # editing the time/date parameters in the namelists. This will
-# be done in the run scripts. 
+# be done in the run scripts.
 # -------------------------------------------------------------
 
 
 # -------------------------------------------
 # Avaliable machines:
-#   Boise State Research Computing (R2) Cluster 
+#   Boise State Research Computing (R2) Cluster
 #   Idaho National Labs Falcon
 # --------------------------===---------------
-machines: 
-    R2: 
+machines:
+    R2:
       queue_list: ["leaf","defq","ipowerq","gpuq"]
       scheduler: "SLURM"
 
@@ -46,14 +46,14 @@ JobTemplates:
      # Name of job
      # --------------------------------------------------------------------------------------------------------------------
      TestJob:
-          machine: R2  
+          machine: R2
           queue: "shortq"
           input_namelist: namelist.input.template.TEST
           wps_namelist: namelist.wps.template.TEST
-          # WRF I/O and Run Control 
+          # WRF I/O and Run Control
           wrf_run_options:
               chunk_size: 4               # (days). How long do we want the wrf run 'chunks' to be?
-              wall_time_per_hour: .25     # (hours). wrftime::real world time 
+              wall_time_per_hour: .25     # (hours). wrftime::real world time
               #frames per auxhist?
               #restart interval?
               #etc etc
@@ -63,27 +63,27 @@ JobTemplates:
                     "#SBATCH -n 2",                         # Number of cores requested == 2*28
                     "#SBATCH --exclusive",                  # No sharing of node with other tasks(?)
                     "#SBATCH -p QUEUE",                     # Must be one of items in queue_list
-                    "#SBATCH -J JOBNAME",                   # Name of the job-- different than the jobid assigned by scheduler  
+                    "#SBATCH -J JOBNAME",                   # Name of the job-- different than the jobid assigned by scheduler
                     "#SBATCH -t WALLTIME",                  # Default WPS walltime--this might change for different WRF configs
                     "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
                     "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
                     ]
 
-              # WPS job submission header          
+              # WPS job submission header
               wps: [
-                    "#SBATCH -N 1",                        
-                    "#SBATCH -n 1",                       
-                    "#SBATCH -p QUEUE",                  
-                    "#SBATCH -J JOBNAME",                
-                    "#SBATCH -t 01:00:00",       
+                    "#SBATCH -N 1",
+                    "#SBATCH -n 1",
+                    "#SBATCH -p QUEUE",
+                    "#SBATCH -J JOBNAME",
+                    "#SBATCH -t 01:00:00",
                     "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
                     "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
                     ]
 
               real: [
-                    "#SBATCH -N 1",                        
-                    "#SBATCH -n 1",                         
-                    "#SBATCH -t 01:00:00",       
+                    "#SBATCH -N 1",
+                    "#SBATCH -n 1",
+                    "#SBATCH -t 01:00:00",
                     "#SBATCH -p QUEUE",
                     "#SBATCH -J JOBNAME",
                     "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
@@ -91,13 +91,13 @@ JobTemplates:
                     ]
      # --------------------------------------------------------------------------------------------------------------------
      CentralIdaho:
-          machine: R2  
+          machine: R2
           queue: "shortq"
           input_namelist: namelist.input.template.IDAHO
           wps_namelist: namelist.wps.template.IDAHO
           wrf_run_options:
               chunk_size: 6               # (days). How long do we want the wrf run 'chunks' to be?
-              wall_time_per_hour: .10     # (hours). wrftime/real world time 
+              wall_time_per_hour: .10     # (hours). wrftime/real world time
               #frames per auxhist?
               #restart interval?
               #etc etc
@@ -108,41 +108,41 @@ JobTemplates:
                     "#SBATCH -n 56",                       # number of cores requested == 2*28
                     "#SBATCH --exclusive",                 # no sharing of node with other tasks(?)
                     "#SBATCH -p QUEUE",                    # must be one of items in queue_list
-                    "#SBATCH -J JOBNAME",                  # name of the job-- different than the jobid assigned by scheduler  
+                    "#SBATCH -J JOBNAME",                  # name of the job-- different than the jobid assigned by scheduler
                     "#SBATCH -t WALLTIME",                 # Default WPS walltime--this might change for different WRF configs
                     "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
                     "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
                     ]
-              # WPS Job submission header          
+              # WPS Job submission header
               wps: [
-                    "#SBATCH -N 1",                        
-                    "#SBATCH -n 1",                       
-                    "#SBATCH -p QUEUE",                  
-                    "#SBATCH -J JOBNAME",                
-                    "#SBATCH -t 05:00:00",       
+                    "#SBATCH -N 1",
+                    "#SBATCH -n 1",
+                    "#SBATCH -p QUEUE",
+                    "#SBATCH -J JOBNAME",
+                    "#SBATCH -t 05:00:00",
                     "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
                     "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
                     ]
               real: [
-                    "#SBATCH -N 1",                        
-                    "#SBATCH -n 1",                         
-                    "#SBATCH -t 01:00:00",       
+                    "#SBATCH -N 1",
+                    "#SBATCH -n 1",
+                    "#SBATCH -t 01:00:00",
                     "#SBATCH -p QUEUE",
                     "#SBATCH -J JOBNAME",
                     "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
                     "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
                     ]
-     
-     
+
+
      # --------------------------------------------------------------------------------------------------------------------
      CentralIdaho_Outer:
-          machine: R2  
+          machine: R2
           queue: "defq"
           input_namelist: namelist.input.template.IDAHO_OUTER
           wps_namelist: namelist.wps.template.IDAHO_OUTER
           wrf_run_options:
               chunk_size: 6               # (days). How long do we want the wrf run 'chunks' to be?
-              wall_time_per_hour: .10     # (hours). wrftime/real world time 
+              wall_time_per_hour: .10     # (hours). wrftime/real world time
               #frames per auxhist?
               #restart interval?
               #etc etc
@@ -153,62 +153,123 @@ JobTemplates:
                     "#SBATCH -n 56",                       # number of cores requested == 2*28
                     "#SBATCH --exclusive",                 # no sharing of node with other tasks(?)
                     "#SBATCH -p QUEUE",                    # must be one of items in queue_list
-                    "#SBATCH -J JOBNAME",                  # name of the job-- different than the jobid assigned by scheduler  
+                    "#SBATCH -J JOBNAME",                  # name of the job-- different than the jobid assigned by scheduler
                     "#SBATCH -t WALLTIME",                 # Default WPS walltime--this might change for different WRF configs
                     "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
                     "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
                     ]
-              # WPS Job submission header          
+
+              # WPS Job submission header
               wps: [
-                    "#SBATCH -N 1",                        
-                    "#SBATCH -n 1",                       
-                    "#SBATCH -p QUEUE",                  
-                    "#SBATCH -J JOBNAME",                
-                    "#SBATCH -t 05:00:00",       
+                    "#SBATCH -N 1",
+                    "#SBATCH -n 1",
+                    "#SBATCH -p QUEUE",
+                    "#SBATCH -J JOBNAME",
+                    "#SBATCH -t 05:00:00",
                     "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
                     "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
                     ]
               real: [
-                    "#SBATCH -N 1",                        
-                    "#SBATCH -n 1",                         
-                    "#SBATCH -t 02:00:00",       
+                    "#SBATCH -N 1",
+                    "#SBATCH -n 1",
+                    "#SBATCH -t 02:00:00",
                     "#SBATCH -p QUEUE",
                     "#SBATCH -J JOBNAME",
                     "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
                     "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
                     ]
-     
+
      # --------------------------------------------------------------------------------------------------------------------
-     # Idaho National Labs Falcon HPC Environment 
-     CentralColorado: 
+
+     CentralIdaho_InnerNdown:
+          machine: R2
+          queue: "defq"
+          input_namelist: namelist.input.template.IDAHO
+          wps_namelist: namelist.wps.template.IDAHO
+
+
+          hydro_cpl_options:
+              cpl: False
+
+          ndown_options:
+              input_namelist_inner: namelist.input.template.IDAHO_INNER
+              wps_namelist_inner: namelist.input.template.IDAHO_INNER
+
+          wrf_run_options:
+              chunk_size: 6               # (days). How long do we want the wrf run 'chunks' to be?
+              wall_time_per_hour: .10     # (hours). wrftime/real world time
+
+
+              #frames per auxhist?
+              #restart interval?
+              #etc etc
+
+          submit_parameters:
+              wrf: [
+                    "#SBATCH -N 2",                        # number of nodes requested
+                    "#SBATCH -n 56",                       # number of cores requested == 2*28
+                    "#SBATCH --exclusive",                 # no sharing of node with other tasks(?)
+                    "#SBATCH -p QUEUE",                    # must be one of items in queue_list
+                    "#SBATCH -J JOBNAME",                  # name of the job-- different than the jobid assigned by scheduler
+                    "#SBATCH -t WALLTIME",                 # Default WPS walltime--this might change for different WRF configs
+                    "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+                    "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
+                    ]
+              # WPS Job submission header
+              wps: [
+                    "#SBATCH -N 1",
+                    "#SBATCH -n 1",
+                    "#SBATCH -p QUEUE",
+                    "#SBATCH -J JOBNAME",
+                    "#SBATCH -t 05:00:00",
+                    "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+                    "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
+                    ]
+              real: [
+                    "#SBATCH -N 1",
+                    "#SBATCH -n 1",
+                    "#SBATCH -t 02:00:00",
+                    "#SBATCH -p QUEUE",
+                    "#SBATCH -J JOBNAME",
+                    "#SBATCH -e RUNDIR/slurm_LOGNAME.err",
+                    "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
+                    ]
+
+     # --------------------------------------------------------------------------------------------------------------------
+
+
+
+
+     # Idaho National Labs Falcon HPC Environment
+     CentralColorado:
           machine: INL-FALCON
           queue: iuc
           input_namelist: namelist.input.COLORADO
           wps_namelist: namelist.wps.COLORADO
           wrf_run_options:
               chunk_size: 4               # (days). How long do we want the wrf run 'chunks' to be?
-              wall_time_per_hour: .25     # (hours). wrftime/real world time 
-          
+              wall_time_per_hour: .25     # (hours). wrftime/real world time
+
           submit_parameters:
-              wrf: ["#PBS -P iuc",                     # idaho university queue   
-                    "#PBS -q iuc",                     # same as P for some reason 
-                    "#PBS -l select=2:ncpus=36:mpiprocs=36:cputype=broadwell",                # select 2 nodes for WRF 
+              wrf: ["#PBS -P iuc",                     # idaho university queue
+                    "#PBS -q iuc",                     # same as P for some reason
+                    "#PBS -l select=2:ncpus=36:mpiprocs=36:cputype=broadwell",                # select 2 nodes for WRF
                     "#PBS -l walltime=WALLTIME",            # runtime -- this is dynamic
-                    "#PBS -N JOBNAME",                      # jobname, different than the ID assigned by PBS 
-                    "#PBS -e RUNDIR/pbs_LOGNAME.err",       # standard err from scheduler 
-                    "#PBS -o RUNDIR/pbs_LOGNAME.out"        # standard out from scheduler 
+                    "#PBS -N JOBNAME",                      # jobname, different than the ID assigned by PBS
+                    "#PBS -e RUNDIR/pbs_LOGNAME.err",       # standard err from scheduler
+                    "#PBS -o RUNDIR/pbs_LOGNAME.out"        # standard out from scheduler
                     ]
-              
-              wps: ["#PBS -P iuc",                      
+
+              wps: ["#PBS -P iuc",
                     "#PBS -q iuc",
                     "#PBS -N JOBNAME",
                     "#PBS -l walltime=03:00:00",
-                    "#PBS -l select=1:ncpus=1:cputype=broadwell",                 
+                    "#PBS -l select=1:ncpus=1:cputype=broadwell",
                     "#PBS -e RUNDIR/pbs_LOGNAME.err",
                     "#PBS -o RUNDIR/pbs_LOGNAME.out"
                     ]
-         
-              real: ["#PBS -P iuc",                      
+
+              real: ["#PBS -P iuc",
                      "#PBS -q iuc",
                      "#PBS -N JOBNAME",
                      "#PBS -l walltime=03:00:00",

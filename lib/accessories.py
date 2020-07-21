@@ -5,7 +5,7 @@ import time
 import traceback
 import logging
 import threading
-
+import f90nml
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +186,7 @@ def SystemCmd(cmd):
 
 
 def Submit(subname, scheduler):
-    """Submit a batch job script to the scheduler. 
+    """Submit a batch job script to the scheduler.
 
     Parameters
     ----------
@@ -220,7 +220,7 @@ def Submit(subname, scheduler):
 
     if scheduler == 'SLURM':
         cmd = 'sbatch --parsable {}'.format(subname)
-        proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)  
+        proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
         jobid,err = proc.communicate()
         # DOES THIS WORK FOR PBS????
         logger.info("submitting job: {}".format(cmd))
@@ -241,17 +241,17 @@ def WaitForJob(jobid, user, scheduler):
     :param      jobid:      Fullpath to the submission script
     :type       jobid:      string or pathlib.Path
     :param      user:       Username on system ('whoami')
-    :type       user:       string 
+    :type       user:       string
     :param      scheduler:  The scheduler ('PBS' OR 'SLURM')
-    :type       scheduler:  string 
+    :type       scheduler:  string
 
     :raises     Exception:  ValueError if scheduler is not 'PBS' or 'SLURM'
     """
-    start_time = datetime.datetime.now() 
+    start_time = datetime.datetime.now()
 
     if scheduler == 'PBS':
         qcmd = "qstat | grep {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)
-        # the qstat -u option parses the jobname oddly 
+        # the qstat -u option parses the jobname oddly
 
     if scheduler == 'SLURM':
         qcmd = "squeue -u {} | sed \"s/^ *//\" | cut -d' ' -f1".format(user)
@@ -260,75 +260,75 @@ def WaitForJob(jobid, user, scheduler):
     if scheduler not in ['PBS', 'SLURM']:
         logger.error()
         raise Exception('unknown scheduler type {}'.format(scheduler))
-    
+
     def _wait(qcmd, jobid):
         # run command and parse output
         qout_raw, qerr = SystemCmd(qcmd)
-        
+
         qout = [i.decode("utf-8") for i in qout_raw]
         error = qerr.decode("utf-8")
-        
-        # Check QSTAT Error  
+
+        # Check QSTAT Error
         if error != '':  # the error string is non-empty
             qstat_error = True
             logger.error("Error encountered in qstat:\n    {}".format(error))
             # set the qstat error to true; we cant exit if it is
-        else: 
-            qstat_error = False 
-        
-        # Check if the job is still running 
+        else:
+            qstat_error = False
+
+        # Check if the job is still running
         if jobid in qout:
             still_running = True
         else:
-            still_running = False 
-        
-        # RETURN 
+            still_running = False
+
+        # RETURN
         return still_running, qstat_error
-    
+
     def _timelylog(message):
-        # only log every ... 10 min since the start of the 
-        # main function 
+        # only log every ... 10 min since the start of the
+        # main function
         current_time = datetime.datetime.now()
         dt = (current_time - start_time).total_seconds()/60   # time in minutes
         #listing of log frequencies.... this is unnecessary
         if (dt % 60. < .1) and (dt > 60.):
             logger.info(message)
-    
+
     # Set to true initially.Gets updated based on _wait return
     keep_going = True
-    
-    # start of loop 
+
+    # start of loop
     while keep_going:
         # do the search ...
-        still_running, qstat_error = _wait(qcmd, jobid) 
+        still_running, qstat_error = _wait(qcmd, jobid)
         ctime = datetime.datetime.now()
         dt = (ctime - start_time).total_seconds()/60
-        # A job is running and qstat didn't return an error 
+        # A job is running and qstat didn't return an error
         if still_running and (not qstat_error):
-           keep_going = True 
+           keep_going = True
            if dt < 1.0:  # more than 1 minutes of logging..
-               logger.info('Found jobid {}. Continuing...'.format(jobid))   
+               logger.info('Found jobid {}. Continuing...'.format(jobid))
            else:
                _timelylog('Found jobid {}. Continuing...'.format(jobid)) # Only log every hour
-        
+
         # !!!! KEEP GOING UNTIL QSTAT STARTS WORKING AGAIN !!!
         if qstat_error:
-           keep_going = True  
+           keep_going = True
            logger.info('Qstat encountered error. Continuing...')
-        
-        # The only acceptable exit point. No jobs found, and qstat didn't return an error 
+
+        # The only acceptable exit point. No jobs found, and qstat didn't return an error
         if (not still_running) and (not qstat_error):
-           keep_going = False  
+           keep_going = False
            logger.info('jobid {} is no longer in the queue'.format(jobid))
-	
-        # sleep for thirty seconds         
+
+        # sleep for thirty seconds
         time.sleep(30)
 
     # Get the time in minutes
     final_time = datetime.datetime.now()
     dt = (final_time - start_time).total_seconds()/60
-     
-    # Now log the time 
+
+    # Now log the time
     logger.info('completion time: {} min'.format(dt))
 
 
@@ -373,12 +373,12 @@ def multiFileDownloadParallel(filepathlist, namelist=None):
     :param      filepathlist:  list of strings to download
     :type       filepathlist:  list containing strings
     :param      namelist: list of filenames for renaming
-    :type       namelist: list of strings 
+    :type       namelist: list of strings
     """
-    # import stuff 
+    # import stuff
     from multiprocessing import Pool, Lock
     p = Pool(4)
-	 
+
     cmdlist = []
     # wget a file and rename it, if the name is provided
     if namelist:
@@ -390,7 +390,7 @@ def multiFileDownloadParallel(filepathlist, namelist=None):
         for path in filepathlist:
             cmd = 'wget --output-file=logfile {}'.format(path)
             cmdlist.append(cmd)
-    
+
     # do it in parrallel
     p.map(SystemCmd, cmdlist)
 
@@ -400,7 +400,7 @@ def multiFileDownload(filepathlist, namelist=None):
     :param      filepathlist:  list of strings to download
     :type       filepathlist:  list containing strings
     :param      namelist: list of filenames for renaming
-    :type       namelist: list of strings 
+    :type       namelist: list of strings
     """
     # wget a file and rename it, if the name is provided
     if namelist:
@@ -531,7 +531,7 @@ def file_check(required_files,
     # ugh this is dumb TODO: make less dumb
     if value == 'E':
         # assert that ALL of the required files have been found in directory
-        message = 'missing {} of {} required files:\n{}'.format(num_mis, 
+        message = 'missing {} of {} required files:\n{}'.format(num_mis,
                                                                 num_req,
                                                                 missing_files)
         assert num_mis == 0, message
@@ -561,22 +561,22 @@ def log_check(logfile, message):
     assert logfile.exists(), "{} not found".format(logfile)
 
     # Check the last line of the log file.
-    stringlist = [tail(1, logfile), 
-                  tail(2, logfile), 
+    stringlist = [tail(1, logfile),
+                  tail(2, logfile),
                   tail(3, logfile),
                   tail(4, logfile),
                   tail(5, logfile),
                   tail(6, logfile)]
-    
+
     # make one single string for printing
     last_six_lines = "\n".join(string for string in stringlist)
-    
-    # check the log file for the success message 
+
+    # check the log file for the success message
     truthlist = [message in string for string in stringlist]
-    
+
     # bad message:
-    returnmessage = "Not successful? Here are the last six lines of {}:\n{}".format(logfile, last_six_lines) 
-    
+    returnmessage = "Not successful? Here are the last six lines of {}:\n{}".format(logfile, last_six_lines)
+
     # do the verification here
     assert True in truthlist, returnmessage
 

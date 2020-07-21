@@ -24,7 +24,7 @@ run_name : ndown_test
 # Static Parameters  (Not changed by scripts)
 user_email : williamrudisill@u.boisestate.edu
 user: wrudisill
-jobtemplate : CentralIdaho
+jobtemplate : CentralIdaho_InnerNdown
 wrf_version : 4.1.2
 
 
@@ -56,13 +56,11 @@ wrf_run_options:
 # !! Other Run Time Options !!
 # ----------------------------
 
-
 # ndown.exe
 ndown_options:
-        parent_grid_wrf: /home/wrudisill/scratch/spring_season_18/
-
+        parent_wrf_run: /home/wrudisill/scratch/spring_season_18/
 
 
 # WRF-Hydro Coupling
-hydro_options:
+hydro_cpl_options:
         wrf_hydro_basin_files: /home/wrudisill/scratch/spring_season_18/

@@ -6,11 +6,12 @@ import pandas as pd
 import accessories as acc
 #from SetMeUp import SetMeUp
 from RunWPS import RunWPS
+from RunWRF import RunWRF
 import secrets
 import f90nml   # this must be installed via pip ... ugh
 
 
-class RunNDown(RunWPS):
+class RunNDown(RunWPS, RunWRF):
     """
     We get to use all of the RunWPS functions in addition to the RunWRF Funtcions!!
     """
@@ -35,19 +36,31 @@ class RunNDown(RunWPS):
         shutil.copytree(self.wrf_exe_dirc.joinpath('run'),
                         self.wrf_run_dirc, symlinks=True)
 
-        # get geogrid
+        # make directories
         self.wps_run_dirc.mkdir()
         self.geo_run_dirc.mkdir()
         self.met_run_dirc.mkdir()
+        self.ndown_run_directory.mkdir()
 
         # NO NEED TO DOWNLOAD DATA AGAIN OR RUN UNGRIB
 
 
         # NAMELIST.INPUT
         shutil.copy(self.input_namelist_path,
-                    self.main_run_dirc.joinpath('namelist.input.template'))
+                    self.main_run_dirc.joinpath('namelist.input.template_outer'))
+
         shutil.copy(self.wps_namelist_path,
-                    self.main_run_dirc.joinpath('namelist.wps.template'))
+                    self.main_run_dirc.joinpath('namelist.wps.template_outer'))
+
+
+        #
+        shutil.copy(self.input_namelist_path,
+                    self.main_run_dirc.joinpath('namelist.input.template_outer'))
+
+        shutil.copy(self.wps_namelist_path,
+                    self.main_run_dirc.joinpath('namelist.wps.template_outer'))
+
+
 
         # Copy METGRID
         shutil.copy(self.met_exe_dirc.joinpath('metgrid.exe'),
@@ -69,44 +82,34 @@ class RunNDown(RunWPS):
         shutil.copytree(self.cwd.joinpath('user_config'),
                         self.main_run_dirc.joinpath('user_config'))
 
+        '''
+        Copy the d01 (parent grid) WRF files to a safe place
+        '''
 
-        # LinkWRFiles
-        """
-        Link the appropriate files from the parent wrf directory.
-        These include...
-        1) wrfout_d01 files
-        """
+        # Find the correct WRF files
+        wfl, rl = self.expected_wrf_files(1, self.start_date, self.end_date)
+        wfl_full_path = [self.ndown_wrf_parent_files.joinpath(x) for x in wfl]
 
-        # 1) Gather the correct wrfout files
-        date_range = pd.date_range(self.start_date, self.end_date, freq='1D')
-        date_range = date_range.strftime("%Y-%m-%d_%H:00:00")
-        for d in range(self.num_wrf_dom):
-            for date in date_range:
-                wrf_name = self.output_format.format(d+1, date)
-                wrf_file_list.append(wrf_name)
-
-        # DO THE GATHERING HERE
-
-
-        # Create the metgrid files
+        # Link the files
+        for src in wfl_full_path:
+            name = src.name
+            dst = self.ndown_run_directory.joinpath(name)
+            print('%s --> %s'%(src,dst))
+            #os.symlink(src, dst)
 
 
     def RunGeogrid(self):
         """Summary
         """
 
-        pass
 
     def RunMetgrid(self):
         """Summary
         """
-
         RunWPS._prepare_metgrid(self.logger,
                                 self.met_run_dirc,
                                 self.ungrib_run_dirc,
                                 self.geo_run_dirc)
-
-
 
 
     def CreateWRFBdyFiles(self):

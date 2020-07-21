@@ -25,7 +25,8 @@ class RunWPS(SetMeUp):
         self.patch()
 
 
-    def patch(self, **kwargs):
+    @property
+    def wps_patch(self):
         '''
         Create the dictionary with the right terms for updating the wps
         namelist files.
@@ -33,7 +34,7 @@ class RunWPS(SetMeUp):
         :type       kwargs:  dictionary
         :param      kwargs:  The keywords arguments
         '''
-        self.logger.info('Calling wps.patch()')
+
         # Get the start/end dates in the right format for WPS namelist
         wps_start_date = self.start_date.strftime(self.time_format)
         wps_end_date = self.end_date.strftime(self.time_format)
@@ -43,8 +44,8 @@ class RunWPS(SetMeUp):
         end_date_rep = acc.RepN(wps_end_date, self.num_wrf_dom)
 
         # WPS patch object
-        self.wps_patch = {
-                          "geogrid": {
+        wps_patch = {
+                      "geogrid": {
                              "opt_geogrid_tbl_path": str(self.geo_exe_dirc),
                              "geog_data_path": str(self.geog_data_path)},
                           "metgrid": {
@@ -55,8 +56,10 @@ class RunWPS(SetMeUp):
                              "start_date": start_date_rep,
                              "end_date": end_date_rep}
                             }
+        return wps_patch
 
-    def writeNamelist(self, directory, remove_quotes=False):
+
+    def writeWpsNamelist(self, directory, remove_quotes=False):
         """
         Write the WPS namelist into the given directory
         () Adjust parameters in the namelist.wps template script
@@ -98,7 +101,7 @@ class RunWPS(SetMeUp):
         self.logger.info('updated/wrote {}'.format(namelist_wps))
         self.wrote = True
 
-    @acc.timer
+
     def geogrid(self, **kwargs):
         '''
         kwargs options: 1) 'queue' 2) 'queue_params' 3) 'submit_script'
@@ -144,7 +147,7 @@ class RunWPS(SetMeUp):
         acc.WriteSubmit(qp, replacedata, str(submit_script))
 
         #  Adjust parameters in the namelist.wps template script
-        self.writeNamelist(self.geo_run_dirc)
+        self.writeWpsNamelist(self.geo_run_dirc)
 
         # () Job Submission
         # Navigate to the run directory
@@ -163,16 +166,8 @@ class RunWPS(SetMeUp):
             logger.error("check {}".format(self.geo_run_dirc))
             sys.exit()
 
-    # @acc.timer
-    # def new_ungrib(self):
-    #     logger = logging.getLogger(__name__)
-    #     logger.info('entering Ungrib process in directory')
-    #     logger.info('WRF Version {}'.format(self.wrf_version))
 
-    #     # read the ungrub config file
-    #     with open(self.)
 
-    @acc.timer
     def ungrib(self, **kwargs):
         '''
         Run the ungrib.exe program
@@ -226,7 +221,7 @@ class RunWPS(SetMeUp):
                        }
 
         # Write the namelist.wps
-        self.writeNamelist(self.ungrib_run_dirc)
+        self.writeWpsNamelist(self.ungrib_run_dirc)
 
         # (XXX/NNN)Symlink the vtables (check WRF-Version)
         # Different versions of WRF have differnt Vtables even for the same LBC
@@ -346,7 +341,7 @@ class RunWPS(SetMeUp):
         self.wps_patch['ungrib']['prefix'] = "SFLUX"
 
         # Patch the file, rewriting the old one
-        self.writeNamelist(self.ungrib_run_dirc)
+        self.writeWpsNamelist(self.ungrib_run_dirc)
 
         # Link SFLXF files
         os.chdir(self.ungrib_run_dirc)
@@ -459,7 +454,7 @@ class RunWPS(SetMeUp):
 
         # Adjust parameters in the namelist.wps template script
         # ----------------------------------------------------
-        self.writeNamelist(self.met_run_dirc)
+        self.writeWpsNamelist(self.met_run_dirc)
 
         # Submit the job and wait for completion
         # --------------------------------------
@@ -476,7 +471,7 @@ class RunWPS(SetMeUp):
             logger.error("check {}".format(self.met_run_dirc))
             sys.exit()
 
-    @acc.timer
+
     def dataDownload(self):
         "DESCRIPTION"
 

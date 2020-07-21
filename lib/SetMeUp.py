@@ -5,8 +5,7 @@ import logging
 import yaml
 from pathlib import Path
 import pandas as pd
-#import f90nml  # must be installed via pip
-
+import f90nml  # must be installed via pip
 
 
 class SetMeUp:
@@ -16,9 +15,10 @@ class SetMeUp:
 
     # These are completely static parameters that do not depend on config options
     time_format = "%Y-%m-%d_%H:%M:%S"
-    output_format = "wrfout_d0{}_{}"
+    # I/O and intermediate file formats
+    wrf_format = "wrfout_d0{}_{}"
+    met_format = 'met_em.d0{}.{}-{}-{}_{}:00:00.nc'   # domain, year, month, day, hour
     logger = logging.getLogger(__name__)
-
 
     def __init__(self, main, update=None):
         """
@@ -45,7 +45,6 @@ class SetMeUp:
                 # Join the main yml file with contents from the includes files
                 yamlfile.update(include_file,
                                 Loader=yaml.FullLoader)
-
 
         # Now apply some logic to read in the correct config information based
         _template_request = yamlfile.get('jobtemplate')  # the requested template
@@ -80,12 +79,10 @@ class SetMeUp:
         ungrib_template = ungrib_template.get('wrf_version')
         self.ungrib_template = ungrib_template.get(self.wrf_version)
 
-
         # Env. file should contain all appropriate module loads necessary
         # to run the wrf/real/geo... etc. executable files.
         self.cwd = Path(os.getcwd())
         self.environment_file = self.cwd.joinpath(yamlfile['environment'])
-
 
         # Find/Parse the namelist files using f90nml
         # !!!!! DANGER !!!!!
@@ -108,13 +105,14 @@ class SetMeUp:
         self.met_exe_dirc = self.wps_exe_dirc.joinpath('metgrid')
         self.ungrib_exe_dirc = self.wps_exe_dirc.joinpath('ungrib')
 
-
         # ---- Locations for the Run Directory -----
         self.main_run_dirc = Path(yamlfile['scratch_space'])
-        self.restart = yamlfile['restart'] # should be true or false
+        self.restart = yamlfile['restart']  # should be true or false
 
         # Fetch dates for start and end dates
         self.run_date = yamlfile['run_date']
+        self.start_date_string = self.run_date['start_date']
+        self.end_date_string = self.run_date['end_date']
 
         # Get wrf_run_options
         self.wrf_run_options = yamlfile['wrf_run_options']
@@ -124,17 +122,17 @@ class SetMeUp:
 
         self.storage_space = Path(yamlfile['storage_space'])
 
-
         # Other RunTime Options Below Here
         # --------------------------------
+        # The options can be in both the 'job template' and the setup script... so we join them both.
 
-        ndown_options = yamlfile['ndown_options']
-        self.ndown_options = Path(ndown_options['parent_wrf_run'])
+        self.ndown_options = self.jobtemplate['ndown_options']
+        self.ndown_options.update(yamlfile['ndown_options'])
 
-        hydro_options = yamlfile['hydro_options']
-        self.hydro_options = Path(hydro_options['wrf_hydro_basin_files'])
+        self.hydro_cpl_options = self.jobtemplate['hydro_cpl_options']
+        self.hydro_cpl_options.update(yamlfile['hydro_cpl_options'])
 
-    def __updater(self, **kwargs):
+    def updater(self, **kwargs):
         """
         Update any of the self.attrs given a new key:value pair.
         Args:
@@ -144,8 +142,11 @@ class SetMeUp:
         for attr in non_special_attrs:
             if attr in list(kwargs.keys()):
                 new_value = kwargs[attr]
-                logger.info('updating %s...', attr)
-                logger.info('%s --> %s'%(self.attr, new_value))
+                # self.logger.info('updating %s...', attr)
+                # self.logger.info('%s --> %s'%(attr, new_value))
+                print(attr, new_value)
+                if type(new_value) != type(attr):
+                    raise TypeError
                 setattr(self, attr, new_value)
 
 
@@ -155,14 +156,16 @@ class SetMeUp:
     other attrs in 'self'
     '''
 
+    # !!!THESE PROPERTIES GET SPECIAL SETTER HANDLERS!!!
     @property
     def start_date(self):
-        return pd.to_datetime(self.run_date['start_date'])
+        return pd.to_datetime(self.start_date_string)
 
     @property
     def end_date(self):
-        return pd.to_datetime(self.run_date['end_date'])
+        return pd.to_datetime(self.end_date_string)
 
+    # !!! THESE DO NOT. Just update the parent parameter to change them !!!!
     @property
     def wrf_run_dirc(self):
         return self.main_run_dirc.joinpath('wrf')
@@ -221,15 +224,19 @@ class SetMeUp:
     # --------------------------
     @property
     def ndown_wrf_parent_files(self):
-        return self.ndown_options['parent_wrf_run'].joinpath('wrf')
+        return Path(self.ndown_options['parent_wrf_run']).joinpath('wrf')
 
     @property
-    def ndown_ungrib_files(self):
-        return self.ndown_options['parent_wrf_run'].joinpath('wps', 'ungrib')
+    def ndown_ungrib_parent_files(self):
+        return Path(self.ndown_options['parent_wrf_run']).joinpath('wps', 'ungrib')
+
+    @property
+    def ndown_run_directory(self):
+        return self.main_run_dirc.joinpath('ndown')
 
     @property
     def wrf_hydro_basin_files(self):
-        return self.hydro_options['wrf_hydro_basin_files']
+        return self.hydro_cpl_options['wrf_hydro_basin_files']
 
 
 
