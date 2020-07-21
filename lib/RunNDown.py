@@ -10,47 +10,14 @@ import secrets
 import f90nml   # this must be installed via pip ... ugh
 
 
-class RunNDown(SetMeUp):
+class RunNDown(RunWPS):
     """
-    This class describes run wps.
+    We get to use all of the RunWPS functions in addition to the RunWRF Funtcions!!
     """
 
-    def __init__(self, setup, update=None):
-        '''
-        Inherit methods/stuff from SetMeUp (read from main.yml)
-        :type       setup:   { type_description }
-        :param      setup:   The setup
-        :type       kwargs:  dictionary
-        :param      kwargs:  The keywords arguments
-        '''
-        # Get stuff from the SetMeUp __init__
-        super(self.__class__, self).__init__(setup)
-        self.logger = logging.getLogger(__name__)
-        self.logger.info('initialized RunWPS instance')
-
-        # Read in OPTIONAL kwargs
-        #self.start_date = acc.DateParser(kwargs.get('start_date',
-        #                                            self.start_date))
-        #self.end_date = acc.DateParser(kwargs.get('end_date',
-        #                              self.end_date))
-
-        # check if there is an 'update' to pass into runwps
-        if update:
-            self._SetMeUp__update(**update)
-
-        # Internal flags
-        # Process Completed
+    def start(self):
         self.logger.info('Main Run Directory: {}'.format(self.wrf_run_dirc))
 
-        # Check that the wrfout files specified in the setup file
-        # match the outer grid dimensions in the namelist file...
-        self.ndown_run_dirc_wps = self.main_run_dirc.joinpath('ndown_wps')
-        self.ndown_run_dirc_wrf = self.main_run_dirc.joinpath('ndown_wrf')
-
-        # get the wrf parent grid...
-        self.parent_grid_wrf = Path(self.yamlfile['parent_grid_wrf'])
-
-        # do some tests ...
 
     def _ndown_pre_checks(self):
         assert self.parent_grid_wrf.is_directory(), 'Parent wrf directory not found. Exit'
@@ -60,11 +27,86 @@ class RunNDown(SetMeUp):
         #for wf in wrf_files.glob('wrfout_d01*'):
             # make sure they are all there...
 
+    def createRunDirectory(self):
+        # copy contents of the 'WRFVX/run' directory to the main run dir
+        self.main_run_dirc.mkdir(parents=True, exist_ok=True)
 
-    def LinkFiles(self, **kwargs):
+        # Self.wrf_run_dirc.mkdir()
+        shutil.copytree(self.wrf_exe_dirc.joinpath('run'),
+                        self.wrf_run_dirc, symlinks=True)
+
+        # get geogrid
+        self.wps_run_dirc.mkdir()
+        self.geo_run_dirc.mkdir()
+        self.met_run_dirc.mkdir()
+
+        # NO NEED TO DOWNLOAD DATA AGAIN OR RUN UNGRIB
+
+
+        # NAMELIST.INPUT
+        shutil.copy(self.input_namelist_path,
+                    self.main_run_dirc.joinpath('namelist.input.template'))
+        shutil.copy(self.wps_namelist_path,
+                    self.main_run_dirc.joinpath('namelist.wps.template'))
+
+        # Copy METGRID
+        shutil.copy(self.met_exe_dirc.joinpath('metgrid.exe'),
+                    self.met_run_dirc)
+        shutil.copy(self.met_exe_dirc.joinpath('METGRID.TBL'),
+                    self.met_run_dirc)
+
+        # Copy geogrid files
+        shutil.copy(self.geo_exe_dirc.joinpath('geogrid.exe'),
+                    self.geo_run_dirc)
+        shutil.copy(self.geo_exe_dirc.joinpath('GEOGRID.TBL'),
+                    self.geo_run_dirc)
+
+        # Copy the environment file
+        shutil.copy(self.environment_file,
+                    self.main_run_dirc)
+
+        # Copy the configure scripts  ### !!!! DANGER !!!! cwd #####
+        shutil.copytree(self.cwd.joinpath('user_config'),
+                        self.main_run_dirc.joinpath('user_config'))
+
+
+        # LinkWRFiles
         """
-        Link the appropriate files from the parent wrf directory
+        Link the appropriate files from the parent wrf directory.
+        These include...
+        1) wrfout_d01 files
         """
+
+        # 1) Gather the correct wrfout files
+        date_range = pd.date_range(self.start_date, self.end_date, freq='1D')
+        date_range = date_range.strftime("%Y-%m-%d_%H:00:00")
+        for d in range(self.num_wrf_dom):
+            for date in date_range:
+                wrf_name = self.output_format.format(d+1, date)
+                wrf_file_list.append(wrf_name)
+
+        # DO THE GATHERING HERE
+
+
+        # Create the metgrid files
+
+
+    def RunGeogrid(self):
+        """Summary
+        """
+
+        pass
+
+    def RunMetgrid(self):
+        """Summary
+        """
+
+        RunWPS._prepare_metgrid(self.logger,
+                                self.met_run_dirc,
+                                self.ungrib_run_dirc,
+                                self.geo_run_dirc)
+
+
 
 
     def CreateWRFBdyFiles(self):
