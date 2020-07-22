@@ -6,6 +6,8 @@ import traceback
 import logging
 import threading
 import f90nml
+import os
+
 
 logger = logging.getLogger(__name__)
 
@@ -478,6 +480,28 @@ def RemoveQuotes(filepathR, filepathW):
         with open(filepathW, 'w') as write_data:
             d = read_data.read()
             write_data.write(d.replace("'", ""))
+
+def PatchInPlace(namelist, patch, remove_quotes=True):
+    """ Use the f90nml patch to modify a namelist 'inplace'.
+
+    Parameters
+    ----------
+    namelist : pathlib.path
+        Description
+    patch : TYPE
+        Description
+    """
+    # create a temporary file for the namelist
+    tmp_namelist = namelist.with_suffix(namelist.suffix + '.tmp')
+    namelist.rename(tmp_namelist)
+
+    # apply the patch
+    f90nml.patch(tmp_namelist, patch, namelist)
+
+    # remove the tmp namelist
+    os.remove(tmp_namelist)
+
+
 
 def test_logger():
     print('printing')

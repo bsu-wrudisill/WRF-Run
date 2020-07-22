@@ -121,7 +121,6 @@ class RunWPS(SetMeUp):
                                    )
 
         # update state -- geogrid has been attempted
-        self.ran_geogrid = True
 
         unique_name = "g_{}".format(secrets.token_hex(2))
         geogrid_log = self.geo_run_dirc.joinpath('geogrid.log')

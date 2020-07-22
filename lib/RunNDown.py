@@ -9,7 +9,7 @@ from RunWPS import RunWPS
 from RunWRF import RunWRF
 import secrets
 import f90nml   # this must be installed via pip ... ugh
-
+import shutil
 
 class RunNDown(RunWPS, RunWRF):
     """
@@ -42,9 +42,6 @@ class RunNDown(RunWPS, RunWRF):
         self.met_run_dirc.mkdir()
         self.ndown_run_directory.mkdir()
 
-        # NO NEED TO DOWNLOAD DATA AGAIN OR RUN UNGRIB
-
-
         # NAMELIST.INPUT
         shutil.copy(self.input_namelist_path,
                     self.main_run_dirc.joinpath('namelist.input.template_outer'))
@@ -52,14 +49,11 @@ class RunNDown(RunWPS, RunWRF):
         shutil.copy(self.wps_namelist_path,
                     self.main_run_dirc.joinpath('namelist.wps.template_outer'))
 
-
-        #
         shutil.copy(self.input_namelist_path,
-                    self.main_run_dirc.joinpath('namelist.input.template_outer'))
+                    self.main_run_dirc.joinpath('namelist.input.template_inner'))
 
         shutil.copy(self.wps_namelist_path,
-                    self.main_run_dirc.joinpath('namelist.wps.template_outer'))
-
+                    self.main_run_dirc.joinpath('namelist.wps.template_inner'))
 
 
         # Copy METGRID
@@ -85,7 +79,6 @@ class RunNDown(RunWPS, RunWRF):
         '''
         Copy the d01 (parent grid) WRF files to a safe place
         '''
-
         # Find the correct WRF files
         wfl, rl = self.expected_wrf_files(1, self.start_date, self.end_date)
         wfl_full_path = [self.ndown_wrf_parent_files.joinpath(x) for x in wfl]
@@ -94,35 +87,251 @@ class RunNDown(RunWPS, RunWRF):
         for src in wfl_full_path:
             name = src.name
             dst = self.ndown_run_directory.joinpath(name)
-            print('%s --> %s'%(src,dst))
-            #os.symlink(src, dst)
+            print('%s --> %s' % (src, dst))
+            # os.symlink(src, dst)
+
+    '''
+    def geogrid(): ....
+
+        doesn't need to do anyhing different than RunWPS.geogrid !!
 
 
-    def RunGeogrid(self):
-        """Summary
-        """
 
+    def metgrid(): ....
 
-    def RunMetgrid(self):
-        """Summary
-        """
-        RunWPS._prepare_metgrid(self.logger,
-                                self.met_run_dirc,
-                                self.ungrib_run_dirc,
-                                self.geo_run_dirc)
+        same! we can simply call the metgrid function defined in RunWPS
 
+    '''
 
-    def CreateWRFBdyFiles(self):
+    def _ndown(self, directory):
         """Summary
         1) Run real.exe to create wrfinput files
         2) Run ndown.exe to create LBC conditions (wrfbdy files)
            Do this in 'one fell swoop' for all LBC files...
         """
 
+        self.logger.info('starting ndown')
 
-    def RunSingleDomain(self):
-        """Summary
-        """
+        # 0/xxx Check that a namelist exists (does not update namelists)
+        namelist = directory.joinpath('namelist.input')
+        if namelist.is_file():
+            self.logger.info('Found {}. Continuing'.format(namelist))
+        else:
+            self.logger.error('No namelist.input found in {}'.format(
+                namelist.parent()))
+            self.logger.error('Exit.')
+            raise FileNotFoundError
+
+        # Check for wrfbdy_d01 and wrfndi_d02 ??
+        ndi_file = directory.joinpath('wrfndi_d02')
+        if ndi_file.is_file():
+            self.logger.info('Found {}. Continuing'.format(ndi_file))
+        else:
+            raise FileNotFoundError
+
+        # 1/xxx Gather/create parameters
+        queue = self.queue
+        qp = self.queue_params.get('real')  # NOT AN ERROR. Just use the real params for now
+
+        # create random name for the queue
+        unique_name = "n_{}".format(secrets.token_hex(2))
+        success_message = "ndown_em: SUCCESS COMPLETE NDOWN_EM INIT"
+        ndown_log = directory.joinpath('rsl.out.0000')
+
+        # 2/xxx Create the REAL job submission script
+        submit_script = directory.joinpath('submit_ndown.sh')
+
+        # Form the command
+        lines = ["source %s" % self.environment_file,
+                 "cd %s" % directory,
+                 "./ndown.exe &> real.catch"]
+
+        command = "\n".join(lines)  # create a single string separated by space
+
+        # create the run script based on the type of job scheduler system
+        replacedata = {"QUEUE": queue,
+                       "JOBNAME": unique_name,
+                       "LOGNAME": "ndown",
+                       "CMD": command,
+                       "RUNDIR": str(directory)
+                       }
+
+        # write the submit script
+        acc.WriteSubmit(qp, replacedata, submit_script)
+
+        # 3/xxx Submit the Job and wait for completion
+        jobid, error = acc.Submit(submit_script, self.scheduler)
+
+        # wait for the job to complete
+        acc.WaitForJob(jobid, self.user, self.scheduler)
+
+        # 4/xxx check that the job completed correctly
+        success, status = acc.log_check(ndown_log,
+                                        success_message,
+                                        logger=self.logger)
+        if success:
+            return True
+
+        if not success:
+            self.logger.error('ndown.exe did not finish successfully.\nExiting')
+            self.logger.error('check {}/rsl.error* for details...')
+            self.logger.error(directory)
+            return False
+        # Link the appropraite WRF files
+
+    def WRF_Ndown_TimePeriod(self):
+        '''
+        Run WRF and Real for specified intervals
+        '''
+
+        open_message = '****Starting Real/Ndown/WRF Chunk ({}/{})****'
+
+        # Number of chunks
+        num_chunks = len(self.chunk_tracker)
+        for num, chunk in enumerate(self.chunk_tracker):
+            self.logger.info(open_message.format(num, num_chunks))
+            self.logger.info(self.wrf_run_dirc)
+            self.logger.info('restart={}'.format(chunk['restart']))
+            # restart interval is always the chunk length
+            restartinterval = str(chunk['run_hours'] * 60)
+            if chunk['run_hours'] < 24:
+                framesperout = chunk['run_hours']
+                framesperaux = str(24)
+            # is this sufficient logic? I think so...
+            else:
+                framesperout = str(24)
+                framesperaux = str(24)
+
+            walltime_request = str(chunk['walltime_request'])
+            n = self.num_wrf_dom
+            # TODO: create a chunk class where the strings formatting
+            # is a method.. This is Gnar...
+            # update starting dates
+
+            def input_patch(n):
+                input_patch = {"time_control":
+                               {"run_days": 0,
+                                "run_hours": chunk['run_hours'],
+                                "start_year": acc.RepN(chunk['start_date'].strftime('%Y'), n),
+                                "start_month": acc.RepN(chunk['start_date'].strftime('%m'), n),
+                                "start_day": acc.RepN(chunk['start_date'].strftime('%d'), n),
+                                "start_hour": acc.RepN(chunk['start_date'].strftime('%H'), n),
+                                "end_year": acc.RepN(chunk['end_date'].strftime('%Y'), n),
+                                "end_month": acc.RepN(chunk['end_date'].strftime('%m'), n),
+                                "end_day": acc.RepN(chunk['end_date'].strftime('%d'), n),
+                                "end_hour": acc.RepN(chunk['end_date'].strftime('%H'), n),
+                                "frames_per_outfile": acc.RepN(framesperout, n),
+                                "restart": chunk['restart'],
+                                "restart_interval": acc.RepN(restartinterval, 1),
+                                "frames_per_auxhist3": acc.RepN(framesperaux, n)}
+                               }
+                return input_patch
+
+
+            # Write the namelists.input...
+            mrd = self.main_run_dirc
+            wrd = self.wrf_run_dirc
+            nrd = self.ndown_run_directory
+
+            '''
+            PART 1:
+            Run real + ndown to generatre the wrfbdy and wrfinput files in the ndown directory
+            '''
+
+            template_namelist_input = mrd.joinpath('namelist.input.template_outer')
+            namelist_input_quotes = nrd.joinpath('namelist.input.quotes')
+            namelist_input = nrd.joinpath('namelist.input')
+
+            # Write out namelist files
+            # there does not seem to be a way to write double padded
+            # integers using f90nml, which is why we do this ....
+            f90nml.patch(template_namelist_input,
+                         input_patch(n),
+                         namelist_input_quotes)
+
+            # And... remove all of the quotes.
+            acc.RemoveQuotes(namelist_input_quotes,
+                             namelist_input)
+
+            #! Run Real !
+            real_success = self._real(nrd)
+            if not real_success:  # real worked (or at least returned True)
+                self.logger.error('Real failed for chunk {}'.format(num))
+                self.logger.error('Check rsl* logs in {}'.format(nrd))
+                sys.exit()
+            else:
+                self.logger.info("Real Success for chunk {}".format(num))
+
+            #! Run Ndown !
+
+            # link/rename the wrf_input_d02 file
+            src = nrd.joinpath('wrfinput_d02')
+            dst = nrd.joinpath('wrfndi_d02')
+            self.logger.info('%s --> %s'%(src,dst))
+            os.symlink(src, dst)
+
+            # Add the auxinput line to the namelist
+            patch = {"time_control": {"io_form_auxinput2": 2}}
+            acc.PatchInPlace(namelist_input, patch)
+
+            # run ndown
+            ndown_success = self._ndown(nrd)
+            if not ndown_success:  # real worked (or at least returned True)
+                self.logger.error('nddown failed for chunk {}'.format(num))
+                self.logger.error('Check rsl* logs in {}'.format(nrd))
+                sys.exit()
+            else:
+                self.logger.info("ndown Success for chunk {}".format(num))
+
+            '''
+            PART 2:
+            Link the appropriate files, namelists, and run WRF
+            '''
+
+            # Link over the wrfbdy files from the ndown directory...
+            src_wrfbdy = nrd.joinpath('wrfbdy_d02')
+            dst_wrfbdy = wrd.joinpath('wrfbdy_d01')
+            src_wrfinput = nrd.joinpath('wrfinput_d02')
+            dst_wrfinput = wrd.joinpath('wrfinput_d01')
+
+            # unlink files if they exist...
+            if dst_wrfbdy.is_symlink():
+                dst.unlink()
+
+            if dst_wrfinput.is_symlink():
+                dst.unlink()
+
+            # link the correct files
+            os.symlink(src_wrfbdy, dst_wrfbdy)
+            os.symlink(src_wrfinput, dst_wrfinput)
+
+            # Link the namelist file
+            template_namelist_input = mrd.joinpath('namelist.input.template_inner')
+            namelist_input_quotes = wrd.joinpath('namelist.input.template_inner.quotes')
+            namelist_input = wrd.joinpath('namelist.input')
+
+            # Write out namelist files
+            # there does not seem to be a way to write double padded
+            # integers using f90nml, which is why we do this ....
+            f90nml.patch(template_namelist_input,
+                         input_patch(1),
+                         namelist_input_quotes)
+
+            # And... remove all of the quotes.
+            acc.RemoveQuotes(namelist_input_quotes,
+                             namelist_input)
+
+
+            # !Run WRF!
+            wrf_success = self._wrf(walltime_request)
+            if not wrf_success:
+                self.logger.error('WRF failed for chunk {}'.format(num))
+                self.logger.error('Check rsl* logs in {}'.format(wrd))
+                sys.exit()
+            else:
+                self.logger.info("WRF Success for chunk {}".format(num))
+                # now clean up the WRF files ....
+                self.clean_wrf_directory()
 
 
 

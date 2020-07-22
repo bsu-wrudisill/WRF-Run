@@ -18,7 +18,6 @@ class RunWRF(SetMeUp):
         self.logger.info('Entering RunWRF')
 
         # Start doing things...
-        self.RunDivide()
         self.logger.info('Main Run Directory: {}'.format(self.wrf_run_dirc))
 
         # Log things
@@ -234,7 +233,7 @@ class RunWRF(SetMeUp):
         else:
             self.logger.info('No restart files are requested')
 
-    def _real(self):
+    def _real(self, directory):
         """
         Runs real.exe. Does NOT create the appropriate namelist file for the
         run. This is to be done elsewhere. It does write out a submission
@@ -246,7 +245,7 @@ class RunWRF(SetMeUp):
         self.logger.info('starting real')
 
         # 0/xxx Check that a namelist exists (does not update namelists)
-        namelist = self.wrf_run_dirc.joinpath('namelist.input')
+        namelist = directory.joinpath('namelist.input')
         if namelist.is_file():
             self.logger.info('Found {}. Continuing'.format(namelist))
         else:
@@ -262,14 +261,14 @@ class RunWRF(SetMeUp):
         # create random name for the queue
         unique_name = "r_{}".format(secrets.token_hex(2))
         success_message = "real_em: SUCCESS COMPLETE REAL_EM INIT"
-        real_log = self.wrf_run_dirc.joinpath('rsl.out.0000')
+        real_log = directory.joinpath('rsl.out.0000')
 
         # 2/xxx Create the REAL job submission script
-        submit_script = self.wrf_run_dirc.joinpath('submit_real.sh')
+        submit_script = directory.joinpath('submit_real.sh')
 
         # Form the command
         lines = ["source %s" % self.environment_file,
-                 "cd %s" % self.wrf_run_dirc,
+                 "cd %s" % directory,
                  "./real.exe &> real.catch"]
 
         command = "\n".join(lines)  # create a single string separated by space
@@ -279,7 +278,7 @@ class RunWRF(SetMeUp):
                        "JOBNAME": unique_name,
                        "LOGNAME": "real",
                        "CMD": command,
-                       "RUNDIR": str(self.wrf_run_dirc)
+                       "RUNDIR": str(directory)
                        }
         # write the submit script
         acc.WriteSubmit(qp, replacedata, submit_script)
@@ -299,7 +298,7 @@ class RunWRF(SetMeUp):
         if not success:
             self.logger.error('Real.exe did not finish successfully.\nExiting')
             self.logger.error('check {}/rsl.error* for details...')
-            self.logger.error(self.wrf_run_dirc)
+            self.logger.error(directory)
             return False
 
     def _wrf(self, walltime_request):

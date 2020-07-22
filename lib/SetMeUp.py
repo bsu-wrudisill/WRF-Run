@@ -46,7 +46,9 @@ class SetMeUp:
                 yamlfile.update(include_file,
                                 Loader=yaml.FullLoader)
 
-        # Now apply some logic to read in the correct config information based
+        self.yamlfile = yamlfile
+
+        # Now apply some loggeic to read in the correct config information based
         _template_request = yamlfile.get('jobtemplate')  # the requested template
         _templates_config = yamlfile.get('JobTemplates')  # dic of avail templates
 
@@ -126,11 +128,7 @@ class SetMeUp:
         # --------------------------------
         # The options can be in both the 'job template' and the setup script... so we join them both.
 
-        self.ndown_options = self.jobtemplate['ndown_options']
-        self.ndown_options.update(yamlfile['ndown_options'])
 
-        self.hydro_cpl_options = self.jobtemplate['hydro_cpl_options']
-        self.hydro_cpl_options.update(yamlfile['hydro_cpl_options'])
 
     def updater(self, **kwargs):
         """
@@ -148,6 +146,20 @@ class SetMeUp:
                 if type(new_value) != type(attr):
                     raise TypeError
                 setattr(self, attr, new_value)
+
+    '''
+    Class Methods
+    '''
+
+    def use_ndown(self):
+        self.ndown_flag = True
+        self.ndown_options = self.jobtemplate['ndown_options']
+        self.ndown_options.update(self.yamlfile['ndown_options'])
+
+    def use_hydro(self):
+        self.hydro_flag = True
+        self.hydro_cpl_options = self.jobtemplate['hydro_cpl_options']
+        self.hydro_cpl_options.update(self.yamlfile['hydro_cpl_options'])
 
 
     '''
@@ -224,15 +236,38 @@ class SetMeUp:
     # --------------------------
     @property
     def ndown_wrf_parent_files(self):
-        return Path(self.ndown_options['parent_wrf_run']).joinpath('wrf')
+        if self.ndown_flag:
+            return Path(self.ndown_options['parent_wrf_run']).joinpath('wrf')
+        else:
+            return None
 
     @property
     def ndown_ungrib_parent_files(self):
-        return Path(self.ndown_options['parent_wrf_run']).joinpath('wps', 'ungrib')
+        if self.ndown_flag:
+            return Path(self.ndown_options['parent_wrf_run']).joinpath('wps', 'ungrib')
+        else:
+            return None
 
     @property
-    def ndown_run_directory(self):
-        return self.main_run_dirc.joinpath('ndown')
+    def ndown_run_dirc(self):
+        if self.ndown_flag:
+            return self.main_run_dirc.joinpath('ndown')
+        else:
+            return None
+
+    @property
+    def input_namelist_inner(self):
+        if self.ndown_flag:
+            return self.ndown_options['input_namelist_inner']
+        else:
+            return None
+
+    @property
+    def wps_namelist_inner(self):
+        if self.ndown_flag:
+            return self.ndown_options['wps_namelist_inner']
+        else:
+            return None
 
     @property
     def wrf_hydro_basin_files(self):
