@@ -29,22 +29,29 @@ import os
 cwd = pathlib.Path(os.getcwd())
 
 # suffix = datetime.datetime.now().strftime("%m-%d_%H%M%S")
-# logfile= 'test.log'
-# file_handler = logging.FileHandler(filename=logfile)
-# stdout_handler = logging.StreamHandler(sys.stdout)
-# logging.basicConfig(level=logging.INFO,
-# 		    format='%(asctime)s %(name)15s %(levelname)-8s %(message)s',
-# 		    datefmt='%a, %d %b %Y %H:%M:%S',
-# 		    handlers=[file_handler, stdout_handler]
-# 		    )
-# logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
-# logger.info('Begin Main Program WRF Run')
+logfile= 'test.log'
+file_handler = logging.FileHandler(filename=logfile)
+stdout_handler = logging.StreamHandler(sys.stdout)
+logging.basicConfig(level=logging.INFO,
+ 		    format='%(asctime)s %(name)15s %(levelname)-8s %(message)s',
+ 		    datefmt='%a, %d %b %Y %H:%M:%S',
+ 		    handlers=[file_handler, stdout_handler]
+ 		    )
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.info('Begin Main Program WRF Run')
 
 
 
 main = pathlib.Path('user_config/main.yml')
-setup = SetMeUp(main)
+
+ndown = RunNDown(main)
+ndown.start()
+#ndown.createRunDirectory()
+#ndown.geogrid()
+#ndown.metgrid()
+ndown.WRF_Ndown_TimePeriod()
+
 # Create Run Directorys and start run
 #--------------------------------------
 #

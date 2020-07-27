@@ -190,9 +190,6 @@ class SetMeUp:
     def geo_run_dirc(self):
         return self.wps_run_dirc.joinpath('geogrid')
 
-    @property
-    def ungrib_run_dirc(self):
-        return self.wps_run_dirc.joinpath('ungrib')
 
     @property
     def met_run_dirc(self):
@@ -231,6 +228,14 @@ class SetMeUp:
         else:
             return []
 
+    # SPECIAL CASE --- if ndown is called, we will use ungrib files from the parent run ungrib directory  
+    @property
+    def ungrib_run_dirc(self):
+        if self.ndown_flag:
+            return Path(self.ndown_options['parent_wrf_run']).joinpath('wps', 'ungrib')
+        else:
+            return self.wps_run_dirc.joinpath('ungrib')
+    
     # --------------------------
     # Special Options Below Here
     # --------------------------
@@ -258,14 +263,16 @@ class SetMeUp:
     @property
     def input_namelist_inner(self):
         if self.ndown_flag:
-            return self.ndown_options['input_namelist_inner']
+            nlist_dirc = self.cwd.joinpath('user_config', 'namelists') 
+            return nlist_dirc.joinpath(self.ndown_options['input_namelist_inner'])
         else:
             return None
 
     @property
     def wps_namelist_inner(self):
         if self.ndown_flag:
-            return self.ndown_options['wps_namelist_inner']
+            nlist_dirc = self.cwd.joinpath('user_config', 'namelists') 
+            return nlist_dirc.joinpath(self.ndown_options['wps_namelist_inner'])
         else:
             return None
 

@@ -11,8 +11,8 @@
 # ------------------
 # Run date (Dyanamic-- these are optional. Scripts can modify)
 run_date:
-        start_date : 2018-03-19
-        end_date : 2018-04-20
+        start_date : 2018-03-22
+        end_date : 2018-04-29
 lbc_type : cfsrv2              # one of cfsr, cfsrv2
 restart : False               # TRUE OR FALSE
 geo_em_file : None           # <<< NOT IMPLEMENTED >>>> If None, geogrid.exe will be run
@@ -34,8 +34,8 @@ wrf_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WRF-4.1.2/
 wps_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WPS-4.1/
 geog_data_path : /home/wrudisill/leaf/WRF/WPS_GEOG
 environment: envWRF_4.1.2_R2.sh
-scratch_space: /home/wrudisill/scratch/ndown_test
-storage_space: /home/wrudisill/scratch/ndown_test
+scratch_space: /home/wrudisill/WRF-Run/test2
+storage_space: /home/wrudisill/WRF-Run/test
 # this is the path where the output files will be moved.
 # in theory somewhere more permenant than scratch. If it
 # is the same as the scratch space, nothing will be moved.

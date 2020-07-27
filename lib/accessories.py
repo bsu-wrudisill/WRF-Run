@@ -17,6 +17,17 @@ class test_class:
         loggerx = logging.getLogger(__name__)
         loggerx.info('initialized RunWPS instance')
 
+def getFileSize(path, fmt='mb'):
+    if fmt not in ['mb', 'gb']:
+        raise NotImplementedError
+    if fmt == 'mb':
+        div = 1E6 
+    if fmt == 'gb':
+        div = 1E9
+    else:
+       return os.path.getsize(path) / div 
+         
+
 
 def passfail(func):
     """

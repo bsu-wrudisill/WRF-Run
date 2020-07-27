@@ -18,7 +18,8 @@ class RunNDown(RunWPS, RunWRF):
 
     def start(self):
         self.logger.info('Main Run Directory: {}'.format(self.wrf_run_dirc))
-
+        self.use_ndown()
+        #self.createRunDirectory()
 
     def _ndown_pre_checks(self):
         assert self.parent_grid_wrf.is_directory(), 'Parent wrf directory not found. Exit'
@@ -40,22 +41,26 @@ class RunNDown(RunWPS, RunWRF):
         self.wps_run_dirc.mkdir()
         self.geo_run_dirc.mkdir()
         self.met_run_dirc.mkdir()
-        self.ndown_run_directory.mkdir()
+        self.ndown_run_dirc.mkdir()
 
         # NAMELIST.INPUT
         shutil.copy(self.input_namelist_path,
-                    self.main_run_dirc.joinpath('namelist.input.template_outer'))
+                    self.main_run_dirc.joinpath('namelist.input.template'))
 
         shutil.copy(self.wps_namelist_path,
-                    self.main_run_dirc.joinpath('namelist.wps.template_outer'))
+                    self.main_run_dirc.joinpath('namelist.wps.template'))
 
-        shutil.copy(self.input_namelist_path,
+        shutil.copy(self.input_namelist_inner,
                     self.main_run_dirc.joinpath('namelist.input.template_inner'))
 
-        shutil.copy(self.wps_namelist_path,
-                    self.main_run_dirc.joinpath('namelist.wps.template_inner'))
-
-
+        #!!!  We actually do not need this !!!
+        #shutil.copy(self.wps_namelist_inner,
+        #            self.main_run_dirc.joinpath('namelist.wps.template_inner'))
+        
+        # Copy real.exe to the ndown directory 
+        shutil.copy(self.wrf_exe_dirc.joinpath('run', 'real.exe'), self.ndown_run_dirc)
+        shutil.copy(self.wrf_exe_dirc.joinpath('run', 'ndown.exe'), self.ndown_run_dirc)
+        
         # Copy METGRID
         shutil.copy(self.met_exe_dirc.joinpath('metgrid.exe'),
                     self.met_run_dirc)
@@ -86,9 +91,12 @@ class RunNDown(RunWPS, RunWRF):
         # Link the files
         for src in wfl_full_path:
             name = src.name
-            dst = self.ndown_run_directory.joinpath(name)
-            print('%s --> %s' % (src, dst))
-            # os.symlink(src, dst)
+            dst = self.ndown_run_dirc.joinpath(name)
+            self.logger.info('%s --> %s' % (src, dst))
+            os.symlink(src, dst)
+        
+        # Link the UNGRIB files from the parent domain 
+
 
     '''
     def geogrid(): ....
@@ -203,7 +211,7 @@ class RunNDown(RunWPS, RunWRF):
                 framesperaux = str(24)
 
             walltime_request = str(chunk['walltime_request'])
-            n = self.num_wrf_dom
+            
             # TODO: create a chunk class where the strings formatting
             # is a method.. This is Gnar...
             # update starting dates
@@ -223,7 +231,8 @@ class RunNDown(RunWPS, RunWRF):
                                 "frames_per_outfile": acc.RepN(framesperout, n),
                                 "restart": chunk['restart'],
                                 "restart_interval": acc.RepN(restartinterval, 1),
-                                "frames_per_auxhist3": acc.RepN(framesperaux, n)}
+                                "frames_per_auxhist3": acc.RepN(framesperaux, n),
+                                "io_form_auxinput2": 2}
                                }
                 return input_patch
 
@@ -231,14 +240,14 @@ class RunNDown(RunWPS, RunWRF):
             # Write the namelists.input...
             mrd = self.main_run_dirc
             wrd = self.wrf_run_dirc
-            nrd = self.ndown_run_directory
+            nrd = self.ndown_run_dirc
 
             '''
             PART 1:
             Run real + ndown to generatre the wrfbdy and wrfinput files in the ndown directory
             '''
 
-            template_namelist_input = mrd.joinpath('namelist.input.template_outer')
+            template_namelist_input = mrd.joinpath('namelist.input.template')
             namelist_input_quotes = nrd.joinpath('namelist.input.quotes')
             namelist_input = nrd.joinpath('namelist.input')
 
@@ -246,12 +255,20 @@ class RunNDown(RunWPS, RunWRF):
             # there does not seem to be a way to write double padded
             # integers using f90nml, which is why we do this ....
             f90nml.patch(template_namelist_input,
-                         input_patch(n),
+                         input_patch(self.num_wrf_dom),
                          namelist_input_quotes)
 
             # And... remove all of the quotes.
             acc.RemoveQuotes(namelist_input_quotes,
                              namelist_input)
+            
+            # Link the metgrid files ! 
+            self.logger.info('Creating symlink for metgrid...')
+            for met in self.met_run_dirc.glob("met_em*"):
+                dst = self.ndown_run_dirc.joinpath(met.name)
+                if dst.is_symlink():
+                    dst.unlink()
+                os.symlink(met, dst)
 
             #! Run Real !
             real_success = self._real(nrd)
@@ -271,8 +288,8 @@ class RunNDown(RunWPS, RunWRF):
             os.symlink(src, dst)
 
             # Add the auxinput line to the namelist
-            patch = {"time_control": {"io_form_auxinput2": 2}}
-            acc.PatchInPlace(namelist_input, patch)
+            #patch = {"time_control": {"io_form_auxinput2": 2}}
+            #acc.PatchInPlace(namelist_input, patch)
 
             # run ndown
             ndown_success = self._ndown(nrd)
@@ -297,7 +314,8 @@ class RunNDown(RunWPS, RunWRF):
             # unlink files if they exist...
             if dst_wrfbdy.is_symlink():
                 dst.unlink()
-
+            
+            # link the wrfinput file...
             if dst_wrfinput.is_symlink():
                 dst.unlink()
 
@@ -332,24 +350,6 @@ class RunNDown(RunWPS, RunWRF):
                 self.logger.info("WRF Success for chunk {}".format(num))
                 # now clean up the WRF files ....
                 self.clean_wrf_directory()
-
-
-
-    def UpdateNamelists(self, **kwargs):
-        """Summary
-
-        Args:
-            **kwargs: Description
-        """
-
-
-        # Change the interval_seconds in the time_control section to 3600
-        # i.e. -- 1hrly forcing from wrf
-
-        # Change the max_dom to 1
-
-
-        # Change hte .... (what else?)
 
 
 
