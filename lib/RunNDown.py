@@ -282,10 +282,10 @@ class RunNDown(RunWPS, RunWRF):
             #! Run Ndown !
 
             # link/rename the wrf_input_d02 file
-            src = nrd.joinpath('wrfinput_d02')
-            dst = nrd.joinpath('wrfndi_d02')
-            self.logger.info('%s --> %s'%(src,dst))
-            os.symlink(src, dst)
+            src_ndi = nrd.joinpath('wrfinput_d02')
+            dst_ndi  = nrd.joinpath('wrfndi_d02')
+            self.logger.info('%s --> %s'%(src_ndi,dst_ndi))
+            shutil.copyfile(src_ndi, dst_ndi)
 
             # Add the auxinput line to the namelist
             #patch = {"time_control": {"io_form_auxinput2": 2}}
@@ -308,20 +308,29 @@ class RunNDown(RunWPS, RunWRF):
             # Link over the wrfbdy files from the ndown directory...
             src_wrfbdy = nrd.joinpath('wrfbdy_d02')
             dst_wrfbdy = wrd.joinpath('wrfbdy_d01')
+            
             src_wrfinput = nrd.joinpath('wrfinput_d02')
             dst_wrfinput = wrd.joinpath('wrfinput_d01')
+            
+            src_wrflow = nrd.joinpath('wrflowinp_d02')
+            dst_wrflow = wrd.joinpath('wrflowinp_d01')
 
             # unlink files if they exist...
             if dst_wrfbdy.is_symlink():
-                dst.unlink()
+                dst_wrfbdy.unlink()
             
             # link the wrfinput file...
             if dst_wrfinput.is_symlink():
-                dst.unlink()
+                dst_wrfinput.unlink()
+            
+            # link the wrflow file...
+            if dst_wrflow.is_symlink():
+                dst_wrflow.unlink()
 
             # link the correct files
             os.symlink(src_wrfbdy, dst_wrfbdy)
             os.symlink(src_wrfinput, dst_wrfinput)
+            os.symlink(src_wrflow, dst_wrflow)
 
             # Link the namelist file
             template_namelist_input = mrd.joinpath('namelist.input.template_inner')
