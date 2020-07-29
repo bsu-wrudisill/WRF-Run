@@ -30,12 +30,13 @@ wrf_version : 4.1.2
 
 # Existing paths-- executable directories, LBCs (if they exist), geogrid file (if it exists), etc:
 restart_directory : /home/wrudisill/wrf_restarts
-wrf_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WRF-4.1.2/
+# wrf_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WRF-4.1.2/  # uncoupled 
+wrf_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WRF-4.1.2_WHCOUPLED/
 wps_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WPS-4.1/
 geog_data_path : /home/wrudisill/leaf/WRF/WPS_GEOG
 environment: envWRF_4.1.2_R2.sh
-scratch_space: /home/wrudisill/WRF-Run/test2
-storage_space: /home/wrudisill/WRF-Run/test
+scratch_space: /home/wrudisill/scratch/test_wwh_1
+storage_space: /home/wrudisill/scratch/test_wwh_1
 # this is the path where the output files will be moved.
 # in theory somewhere more permenant than scratch. If it
 # is the same as the scratch space, nothing will be moved.
@@ -63,4 +64,4 @@ ndown_options:
 
 # WRF-Hydro Coupling
 hydro_cpl_options:
-        wrf_hydro_basin_files: /home/wrudisill/scratch/spring_season_18/
+        wrf_hydro_basin_files: /home/wrudisill/leaf/WRF-WH-CoupledFiles/attempt_1/out_NED_fxpt_4_100
