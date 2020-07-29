@@ -187,18 +187,9 @@ JobTemplates:
           input_namelist: namelist.input.template.IDAHO
           wps_namelist: namelist.wps.template.IDAHO
 
-
-          hydro_cpl_options:
-              cpl: False
-
-          ndown_options:
-              input_namelist_inner: namelist.input.template.IDAHO_INNER
-              wps_namelist_inner: namelist.input.template.IDAHO_INNER
-
           wrf_run_options:
               chunk_size: 6               # (days). How long do we want the wrf run 'chunks' to be?
               wall_time_per_hour: .10     # (hours). wrftime/real world time
-
 
               #frames per auxhist?
               #restart interval?
@@ -235,6 +226,13 @@ JobTemplates:
                     "#SBATCH -o RUNDIR/slurm_LOGNAME.out"
                     ]
 
+          hydro_cpl_options:
+              hydro_namelist_template: hydro.namelist.template
+
+
+          ndown_options:
+              input_namelist_inner: namelist.input.template.IDAHO_INNER
+              wps_namelist_inner: namelist.input.template.IDAHO_INNER
      # --------------------------------------------------------------------------------------------------------------------
 
 

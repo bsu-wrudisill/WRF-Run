@@ -372,6 +372,11 @@ class RunWRF(SetMeUp):
             self.logger.error(self.wrf_run_dirc)
             return False
 
+    def _updateHydro(self):
+        pass
+
+
+
     def WRF_TimePeriod(self):
         '''
         Run WRF and Real for specified intervals
@@ -444,6 +449,28 @@ class RunWRF(SetMeUp):
                 sys.exit()
             else:
                 self.logger.info("Real Success for chunk {}".format(num))
+
+            # HYDRO PREP
+            # Prepare Hydro Namelist, if requried
+            if self.hydro_flag:
+                time_format = "%Y-%m-%d_%H:%M:%S"
+                hydro_restart = "HYDRO_RST.%s_DOMAIN1" % (chunk['start_date'].strftime(time_format))
+
+                """
+                Note that we are not using hte f90 nml package to do this...
+                """
+
+                if chunk['restart']:
+                    hydro_update = {"RESTART_FILE": "RESTART_FILE = \"%s\"" % hydro_restart}
+
+                else:
+                    hydro_update = {"RESTART_FILE": "!RESTART_FILE"}
+
+                # write the file...
+                acc.GenericWrite(self.hydro_namelist_file,
+                                 hydro_update,
+                                 wrd.joinpath('hydro.namelist'))
+            # END HYDRO
 
             # !Run WRF!
             wrf_success = self._wrf(walltime_request)

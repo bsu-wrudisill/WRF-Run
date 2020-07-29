@@ -56,11 +56,11 @@ class RunNDown(RunWPS, RunWRF):
         #!!!  We actually do not need this !!!
         #shutil.copy(self.wps_namelist_inner,
         #            self.main_run_dirc.joinpath('namelist.wps.template_inner'))
-        
-        # Copy real.exe to the ndown directory 
+
+        # Copy real.exe to the ndown directory
         shutil.copy(self.wrf_exe_dirc.joinpath('run', 'real.exe'), self.ndown_run_dirc)
         shutil.copy(self.wrf_exe_dirc.joinpath('run', 'ndown.exe'), self.ndown_run_dirc)
-        
+
         # Copy METGRID
         shutil.copy(self.met_exe_dirc.joinpath('metgrid.exe'),
                     self.met_run_dirc)
@@ -94,8 +94,32 @@ class RunNDown(RunWPS, RunWRF):
             dst = self.ndown_run_dirc.joinpath(name)
             self.logger.info('%s --> %s' % (src, dst))
             os.symlink(src, dst)
-        
-        # Link the UNGRIB files from the parent domain 
+
+
+        # if hydro flag is on....
+        if self.hydro_flag:
+            self.logger.info("WRF Hydro Coupling == True")
+
+            # Create folder for geog information
+            domain = self.main_run_dirc.joinpath("DOMAIN")
+            domain.mkdir()
+            for src_whf in self.wrf_hydro_basin_files.glob('*'):
+
+                dst_whf = domain.joinpath(src_whf.name)
+
+                if dst_whf.is_file():
+                    os.unlink(dst_whf)
+                self.logger.info("%s --> %s"%(src_whf,dst_whf))
+                os.symlink(src_wrf, dst_whf)
+
+            # Copy the hdyro.namelist file
+            dst_hydro_namelist = self.main_run_dirc.joinpath(self.hydro_namelist_file.name)
+            shutil.copy(self.hydro_namelist_file, dst_hydro_namelist)
+        else:
+            self.logger.info("WRF Hydro Coupling == False")
+
+
+
 
 
     '''
@@ -211,7 +235,7 @@ class RunNDown(RunWPS, RunWRF):
                 framesperaux = str(24)
 
             walltime_request = str(chunk['walltime_request'])
-            
+
             # TODO: create a chunk class where the strings formatting
             # is a method.. This is Gnar...
             # update starting dates
@@ -261,8 +285,8 @@ class RunNDown(RunWPS, RunWRF):
             # And... remove all of the quotes.
             acc.RemoveQuotes(namelist_input_quotes,
                              namelist_input)
-            
-            # Link the metgrid files ! 
+
+            # Link the metgrid files !
             self.logger.info('Creating symlink for metgrid...')
             for met in self.met_run_dirc.glob("met_em*"):
                 dst = self.ndown_run_dirc.joinpath(met.name)
@@ -308,21 +332,21 @@ class RunNDown(RunWPS, RunWRF):
             # Link over the wrfbdy files from the ndown directory...
             src_wrfbdy = nrd.joinpath('wrfbdy_d02')
             dst_wrfbdy = wrd.joinpath('wrfbdy_d01')
-            
+
             src_wrfinput = nrd.joinpath('wrfinput_d02')
             dst_wrfinput = wrd.joinpath('wrfinput_d01')
-            
+
             src_wrflow = nrd.joinpath('wrflowinp_d02')
             dst_wrflow = wrd.joinpath('wrflowinp_d01')
 
             # unlink files if they exist...
             if dst_wrfbdy.is_symlink():
                 dst_wrfbdy.unlink()
-            
+
             # link the wrfinput file...
             if dst_wrfinput.is_symlink():
                 dst_wrfinput.unlink()
-            
+
             # link the wrflow file...
             if dst_wrflow.is_symlink():
                 dst_wrflow.unlink()
@@ -347,6 +371,27 @@ class RunNDown(RunWPS, RunWRF):
             # And... remove all of the quotes.
             acc.RemoveQuotes(namelist_input_quotes,
                              namelist_input)
+
+
+            # !ADJUST THE HYDRO.NAMELIST FILE IF NEEDED !#
+            if self.hydro_flag:
+                time_format = "%Y-%m-%d_%H:%M:%S"
+                hydro_restart = "HYDRO_RST.%s_DOMAIN1"%(chunk['start_date'].strftime(time_format))
+
+                """
+                Note that we are not using hte f90 nml package to do this...
+                """
+
+                if chunk['restart']:
+                    hydro_update = {"RESTART_FILE": "RESTART_FILE = \"%s\"" % hydro_restart}
+
+                else:
+                    hydro_update = {"RESTART_FILE": "!RESTART_FILE"}
+
+                # write the file...
+                acc.GenericWrite(self.hydro_namelist_file)
+                                 hydro_update,
+                                 wrd.joinpath('hydro.namelist')
 
 
             # !Run WRF!

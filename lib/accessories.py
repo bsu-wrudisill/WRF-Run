@@ -21,12 +21,12 @@ def getFileSize(path, fmt='mb'):
     if fmt not in ['mb', 'gb']:
         raise NotImplementedError
     if fmt == 'mb':
-        div = 1E6 
+        div = 1E6
     if fmt == 'gb':
         div = 1E9
     else:
-       return os.path.getsize(path) / div 
-         
+       return os.path.getsize(path) / div
+
 
 
 def passfail(func):
@@ -513,6 +513,47 @@ def PatchInPlace(namelist, patch, remove_quotes=True):
     os.remove(tmp_namelist)
 
 
+""" Comment out Function Not Working (yet)
+
+def CommentOut(namelist, levels, remove_quotes=True):
+
+    # create a temporary file for the namelist
+    tmp_namelist = namelist.with_suffix(namelist.suffix + '.tmp')
+    namelist.rename(tmp_namelist)
+
+    # apply the patch
+    nml = f90nml.read(tmp_namelist)
+
+    if len(levels) == 1:
+        # delete the level
+        del nml[levels[0]]
+
+        # add level with a comment character (!)
+        c_level = "!%s" % levels[0]
+
+        # add to nml
+        nml[c_level] = "NONE"
+
+    if len(levels) == 2:
+        # delete the level
+        del nml[levels[0]][levels[1]]
+
+        # add level with a comment character (!)
+        c_level = "!%s" % levels[1]
+
+        # add to nml
+        nml[levels[0]][c_level] = "NONE"
+
+    if len(levels) > 2:
+        raise NotImplementedError
+
+    # Write teh namelist
+    nml.write(namelist)
+
+    # remove the tmp namelist
+    os.remove(tmp_namelist)
+
+"""
 
 def test_logger():
     print('printing')
