@@ -219,7 +219,7 @@ class SetMeUp:
 
     @property
     def num_wrf_dom(self):
-        return self.input_namelist_file['domains']['max_dom']
+        return self.wps_namelist_file['share']['max_dom']
 
     @property
     def rst_files(self):
@@ -279,14 +279,15 @@ class SetMeUp:
     @property
     def wrf_hydro_basin_files(self):
         if self.hydro_flag:
-            return self.hydro_cpl_options['wrf_hydro_basin_files']
+            return Path(self.hydro_cpl_options['wrf_hydro_basin_files'])
         else:
             return None
 
     @property
     def hydro_namelist_file(self):
         if self.hydro_flag:
-            return self.hydro_cpl_options['hydro_namelist_template']
+            nlist_dirc = self.cwd.joinpath('user_config', 'namelists') 
+            return nlist_dirc.joinpath(self.hydro_cpl_options['hydro_namelist_template'])
         else:
             return None
 

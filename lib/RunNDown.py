@@ -17,7 +17,7 @@ class RunNDown(RunWPS, RunWRF):
     """
 
     def start(self):
-        self.logger.info('Main Run Directory: {}'.format(self.wrf_run_dirc))
+        self.logger.info('Main Run Directory: {}'.format(self.main_run_dirc))
         self.use_ndown()
         #self.createRunDirectory()
 
@@ -92,7 +92,8 @@ class RunNDown(RunWPS, RunWRF):
         for src in wfl_full_path:
             name = src.name
             dst = self.ndown_run_dirc.joinpath(name)
-            self.logger.info('%s --> %s' % (src, dst))
+            self.logger.info("symlinking parent domain wrf files...")
+            #self.logger.info('%s --> %s' % (src, dst))
             os.symlink(src, dst)
 
 
@@ -110,7 +111,7 @@ class RunNDown(RunWPS, RunWRF):
                 if dst_whf.is_file():
                     os.unlink(dst_whf)
                 self.logger.info("%s --> %s"%(src_whf,dst_whf))
-                os.symlink(src_wrf, dst_whf)
+                os.symlink(src_whf, dst_whf)
 
             # Copy the hdyro.namelist file
             dst_hydro_namelist = self.main_run_dirc.joinpath(self.hydro_namelist_file.name)
@@ -389,9 +390,9 @@ class RunNDown(RunWPS, RunWRF):
                     hydro_update = {"RESTART_FILE": "!RESTART_FILE"}
 
                 # write the file...
-                acc.GenericWrite(self.hydro_namelist_file)
+                acc.GenericWrite(self.hydro_namelist_file,
                                  hydro_update,
-                                 wrd.joinpath('hydro.namelist')
+                                 wrd.joinpath('hydro.namelist'))
 
 
             # !Run WRF!

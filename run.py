@@ -47,9 +47,12 @@ main = pathlib.Path('user_config/main.yml')
 
 ndown = RunNDown(main)
 ndown.start()
+ndown.use_hydro()
 #ndown.createRunDirectory()
 #ndown.geogrid()
-#ndown.metgrid()
+
+print(ndown.num_wrf_dom)
+ndown.metgrid()
 ndown.WRF_Ndown_TimePeriod()
 
 # Create Run Directorys and start run
