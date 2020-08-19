@@ -212,7 +212,7 @@ class RunNDown(RunWPS, RunWRF):
             return False
         # Link the appropraite WRF files
 
-    def WRF_Ndown_TimePeriod(self):
+    def WRF_Ndown_TimePeriod(self, skip_first_real_ndown=False):
         '''
         Run WRF and Real for specified intervals
         '''
@@ -267,63 +267,69 @@ class RunNDown(RunWPS, RunWRF):
             wrd = self.wrf_run_dirc
             nrd = self.ndown_run_dirc
 
+        
             '''
             PART 1:
             Run real + ndown to generatre the wrfbdy and wrfinput files in the ndown directory
+            We can skip this, if skip_first_real_ndown == True. In the case that this step went OK,
+            but WRF failed for whatever reason, and we don't like waiting...
             '''
-
-            template_namelist_input = mrd.joinpath('namelist.input.template')
-            namelist_input_quotes = nrd.joinpath('namelist.input.quotes')
-            namelist_input = nrd.joinpath('namelist.input')
-
-            # Write out namelist files
-            # there does not seem to be a way to write double padded
-            # integers using f90nml, which is why we do this ....
-            f90nml.patch(template_namelist_input,
-                         input_patch(self.num_wrf_dom),
-                         namelist_input_quotes)
-
-            # And... remove all of the quotes.
-            acc.RemoveQuotes(namelist_input_quotes,
-                             namelist_input)
-
-            # Link the metgrid files !
-            self.logger.info('Creating symlink for metgrid...')
-            for met in self.met_run_dirc.glob("met_em*"):
-                dst = self.ndown_run_dirc.joinpath(met.name)
-                if dst.is_symlink():
-                    dst.unlink()
-                os.symlink(met, dst)
-
-            #! Run Real !
-            real_success = self._real(nrd)
-            if not real_success:  # real worked (or at least returned True)
-                self.logger.error('Real failed for chunk {}'.format(num))
-                self.logger.error('Check rsl* logs in {}'.format(nrd))
-                sys.exit()
+            if (skip_first_real_ndown) and (num == 0):
+                self.logger.info("Skiping the first ndown step, which has presumably already been run")
+            
             else:
-                self.logger.info("Real Success for chunk {}".format(num))
+                template_namelist_input = mrd.joinpath('namelist.input.template')
+                namelist_input_quotes = nrd.joinpath('namelist.input.quotes')
+                namelist_input = nrd.joinpath('namelist.input')
 
-            #! Run Ndown !
+                # Write out namelist files
+                # there does not seem to be a way to write double padded
+                # integers using f90nml, which is why we do this ....
+                f90nml.patch(template_namelist_input,
+                             input_patch(self.num_wrf_dom),
+                             namelist_input_quotes)
 
-            # link/rename the wrf_input_d02 file
-            src_ndi = nrd.joinpath('wrfinput_d02')
-            dst_ndi  = nrd.joinpath('wrfndi_d02')
-            self.logger.info('%s --> %s'%(src_ndi,dst_ndi))
-            shutil.copyfile(src_ndi, dst_ndi)
+                # And... remove all of the quotes.
+                acc.RemoveQuotes(namelist_input_quotes,
+                                 namelist_input)
 
-            # Add the auxinput line to the namelist
-            #patch = {"time_control": {"io_form_auxinput2": 2}}
-            #acc.PatchInPlace(namelist_input, patch)
+                # Link the metgrid files !
+                self.logger.info('Creating symlink for metgrid...')
+                for met in self.met_run_dirc.glob("met_em*"):
+                    dst = self.ndown_run_dirc.joinpath(met.name)
+                    if dst.is_symlink():
+                        dst.unlink()
+                    os.symlink(met, dst)
 
-            # run ndown
-            ndown_success = self._ndown(nrd)
-            if not ndown_success:  # real worked (or at least returned True)
-                self.logger.error('nddown failed for chunk {}'.format(num))
-                self.logger.error('Check rsl* logs in {}'.format(nrd))
-                sys.exit()
-            else:
-                self.logger.info("ndown Success for chunk {}".format(num))
+                #! Run Real !
+                real_success = self._real(nrd)
+                if not real_success:  # real worked (or at least returned True)
+                    self.logger.error('Real failed for chunk {}'.format(num))
+                    self.logger.error('Check rsl* logs in {}'.format(nrd))
+                    sys.exit()
+                else:
+                    self.logger.info("Real Success for chunk {}".format(num))
+
+                #! Run Ndown !
+
+                # link/rename the wrf_input_d02 file
+                src_ndi = nrd.joinpath('wrfinput_d02')
+                dst_ndi  = nrd.joinpath('wrfndi_d02')
+                self.logger.info('%s --> %s'%(src_ndi,dst_ndi))
+                shutil.copyfile(src_ndi, dst_ndi)
+
+                # Add the auxinput line to the namelist
+                #patch = {"time_control": {"io_form_auxinput2": 2}}
+                #acc.PatchInPlace(namelist_input, patch)
+
+                # run ndown
+                ndown_success = self._ndown(nrd)
+                if not ndown_success:  # real worked (or at least returned True)
+                    self.logger.error('nddown failed for chunk {}'.format(num))
+                    self.logger.error('Check rsl* logs in {}'.format(nrd))
+                    sys.exit()
+                else:
+                    self.logger.info("ndown Success for chunk {}".format(num))
 
             '''
             PART 2:
@@ -355,7 +361,9 @@ class RunNDown(RunWPS, RunWRF):
             # link the correct files
             os.symlink(src_wrfbdy, dst_wrfbdy)
             os.symlink(src_wrfinput, dst_wrfinput)
-            os.symlink(src_wrflow, dst_wrflow)
+            
+            # ???? copy this one ... why ???
+            shutil.copy(src_wrflow, dst_wrflow)
 
             # Link the namelist file
             template_namelist_input = mrd.joinpath('namelist.input.template_inner')
