@@ -137,9 +137,9 @@ JobTemplates:
      # --------------------------------------------------------------------------------------------------------------------
      CentralIdaho_Outer:
           machine: R2
-          queue: "defq"
-          input_namelist: namelist.input.template.IDAHO_OUTER
-          wps_namelist: namelist.wps.template.IDAHO_OUTER
+          queue: "ipowerq"
+          input_namelist: Idaho/namelist.input.kw16_outer
+          wps_namelist: Idaho/namelist.wps.kw16_outer
           wrf_run_options:
               chunk_size: 6               # (days). How long do we want the wrf run 'chunks' to be?
               wall_time_per_hour: .10     # (hours). wrftime/real world time
@@ -184,11 +184,11 @@ JobTemplates:
      CentralIdaho_InnerNdown:
           machine: R2
           queue: "defq"
-          input_namelist: namelist.input.template.IDAHO
-          wps_namelist: namelist.wps.template.IDAHO
+          input_namelist: Idaho/namelist.input.wr20
+          wps_namelist: Idaho/namelist.wps.wr20
 
           wrf_run_options:
-              chunk_size: 6               # (days). How long do we want the wrf run 'chunks' to be?
+              chunk_size: 5               # (days). How long do we want the wrf run 'chunks' to be?
               wall_time_per_hour: .10     # (hours). wrftime/real world time
 
               #frames per auxhist?
@@ -231,8 +231,7 @@ JobTemplates:
 
 
           ndown_options:
-              input_namelist_inner: namelist.input.template.IDAHO_INNER
-              wps_namelist_inner: namelist.input.template.IDAHO_INNER
+              input_namelist_inner: Idaho/namelist.input.wr20_inner 
      # --------------------------------------------------------------------------------------------------------------------
 
 

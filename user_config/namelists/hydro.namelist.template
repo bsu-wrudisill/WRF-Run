@@ -2,7 +2,7 @@
 !!!! ---------------------- SYSTEM COUPLING ----------------------- !!!!
 
 ! Specify what is being coupled:  1=HRLDAS (offline Noah-LSM), 2=WRF, 3=NASA/LIS, 4=CLM
-sys_cpl = 1
+sys_cpl = 2
 
 !!!! ------------------- MODEL INPUT DATA FILES ------------------- !!!!
 
@@ -10,14 +10,14 @@ sys_cpl = 1
 GEO_STATIC_FLNM = "../Domain/geo_em.d01.nc"
 
 ! Specify the high-resolution routing terrain input data file (e.g.: "Fulldom_hires.nc")
-GEO_FINEGRID_FLNM = "../../Domain/Fulldom_hires.nc"
+GEO_FINEGRID_FLNM = "../Domain/Fulldom_hires.nc"
 
 ! Specify the spatial hydro parameters file (e.g.: "hydro2dtbl.nc")
 ! If you specify a filename and the file does not exist, it will be created for you.
-HYDROTBL_F = "../../Domain/hydro2tbl.nc"
+HYDROTBL_F = "../Domain/hydro2tbl.nc"
 
 ! Specify spatial metadata file for land surface grid. (e.g.: "GEOGRID_LDASOUT_Spatial_Metadata.nc")
-LAND_SPATIAL_META_FLNM = "../../Domain/GEOGRID_LDASOUT_Spatial_Metadata"
+LAND_SPATIAL_META_FLNM = "../Domain/GEOGRID_LDASOUT_Spatial_Metadata"
 
 ! Specify the name of the restart file if starting from restart...comment out with '!' if not...
 RESTART_FILE
@@ -45,12 +45,12 @@ rst_bi_out = 0      !0: use netcdf output restart file (default)
 RSTRT_SWC = 0
 
 ! Specify baseflow/bucket model initialization...(0=cold start from table, 1=restart file)
-GW_RESTART = 1
+GW_RESTART = 0
 
 !!!! -------------------- MODEL OUTPUT CONTROL -------------------- !!!!
 
 ! Specify the output file write frequency...(minutes)
-out_dt = 60
+out_dt = 1440
 
 ! Specify the number of output times to be contained within each output history file...(integer)
 !   SET = 1 WHEN RUNNING CHANNEL ROUTING ONLY/CALIBRATION SIMS!!!
@@ -69,7 +69,7 @@ io_form_outputs = 1
 ! Realtime run configuration option:
 ! 0=all (default), 1=analysis, 2=short-range, 3=medium-range, 4=long-range, 5=retrospective,
 ! 6=diagnostic (includes all of 1-4 outputs combined)
-io_config_outputs = 1
+io_config_outputs = 6
 
 ! Option to write output files at time 0 (restart cold start time): 0=no, 1=yes (default)
 t0OutputFlag = 1
@@ -122,7 +122,7 @@ AGGFACTRT = 4
 DTRT_CH = 300
 
 ! Specify the terrain routing model timestep...(seconds)
-DTRT_TER = 10
+DTRT_TER = 30
 
 ! Switch to activate subsurface routing...(0=no, 1=yes)
 SUBRTSWCRT = 1
@@ -135,35 +135,34 @@ OVRTSWCRT = 1
 rt_option = 1
 
 ! Switch to activate channel routing...(0=no, 1=yes)
-CHANRTSWCRT = 1
+CHANRTSWCRT = 0
 
 ! Specify channel routing option: 1=Muskingam-reach, 2=Musk.-Cunge-reach, 3=Diff.Wave-gridded
 channel_option = 2
 
 ! Specify the reach file for reach-based routing options (e.g.: "Route_Link.nc")
-route_link_f = "./DOMAIN/Route_Link.nc"
+route_link_f = "../Domain/Route_Link.nc"
 
 ! Specify the lake parameter file (e.g.: "LAKEPARM.nc").
 ! Note REQUIRED if lakes are on.
-! route_lake_f = "./DOMAIN/LAKEPARM.nc"
+! route_lake_f = "../Domain/LAKEPARM.nc"
 
 ! Switch to activate baseflow bucket model...(0=none, 1=exp. bucket, 2=pass-through)
 GWBASESWCRT = 1
 
 ! Groundwater/baseflow 2d mask specified on land surface model grid (e.g.: "GWBASINS.nc")
 !Note: Only required if baseflow  model is active (1 or 2) and UDMP_OPT=0.
-gwbasmskfil = "./DOMAIN/GWBASINS.nc"
+gwbasmskfil = "../Domain/GWBASINS.nc"
 
 ! Groundwater bucket parameter file (e.g.: "GWBUCKPARM.nc")
-GWBUCKPARM_file = "./DOMAIN/GWBUCKPARM.nc"
+GWBUCKPARM_file = "../Domain/GWBUCKPARM.nc"
 
 ! User defined mapping, such NHDPlus: 0=no (default), 1=yes
-UDMP_OPT = 1
+UDMP_OPT = 0
 
 ! If on, specify the user-defined mapping file (e.g.: "spatialweights.nc")
-udmap_file = "./DOMAIN/spatialweights.nc"
+udmap_file = "../Domain/spatialweights.nc"
 
-    restart_file = 'text'
 /
 
 &NUDGING_nlist
@@ -171,7 +170,7 @@ udmap_file = "./DOMAIN/spatialweights.nc"
 ! Path to the "timeslice" observation files.
 timeSlicePath = "./nudgingTimeSliceObs/"
 
-nudgingParamFile = "DOMAIN/nudgingParams.nc"
+nudgingParamFile = "../Domain/nudgingParams.nc"
 
 ! Nudging restart file = "nudgingLastObsFile"
 ! nudgingLastObsFile defaults to '', which will look for nudgingLastObs.YYYY-mm-dd_HH:MM:SS.nc
