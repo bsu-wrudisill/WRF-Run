@@ -24,6 +24,9 @@ class RunWPS(SetMeUp):
         # Run the 'patch' commant
         self.patch()
 
+        # 
+        
+
 
     @property
     def wps_patch(self):
@@ -51,7 +54,7 @@ class RunWPS(SetMeUp):
                           "metgrid": {
                              "opt_metgrid_tbl_path": str(self.met_exe_dirc)},
                           "ungrib": {
-                             "prefix": "PLEVS"},
+                             "prefix": self.ungrib_prefix},
                           "share": {
                              "start_date": start_date_rep,
                              "end_date": end_date_rep}
@@ -219,6 +222,9 @@ class RunWPS(SetMeUp):
                        "RUNDIR": str(self.ungrib_run_dirc)
                        }
 
+        # this is redundant 
+        self.ungrib_prefix = "PLEVS"
+
         # Write the namelist.wps
         self.writeWpsNamelist(self.ungrib_run_dirc)
 
@@ -337,7 +343,8 @@ class RunWPS(SetMeUp):
         acc.WriteSubmit(qp, replacedata, filename=submit_script)
 
         # Switch the ungrib prefix--PLEVS --> SFLUX
-        self.wps_patch['ungrib']['prefix'] = "SFLUX"
+        #self.wps_patch['ungrib']['prefix'] = "SFLUX"
+        self.ungrib_prefix = "SFLUX"
 
         # Patch the file, rewriting the old one
         self.writeWpsNamelist(self.ungrib_run_dirc)
@@ -541,7 +548,6 @@ class RunWPS(SetMeUp):
             if dst.is_symlink():
                 dst.unlink()
             os.symlink(geo_em, dst)
-
 
 
 

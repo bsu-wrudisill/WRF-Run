@@ -103,8 +103,8 @@ class RunWRF(SetMeUp):
         before linking them over, or to pre-check the WRF directrory before
         submitting a run.
 
-        :param      kwargs:  'geo_dirc':<filepath>
-                             'met_dirc':<filepath>
+        :param      kwargs:  'geo_run_dirc':<filepath>
+                             'met_run_dirc':<filepath>
         :type       kwargs:  str or pathlib.path
 
         :returns:   Dictioanary with the status of the seach
@@ -112,8 +112,8 @@ class RunWRF(SetMeUp):
         """
 
         self.logger.info('Setting up...\n{}'.format(self.wrf_run_dirc))
-        self.logger.info('Seeking met files in...\n{}'.format(self.met_dirc))
-        self.logger.info('Seeking geogrid files in...\n{}'.format(self.geo_dirc))
+        self.logger.info('Seeking met files in...\n{}'.format(self.met_run_dirc))
+        self.logger.info('Seeking geogrid files in...\n{}'.format(self.geo_run_dirc))
 
         # Get the number of WRF domains
         n = self.num_wrf_dom
@@ -122,7 +122,7 @@ class RunWRF(SetMeUp):
         # -------------------------------------------------
         required_geo_files = ['geo_em.d0{}.nc'.format(i + 1) for i in range(n)]
         geo_found, geo_message = acc.file_check(required_geo_files,
-                                                self.geo_dirc,
+                                                self.geo_run_dirc,
                                                 desc='GeoFiles')
         # Create list of the required dates
         # TODO:Check on metgrid freq (3H); what controls this???
@@ -145,7 +145,7 @@ class RunWRF(SetMeUp):
 
         # Check if the required metgrid files exist in the metgrid directory
         met_found, met_message = acc.file_check(required_met_files,
-                                                self.met_dirc,
+                                                self.met_run_dirc,
                                                 desc='MetgridFiles')
         # create status and return
         status = {'geo': [geo_found, geo_message, required_geo_files],
@@ -442,7 +442,7 @@ class RunWRF(SetMeUp):
                              namelist_input)
 
             # !Run Real!
-            real_success = self._real()
+            real_success = self._real(self.wrf_run_dirc)
             if not real_success:  # real worked (or at least returned True)
                 self.logger.error('Real failed for chunk {}'.format(num))
                 self.logger.error('Check rsl* logs in {}'.format(wrd))
@@ -558,7 +558,17 @@ class RunWRF(SetMeUp):
     ''''
     STATIC METHODS
     '''
+    def clean_wrf_directory(self):
+        # remove files.... 
+        remove_me = ['rsl.error.*', 'rsl.out*'] 
+        string = ','.join(remove_me)       
+        self.logger.info('Removing files .... {}'.format(string))
 
+        # loop through and remove all of the files... 
+        for rm_type in remove_me:
+                for rm in self.wrf_run_dirc.glob(rm_type):
+                     os.remove(rm)
+   
     @staticmethod
     def expected_wrf_files(max_dom,
                            start_date,

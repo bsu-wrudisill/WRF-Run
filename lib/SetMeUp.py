@@ -80,7 +80,10 @@ class SetMeUp:
         ungrib_template = _ungribtemplates.get(self.lbc_type.upper())
         ungrib_template = ungrib_template.get('wrf_version')
         self.ungrib_template = ungrib_template.get(self.wrf_version)
-
+        
+        # MAYBE CHANGE HTIS 
+        self.ungrib_prefix = None
+        
         # Env. file should contain all appropriate module loads necessary
         # to run the wrf/real/geo... etc. executable files.
         self.cwd = Path(os.getcwd())
@@ -127,6 +130,69 @@ class SetMeUp:
         # Other RunTime Options Below Here
         # --------------------------------
         # The options can be in both the 'job template' and the setup script... so we join them both.
+
+        
+        #### FIX ME ####
+        self.ndown_flag = False
+        self.hydro_flag = False
+
+
+    def createRunDirectory(self):
+        # copy contents of the 'WRFVX/run' directory to the main run dir
+        self.main_run_dirc.mkdir(parents=True, exist_ok=True)
+
+        # Self.wrf_run_dirc.mkdir()
+        shutil.copytree(self.wrf_exe_dirc.joinpath('run'),
+                        self.wrf_run_dirc, symlinks=True)
+
+        # make directories
+        self.wps_run_dirc.mkdir()
+        self.geo_run_dirc.mkdir()
+        self.met_run_dirc.mkdir()
+        self.data_dl_dirc.mkdir()
+
+
+        # NAMELIST.INPUT
+        shutil.copy(self.input_namelist_path,
+                    self.main_run_dirc.joinpath('namelist.input.template'))
+
+        shutil.copy(self.wps_namelist_path,
+                    self.main_run_dirc.joinpath('namelist.wps.template'))
+
+
+        # Copy real.exe to the ndown directory
+        shutil.copy(self.wrf_exe_dirc.joinpath('run', 'real.exe'), self.wrf_run_dirc)
+        shutil.copy(self.wrf_exe_dirc.joinpath('run', 'ndown.exe'), self.wrf_run_dirc)
+
+        # Copy METGRID
+        shutil.copy(self.met_exe_dirc.joinpath('metgrid.exe'),
+                    self.met_run_dirc)
+        shutil.copy(self.met_exe_dirc.joinpath('METGRID.TBL'),
+                    self.met_run_dirc)
+
+       # Copy ungrib files
+        shutil.copytree(self.ungrib_exe_dirc.joinpath('Variable_Tables'), 
+                        self.ungrib_run_dirc.joinpath('Variable_Tables'))
+
+        shutil.copy(self.ungrib_exe_dirc.joinpath('ungrib.exe'), 
+                    self.ungrib_run_dirc)
+
+        shutil.copy(self.wps_exe_dirc.joinpath('link_grib.csh'),
+                    self.ungrib_run_dirc)
+
+        # Copy geogrid files
+        shutil.copy(self.geo_exe_dirc.joinpath('geogrid.exe'),
+                    self.geo_run_dirc)
+        shutil.copy(self.geo_exe_dirc.joinpath('GEOGRID.TBL'),
+                    self.geo_run_dirc)
+
+        # Copy the environment file
+        shutil.copy(self.environment_file,
+                    self.main_run_dirc)
+
+        # Copy the configure scripts  ### !!!! DANGER !!!! cwd #####
+        shutil.copytree(self.cwd.joinpath('user_config'),
+                        self.main_run_dirc.joinpath('user_config'))
 
 
 
@@ -224,7 +290,7 @@ class SetMeUp:
     @property
     def rst_files(self):
         if self.restart:
-            return ['wrfrst_d0{}_{}'.format(dom, self.start_date.strftime(self.time_format)) for dom in range(self.max_dom)]
+            return ['wrfrst_d0{}_{}'.format(dom, self.start_date.strftime(self.time_format)) for dom in range(1,self.num_wrf_dom)]
         else:
             return []
 
