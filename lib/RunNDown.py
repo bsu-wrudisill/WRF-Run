@@ -225,8 +225,14 @@ class RunNDown(RunWPS, RunWRF):
             self.logger.info(open_message.format(num, num_chunks))
             self.logger.info(self.wrf_run_dirc)
             self.logger.info('restart={}'.format(chunk['restart']))
+                
+            # !!!! MAKE THIS MORE DYNAMIC !!!! 
+            # !!!! We might want the restart interval to be much less for various reasons !!!
+            
             # restart interval is always the chunk length
-            restartinterval = str(chunk['run_hours'] * 60)
+            #restartinterval = str(chunk['run_hours'] * 60)
+            restartinterval = str(1440)
+
             if chunk['run_hours'] < 24:
                 framesperout = chunk['run_hours']
                 framesperaux = str(24)
@@ -278,6 +284,7 @@ class RunNDown(RunWPS, RunWRF):
                 self.logger.info("Skiping the first ndown step, which has presumably already been run")
             
             else:
+                print(num, skip_first_real_ndown)
                 template_namelist_input = mrd.joinpath('namelist.input.template')
                 namelist_input_quotes = nrd.joinpath('namelist.input.quotes')
                 namelist_input = nrd.joinpath('namelist.input')
@@ -390,12 +397,13 @@ class RunNDown(RunWPS, RunWRF):
                 """
                 Note that we are not using hte f90 nml package to do this...
                 """
-
                 if chunk['restart']:
-                    hydro_update = {"RESTART_FILE": "RESTART_FILE = \"%s\"" % hydro_restart}
+                    hydro_update = {"RESTART_FILE": "./RESTART_FILE = \"%s\"" % hydro_restart,
+                                    "GW_RESTART": "GW_RESTART = 1"}
 
                 else:
-                    hydro_update = {"RESTART_FILE": "!RESTART_FILE"}
+                    hydro_update = {"RESTART_FILE": "!RESTART_FILE",
+                                    "GW_RESTART": "GW_RESTART = 0"}
 
                 # write the file...
                 acc.GenericWrite(self.hydro_namelist_file,
