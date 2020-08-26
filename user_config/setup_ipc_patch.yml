@@ -11,14 +11,14 @@
 # ------------------
 # Run date (Dyanamic-- these are optional. Scripts can modify)
 run_date:
-        start_date : 2000-01-01 
-        end_date : 2000-04-01
-lbc_type : cfsr              # one of cfsr, cfsrv2
-restart : True              # TRUE OR FALSE
+        start_date : 2014-08-15
+        end_date : 2014-10-01
+lbc_type : cfsrv2              # one of cfsr, cfsrv2
+restart : False              # TRUE OR FALSE
 geo_em_file : None           # <<< NOT IMPLEMENTED >>>> If None, geogrid.exe will be run
 metgrid_files : None         # <<< NOT IMPLEMENTED >>>> If None, metgrid.exe will be run
 lbc_files : None             # <<< NOT IMPLEMENTED >>>> If None, data will be downloaded based on specified LBC condition
-run_name : ipc_wrf_patch 
+run_name : ipc_wrf_patch_2nd
 
 
 # Static Parameters  (Not changed by scripts)
@@ -30,13 +30,13 @@ wrf_version : 4.0  # actually 4.1.2.... (ugh)
 
 # Existing paths-- executable directories, LBCs (if they exist), geogrid file (if it exists), etc:
 restart_directory: /home/wrudisill/scratch/ipc_wrf_patch_spinup/wrf 
-# wrf_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WRF-4.1.2/  # uncoupled 
-wrf_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WRF-4.1.2_WHCOUPLED/
+wrf_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WRF-4.1.2/  # uncoupled 
+#wrf_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WRF-4.1.2_WHCOUPLED/
 wps_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WPS-4.1/
 geog_data_path : /home/wrudisill/leaf/WRF/WPS_GEOG
 environment: envWRF_4.1.2_R2.sh
-scratch_space: /home/wrudisill/scratch/ipc_wrf_patch
-storage_space: /home/wrudisill/scratch/ipc_wrf_patch
+scratch_space: /home/wrudisill/scratch/ipc_wrf_patch_2nd
+storage_space: /home/wrudisill/scratch/ipc_wrf_patch_2nd
 # this is the path where the output files will be moved.
 # in theory somewhere more permenant than scratch. If it
 # is the same as the scratch space, nothing will be moved.
