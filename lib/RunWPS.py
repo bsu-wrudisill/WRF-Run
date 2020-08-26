@@ -235,8 +235,13 @@ class RunWPS(SetMeUp):
     # --------- BEGIN WRF VERSION RELATED OPTIONS LOGIC ---------------
     #################################################################
 
-	    # !!!   WRF V 4.0++  !!!
-        if float(self.wrf_version[0:3]) > 4.0:
+	 # !!!   WRF V 4.0++  !!!
+        #if float(self.wrf_version[0:3]) > 4.0:
+        
+        # 
+        #!!! Use the  from packaging import version function to compare versions (we can do 4.1.2 > 4.1.1 or whatevs) !!! 
+        #
+        if float(self.wrf_version) >= 4.0:
             _message = 'Running WRF Version {} ungrib for {}'
             _message = _message.format(self.wrf_version, self.lbc_type)
             logger.info(_message)
