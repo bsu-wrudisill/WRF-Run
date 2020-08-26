@@ -29,7 +29,7 @@ IGRID = 1
 
 ! Specify the restart file write frequency...(minutes)
 ! A value of -99999 will output restarts on the first day of the month only.
-rst_dt = -99999
+rst_dt = 1440  
 
 ! Reset the LSM soil states from the high-res routing restart file (1=overwrite, 0=no overwrite)
 ! NOTE: Only turn this option on if overland or subsurface rotuing is active!
@@ -45,12 +45,12 @@ rst_bi_out = 0      !0: use netcdf output restart file (default)
 RSTRT_SWC = 0
 
 ! Specify baseflow/bucket model initialization...(0=cold start from table, 1=restart file)
-GW_RESTART = 0
+GW_RESTART  
 
 !!!! -------------------- MODEL OUTPUT CONTROL -------------------- !!!!
 
 ! Specify the output file write frequency...(minutes)
-out_dt = 1440
+out_dt = 60 
 
 ! Specify the number of output times to be contained within each output history file...(integer)
 !   SET = 1 WHEN RUNNING CHANNEL ROUTING ONLY/CALIBRATION SIMS!!!
@@ -125,10 +125,10 @@ DTRT_CH = 300
 DTRT_TER = 30
 
 ! Switch to activate subsurface routing...(0=no, 1=yes)
-SUBRTSWCRT = 1
+SUBRTSWCRT = 0
 
 ! Switch to activate surface overland flow routing...(0=no, 1=yes)
-OVRTSWCRT = 1
+OVRTSWCRT = 0
 
 ! Specify overland flow routing option: 1=Seepest Descent (D8) 2=CASC2D (not active)
 ! NOTE: Currently subsurface flow is only steepest descent
