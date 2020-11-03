@@ -130,12 +130,11 @@ class SetMeUp:
         # Other RunTime Options Below Here
         # --------------------------------
         # The options can be in both the 'job template' and the setup script... so we join them both.
-
-        
+   
+             
         #### FIX ME ####
         self.ndown_flag = False
         self.hydro_flag = False
-
 
     def createRunDirectory(self):
         # copy contents of the 'WRFVX/run' directory to the main run dir
@@ -226,7 +225,7 @@ class SetMeUp:
         self.hydro_flag = True
         self.hydro_cpl_options = self.jobtemplate['hydro_cpl_options']
         self.hydro_cpl_options.update(self.yamlfile['hydro_cpl_options'])
-
+        self.hydro_restart_override = self.yamlfile['hydro_cpl_options'].get('hydro_restart_override', None)
 
     '''
     Define a bunch of properties about the run.
@@ -293,6 +292,7 @@ class SetMeUp:
             return ['wrfrst_d0{}_{}'.format(dom, self.start_date.strftime(self.time_format)) for dom in range(1,self.num_wrf_dom)]
         else:
             return []
+
 
     # SPECIAL CASE --- if ndown is called, we will use ungrib files from the parent run ungrib directory
     @property

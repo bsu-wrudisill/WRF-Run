@@ -102,7 +102,7 @@ class RunNDown(RunWPS, RunWRF):
             self.logger.info("WRF Hydro Coupling == True")
 
             # Create folder for geog information
-            domain = self.main_run_dirc.joinpath("DOMAIN")
+            domain = self.main_run_dirc.joinpath("Domain")
             domain.mkdir()
             for src_whf in self.wrf_hydro_basin_files.glob('*'):
 
@@ -221,7 +221,16 @@ class RunNDown(RunWPS, RunWRF):
 
         # Number of chunks
         num_chunks = len(self.chunk_tracker)
+        
+        # loop through WRF steps...
         for num, chunk in enumerate(self.chunk_tracker):
+            
+            # create boolean for status of chunks. The first chunk is special.
+            if num == 0:
+               first_chunk = True
+            else:
+               first_chunk = False 
+
             self.logger.info(open_message.format(num, num_chunks))
             self.logger.info(self.wrf_run_dirc)
             self.logger.info('restart={}'.format(chunk['restart']))
@@ -392,13 +401,16 @@ class RunNDown(RunWPS, RunWRF):
             # !ADJUST THE HYDRO.NAMELIST FILE IF NEEDED !#
             if self.hydro_flag:
                 time_format = "%Y-%m-%d_%H:%M:%S"
-                hydro_restart = "HYDRO_RST.%s_DOMAIN1"%(chunk['start_date'].strftime(time_format))
+                if self.hydro_restart_override and first_chunk:
+                    hydro_restart = self.hydro_restart_override 
+                else:
+                    hydro_restart = "./HYDRO_RST.%s_DOMAIN1"%(chunk['start_date'].strftime("%Y-%m-%d_%H:%M"))
 
                 """
                 Note that we are not using hte f90 nml package to do this...
                 """
                 if chunk['restart']:
-                    hydro_update = {"RESTART_FILE": "./RESTART_FILE = \"%s\"" % hydro_restart,
+                    hydro_update = {"RESTART_FILE": "RESTART_FILE = \"%s\"" % hydro_restart,
                                     "GW_RESTART": "GW_RESTART = 1"}
 
                 else:
