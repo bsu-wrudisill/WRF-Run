@@ -11,8 +11,8 @@
 # ------------------
 # Run date (Dyanamic-- these are optional. Scripts can modify)
 run_date:
-        start_date : 2018-03-22
-        end_date : 2018-03-27
+        start_date : 2018-03-11
+        end_date : 2018-03-23
 lbc_type : cfsrv2              # one of cfsr, cfsrv2
 restart : False               # TRUE OR FALSE
 geo_em_file : None           # <<< NOT IMPLEMENTED >>>> If None, geogrid.exe will be run

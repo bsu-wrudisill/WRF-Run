@@ -11,14 +11,14 @@
 # ------------------
 # Run date (Dyanamic-- these are optional. Scripts can modify)
 run_date:
-        start_date : 2018-04-01
-        end_date : 2018-04-30
+        start_date : 2018-03-01
+        end_date : 2018-04-01
 lbc_type : cfsrv2              # one of cfsr, cfsrv2
-restart : True               # TRUE OR FALSE
+restart : False               # TRUE OR FALSE
 geo_em_file : None           # <<< NOT IMPLEMENTED >>>> If None, geogrid.exe will be run
 metgrid_files : None         # <<< NOT IMPLEMENTED >>>> If None, metgrid.exe will be run
 lbc_files : None             # <<< NOT IMPLEMENTED >>>> If None, data will be downloaded based on specified LBC condition
-run_name : im_not_used 
+run_name : ndown_test
 
 
 # Static Parameters  (Not changed by scripts)
@@ -29,14 +29,14 @@ wrf_version : 4.1.2
 
 
 # Existing paths-- executable directories, LBCs (if they exist), geogrid file (if it exists), etc:
-restart_directory : /home/wrudisill/scratch/CoupledWRFExperiments/run_coupled
+restart_directory : /home/wrudisill/wrf_restarts
 # wrf_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WRF-4.1.2/  # uncoupled 
 wrf_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WRF-4.1.2_WHCOUPLED/
 wps_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WPS-4.1/
 geog_data_path : /home/wrudisill/leaf/WRF/WPS_GEOG
 environment: envWRF_4.1.2_R2.sh
-scratch_space: /home/wrudisill/scratch/run_coupled_control_1
-storage_space: /home/wrudisill/scratch/run_coupled_control_1
+scratch_space: /home/wrudisill/scratch/control_run_coupled
+storage_space: /home/wrudisill/scratch/control_run_coupled
 # this is the path where the output files will be moved.
 # in theory somewhere more permenant than scratch. If it
 # is the same as the scratch space, nothing will be moved.
@@ -48,7 +48,7 @@ storage_space: /home/wrudisill/scratch/run_coupled_control_1
 # WRF I/O and Run Control
 wrf_run_options:
         chunk_size: 3              # (days). How long do we want the wrf run 'chunks' to be?
-        wall_time_per_hour: .45     # (hours). wrftime::real world time
+        wall_time_per_hour: .25     # (hours). wrftime::real world time
         #frames per auxhist?
         #restart interval?
         #etc etc
@@ -59,10 +59,9 @@ wrf_run_options:
 
 # ndown.exe
 ndown_options:
-        parent_wrf_run: /home/wrudisill/scratch/CoupledWRFExperiments/spring_season_18/
+        parent_wrf_run: /home/wrudisill/scratch/spring_season_18/
 
 
 # WRF-Hydro Coupling
 hydro_cpl_options:
         wrf_hydro_basin_files: /home/wrudisill/leaf/WRF-WH-CoupledFiles/attempt_1/out_NED_fxpt_4_100
-        hydro_restart_override: /home/wrudisill/scratch/CoupledWRFExperiments/run_coupled/wrf/HYDRO_RST.2018-03-31_00:00_DOMAIN1
