@@ -36,6 +36,7 @@ parser.add_argument("--overwrite", action="store_true", help="Overwrite exixting
 parser.add_argument("--start_date", default=None)
 parser.add_argument("--end_date", default=None)
 parser.add_argument("--lbc", default=None)
+parser.add_argument("--dirname", default=None)
 
 #parser.add_argument("-ed", action='store_const') 
  
@@ -102,7 +103,10 @@ logger.info('LBC type: {}'.format(lbc))
 
 # Folder to create 
 baseyear = "WY{}".format(args.wateryear)
-basemonth= "Month{}".format(month_double_pad)
+if args.dirname:
+    basemonth = args.dirname
+else:
+    basemonth= "Month{}".format(month_double_pad)
 
 run_folder = pathlib.Path('/home/rudiwill/rudiwill/')
 run_folder = run_folder.joinpath(baseyear, basemonth)
