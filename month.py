@@ -63,10 +63,14 @@ else:
 month_double_pad = start_date.strftime("%m")
 
 # figure out the lbc type
-if year >= 2011:
-    lbc = 'cfsrv2'
-if year < 2011:
-    lbc = 'cfsr'
+if args.lbc == None:
+    if year > 2011:
+        lbc = 'cfsrv2'
+    if year <= 2011:
+        lbc = 'cfsr'
+else:
+    assert args.lbc in ['cfsr', 'cfsrv2']
+    lbc = args.lbc
 
 
 # 2) ------------- Configure the logger   ---------------------
