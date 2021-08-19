@@ -183,7 +183,7 @@ JobTemplates:
 
      CentralIdaho_InnerNdown:
           machine: R2
-          queue: "defq"
+          queue: "leaf"
           input_namelist: Idaho/namelist.input.wr20
           wps_namelist: Idaho/namelist.wps.wr20
 

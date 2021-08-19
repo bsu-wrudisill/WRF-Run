@@ -119,7 +119,34 @@ class RunNDown(RunWPS, RunWRF):
         else:
             self.logger.info("WRF Hydro Coupling == False")
 
+        # Get the restart file if it is called for
+        if self.restart:
+            # 1. Look for restart files in the wrf directory
+            self.logger.info('Restart run... search for appropriate restart files:')
+            rest_found, rest_message = acc.file_check(self.rst_files,
+                                                      self.wrf_run_dirc)
+            if rest_found:
+                self.logger.info('Found restart files in wrf run directory')
 
+            else:
+                # 2. look for restart files in the parent restart directory.
+                rest_found, rest_message = acc.file_check(self.rst_files,
+                                                          self.restart_directory)
+
+                # copy them over if they have been found
+                if rest_found:
+                    for rst in self.rst_files:
+                        self.logger.info('Copying the following restart files...')
+                        self.logger.info(rst)
+                        self.logger.info('{} --> {}'.format(self.restart_directory, self.wrf_run_dirc))
+                        shutil.copy(self.restart_directory.joinpath(rst), self.wrf_run_dirc)
+                else:
+                    self.logger.error('Did not location restart files in {}'.format(self.restart_directory))
+                    self.logger.error(rest_message)
+                    sys.exit()
+
+        else:
+            self.logger.info('No restart files are requested')
 
 
 

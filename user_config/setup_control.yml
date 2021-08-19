@@ -11,8 +11,8 @@
 # ------------------
 # Run date (Dyanamic-- these are optional. Scripts can modify)
 run_date:
-        start_date : 2018-05-01
-        end_date : 2018-05-30
+        start_date : 2018-04-29
+        end_date : 2018-07-01
 lbc_type : cfsrv2              # one of cfsr, cfsrv2
 restart : True               # TRUE OR FALSE
 geo_em_file : None           # <<< NOT IMPLEMENTED >>>> If None, geogrid.exe will be run
@@ -29,15 +29,16 @@ wrf_version : 4.1.2
 
 
 # Existing paths-- executable directories, LBCs (if they exist), geogrid file (if it exists), etc:
-restart_directory : /home/wrudisill/scratch/CoupledWRFExperiments/run_coupled
+restart_directory: /home/wrudisill/scratch/CoupledWRFExperiments/run_coupled_control_may/wrf 
 # wrf_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WRF-4.1.2/  # uncoupled 
-wrf_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WRF-4.1.2_WHCOUPLED/
-wps_exe_directory : /home/wrudisill/WRF-R2/4.1.2/WPS-4.1/
-geog_data_path : /home/wrudisill/leaf/WRF/WPS_GEOG
+wrf_exe_directory: /home/wrudisill/WRF-R2/4.1.2/WRF-4.1.2_WHCOUPLED/
+wps_exe_directory: /home/wrudisill/WRF-R2/4.1.2/WPS-4.1/
+geog_data_path: /home/wrudisill/leaf/WRF/WPS_GEOG
 environment: envWRF_4.1.2_R2.sh
-scratch_space: /home/wrudisill/scratch/CoupledWRFExperiments/run_coupled_control_june
-storage_space: /home/wrudisill/scratch/CoupledWRFExperiments/run_coupled_control_june
-# this is the path where the output files will be moved.
+scratch_space: /home/wrudisill/scratch/CoupledWRFExperiments/run_coupled_control_mayjune_ens4
+storage_space: /home/wrudisill/scratch/CoupledWRFExperiments/run_coupled_control_mayjune_ens4
+
+        # this is the path where the output files will be moved.
 # in theory somewhere more permenant than scratch. If it
 # is the same as the scratch space, nothing will be moved.
 
@@ -65,4 +66,4 @@ ndown_options:
 # WRF-Hydro Coupling
 hydro_cpl_options:
         wrf_hydro_basin_files: /home/wrudisill/leaf/WRF-WH-CoupledFiles/attempt_1/out_NED_fxpt_4_100
-        hydro_restart_override: /home/wrudisill/scratch/CoupledWRFExperiments/spinup/results/spin/HYDRO_RST.2018-05-31_00:00_DOMAIN1
+        hydro_restart_override: /home/wrudisill/scratch/CoupledWRFExperiments/spinup/results_withrout/spin/HYDRO_RST.2014-04-29_00:00_DOMAIN1

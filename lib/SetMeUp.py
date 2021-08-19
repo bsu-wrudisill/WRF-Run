@@ -236,13 +236,19 @@ class SetMeUp:
     # !!!THESE PROPERTIES GET SPECIAL SETTER HANDLERS!!!
     @property
     def start_date(self):
-        return pd.to_datetime(self.start_date_string)
+        if len(str(self.start_date_string)) <= 10:
+            return pd.to_datetime(self.start_date_string)
+        else:
+            return pd.to_datetime(self.start_date_string, format="%Y-%m-%d_%H:%M")
 
     @property
     def end_date(self):
-        return pd.to_datetime(self.end_date_string)
+        if len(str(self.end_date_string)) <= 10:
+            return pd.to_datetime(self.end_date_string)
+        else:
+            return pd.to_datetime(self.end_date_string, format="%Y-%m-%d_%H:%M")
 
-    # !!! THESE DO NOT. Just update the parent parameter to change them !!!!
+# !!! THESE DO NOT. Just update the parent parameter to change them !!!!
     @property
     def wrf_run_dirc(self):
         return self.main_run_dirc.joinpath('wrf')

@@ -29,7 +29,7 @@ import os
 cwd = pathlib.Path(os.getcwd())
 
 # suffix = datetime.datetime.now().strftime("%m-%d_%H%M%S")
-logfile= 'test.log'
+logfile= 'coupled_run_june_control.log'
 file_handler = logging.FileHandler(filename=logfile)
 stdout_handler = logging.StreamHandler(sys.stdout)
 logging.basicConfig(level=logging.INFO,
@@ -48,13 +48,15 @@ main = pathlib.Path('user_config/main.yml')
 ndown = RunNDown(main)
 ndown.start()
 ndown.use_hydro()
-#ndown.createRunDirectory()
+ndown.createRunDirectory()
+
+
+
 #ndown.geogrid()
+#ndown.metgrid()
 
-print(ndown.num_wrf_dom)
-ndown.metgrid()
-ndown.WRF_Ndown_TimePeriod()
-
+#ndown.WRF_Ndown_TimePeriod(skip_first_real_ndown=True)
+#ndown.WRF_Ndown_TimePeriod()
 # Create Run Directorys and start run
 #--------------------------------------
 #
